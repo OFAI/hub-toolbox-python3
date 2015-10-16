@@ -43,7 +43,6 @@ class SharedNN():
             nn = np.argsort(di)
             z[i, nn[0:self.k]] = 1
             
-        #Dsnn = np.zeros(np.shape(self.D), dtype=self.D.dtype)
         Dsnn = np.zeros_like(self.D)
         for i in range(n):
             zi = z[i, :]

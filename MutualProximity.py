@@ -23,6 +23,7 @@ Possible types:
 
 [1] Local and global scaling reduce hubs in space, 
 Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012
+
 This file was ported from MATLAB(R) code to Python3
 by Roman Feldbauer <roman.feldbauer@ofai.at>
 
@@ -75,27 +76,12 @@ class MutualProximity():
                              "Distribution.gammi)\n"+\
                              "Dmp = mp.calculate_mutual_proximity()")
                 Dmp = np.array([])
-        """
-        else:
-            if distrType == 'empiric':
-                Dmp = self.mp_empiric()
-            elif distrType == 'gauss':
-                Dmp = self.mp_gauss()
-            elif distrType == 'gaussi':
-                Dmp = self.mp_gaussi()
-            elif distrType == 'gammai':
-                Dmp = self.mp_gammai()
-            else:
-                self.warning("Valid Mutual Proximity type missing!\n"+\
-                             "Use: \n"+"mp = MutualProximity(D, 'empiric'|"+\
-                             "'gauss'|'gaussi'|'gammi')\n"+\
-                             "Dmp = mp.calculate_mutual_proximity()")
-                Dmp = np.array([])
-        """    
+       
         return Dmp
          
     def mp_empiric(self):
         """Compute Mutual Proximity distances with empirical data (slow)."""
+        
         np.fill_diagonal(self.D, 0)
         n = np.shape(self.D)[0]
         Dmp_list = [np.zeros(n-i) for i in range(n)]
@@ -158,7 +144,7 @@ class MutualProximity():
                 low = np.tile(np.finfo(np.float32).min, 2)
                 p12 = mvn.mvnun(low, x, m, c)[0] # [0]...p, [1]...inform
                 if np.isnan(p12):
-                    c += epsmat*1e7
+                    c += epsmat*1e7 # MUCH more than in matlab
                     p12 = mvn.mvnun(low, x, m, c)[0]
                 assert not np.isnan(p12), "p12 is NaN: i={}, j={}".format(i, j)
                 Dmp[j, i] = p1 + p2 - p12
@@ -168,6 +154,7 @@ class MutualProximity():
     
     def mp_gaussi(self):
         """Compute Mutual Proximity modeled with independent Gaussians (fast)."""
+        
         np.fill_diagonal(self.D, 0)
         mu = np.mean(self.D, 0)
         sd = np.std(self.D, 0, ddof=1)
@@ -191,6 +178,7 @@ class MutualProximity():
     
     def mp_gammai(self):
         """Compute Mutual Proximity modeled with independent Gamma distributions."""
+        
         np.fill_diagonal(self.D, 0)
         mu = np.mean(self.D, 0)
         va = np.var(self.D, 0, ddof=1)

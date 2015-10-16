@@ -1,5 +1,5 @@
 """
-Taken from the DR-Toolbox 
+Intrinsic dimensionality estimation based on the DR-Toolbox 
 
 This file is part of the Matlab Toolbox for Dimensionality Reduction v0.7.2b.
 The toolbox can be obtained from http://homepage.tudelft.nl/19j49

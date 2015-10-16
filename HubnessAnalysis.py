@@ -1,5 +1,5 @@
 """
-Performs a quick hubness analysis with all the functions provided in this 
+Performs a quick hubness analysis with some of the functions provided in this 
 toolbox.
 
 This file is part of the HUB TOOLBOX available at
@@ -44,7 +44,6 @@ class HubnessAnalysis():
         self.haveClasses, self.haveVectors = False, False
         if D is None:
             self.D, self.classes, self.vectors = self.load_dexter()
-            #self.D, self.classes, self.vectors = self.load_small_data()
             self.haveClasses, self.haveVectors = True, True
         else:
             self.D = np.copy(D)
@@ -162,17 +161,22 @@ class HubnessAnalysis():
         print('This dataset is one of five datasets of the NIPS 2003 feature');
         print('selection challenge.\n');
         print('http://archive.ics.uci.edu/ml/datasets/Dexter\n');
+        
+        import os
     
         n = 300
         dim = 20000
         
         # Read class labels
-        classes = np.loadtxt('example_datasets/dexter_train.labels')  
-        #classes = np.loadtxt('example_datasets/small.labels')
+        classes_file = os.path.dirname(os.path.realpath(__file__)) +\
+            '/example_datasets/dexter_train.labels'
+        classes = np.loadtxt(classes_file)  
 
         # Read data
         vectors = np.zeros( (n, dim) )
-        with open('example_datasets/dexter_train.data', mode='r') as fid:
+        data_file = os.path.dirname(os.path.realpath(__file__)) + \
+            '/example_datasets/dexter_train.data'
+        with open(data_file, mode='r') as fid:
             data = fid.readlines()       
         row = 0
         for line in data:
@@ -185,38 +189,7 @@ class HubnessAnalysis():
         # Calc distance
         D = cosine_distance(vectors)
         return D, classes, vectors
-        
-    def load_small_data(self):
-        """Load the example data set (dexter)."""
-        
-        print('\nNO PARAMETERS GIVEN! Loading & evaluating SMALL data set.\n');
-        print('SMALL is artificial data, 6 points, 10 dim, sparse, 2 classes.');
-        
-       
-        n = 6
-        dim = 10
-        
-        # Read class labels
-        classes = np.loadtxt('example_datasets/small.labels')
-
-        # Read data
-        vectors = np.zeros( (n, dim) )
-        with open('example_datasets/small.data', mode='r') as fid:
-        #with open('example_datasets/small2.data', mode='r') as fid:
-        #small2.data: only -1 labels
-            data = fid.readlines()       
-        row = 0
-        for line in data:
-            line = line.strip().split() # line now contains pairs of dim:val
-            for word in line:
-                    col, val = word.split(':')
-                    vectors[row][int(col)-1] = int(val)
-            row += 1
-        
-        # Calc distance
-        D = cosine_distance(vectors)
-        return D, classes, vectors
-        
+                
 def cosine_distance(x):
     """Calculate the cosine distance."""
     

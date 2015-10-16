@@ -26,9 +26,11 @@ http://jmlr.org/papers/volume13/schnitzer12a/schnitzer12a.pdf
 
 The HUB TOOLBOX is a collection of hub/anti-hub analysis tools. To quickly
 try the various scaling functions on your distance matrices and evaluate their
-impact use the hubness_analysis() function:
+impact use the HubnessAnalysis() class:
 
->> hubness_analysis(D, classes, vectors);
+>>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
+>>> analysis = HubnessAnalysis(D, classes, vectors)
+>>> analysis.analyse_hubness() 
 
 'D' is your (NxN) distance matrix, 'classes' is an optional vector with a
 class number per item in the rows of D. 'vectors' is the optional original data
@@ -112,4 +114,12 @@ data set hubness (S^n=5)                 : 1.72
 % of k=5-NN lists the largest hub occurs : 8.333%
 k=5-NN classification accuracy           : 77.67%
 Goodman-Kruskal index (higher=better)    : 0.152
+
+
+--------------
+ REQUIREMENTS
+--------------
++ Python3
++ NumPy
++ SciPy
 

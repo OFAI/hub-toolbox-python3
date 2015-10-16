@@ -1,0 +1,115 @@
+-------------------------
+ HUB TOOLBOX VERSION 2.1 
+ October 16, 2015
+-------------------------
+
+This is the HUB TOOLBOX for Python3
+(c) 2015, Roman Feldbauer <roman.feldbauer@ofai.at>
+ported from the matlab code by
+(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+
+If you use the functions in your publication, please cite:
+
+@article{schnitzer2012local,
+  title={Local and global scaling reduce hubs in space},
+  author={Schnitzer, Dominik and Flexer, Arthur and Schedl, Markus and Widmer,
+    Gerhard},
+  journal={Journal of Machine Learning Research},
+  volume={13},
+  pages={2871--2902},
+  year={2012}
+}
+
+The full publication is available at:
+http://jmlr.org/papers/volume13/schnitzer12a/schnitzer12a.pdf
+
+
+The HUB TOOLBOX is a collection of hub/anti-hub analysis tools. To quickly
+try the various scaling functions on your distance matrices and evaluate their
+impact use the hubness_analysis() function:
+
+>> hubness_analysis(D, classes, vectors);
+
+'D' is your (NxN) distance matrix, 'classes' is an optional vector with a
+class number per item in the rows of D. 'vectors' is the optional original data
+vectors. The function will output various hubness measurements, try to remove
+hubs and evaluates the input data again.
+
+Internally the function uses the:
+  *  mutual_proximity(D),
+  *  local_scaling(D, k),
+  *  shared_nn(D, k)
+functions to reduce hubness with different methods, and
+  *  hubness(D, k),
+  *  knn_classification(D, classes, k),
+  *  goodman_kruskal(D, classes),
+  *  intrinsic_dim(vectors),
+to do the hubness analysis. Use the functions separately to do a more specific
+analysis of your own data.
+
+--------------------------------------
+ EXAMPLE WITH BUNDLED DEXTER DATA SET
+--------------------------------------
+
+If no parameter to hubness_analysis() is given, the DEXTER data set is loaded
+and evaluated. See example_datasets/ABOUT for more information about the data.
+
+$ python3 HubnessAnalysis.py 
+
+NO PARAMETERS GIVEN! Loading & evaluating DEXTER data set.
+
+DEXTER is a text classification problem in a bag-of-word
+representation. This is a two-class classification problem
+with sparse continuous input variables.
+This dataset is one of five datasets of the NIPS 2003 feature
+selection challenge.
+
+http://archive.ics.uci.edu/ml/datasets/Dexter
+
+
+Hubness Analysis
+
+ORIGINAL DATA:
+data set hubness (S^n=5)                 : 4.22
+% of anti-hubs at k=5                    : 26.67%
+% of k=5-NN lists the largest hub occurs : 23.67%
+k=5-NN classification accuracy           : 80.33%
+Goodman-Kruskal index (higher=better)    : 0.104
+original dimensionality                  : 20000
+intrinsic dimensionality estimate        : 161.0
+
+MUTUAL PROXIMITY (Empiric/Slow):
+data set hubness (S^n=5)                 : 0.608
+% of anti-hubs at k=5                    : 3.667%
+% of k=5-NN lists the largest hub occurs : 5.667%
+k=5-NN classification accuracy           : 90.33%
+Goodman-Kruskal index (higher=better)    : 0.132
+
+MUTUAL PROXIMITY (Independent Gaussians):
+data set hubness (S^n=5)                 : 1.83
+% of anti-hubs at k=5                    : 8.333%
+% of k=5-NN lists the largest hub occurs : 9.333%
+k=5-NN classification accuracy           : 88.0%
+Goodman-Kruskal index (higher=better)    : 0.14
+
+MUTUAL PROXIMITY (Independent Gamma):
+data set hubness (S^n=5)                 : 1.82
+% of anti-hubs at k=5                    : 8.333%
+% of k=5-NN lists the largest hub occurs : 9.333%
+k=5-NN classification accuracy           : 87.67%
+Goodman-Kruskal index (higher=better)    : 0.141
+
+LOCAL SCALING (Original, k=10):
+data set hubness (S^n=5)                 : 1.42
+% of anti-hubs at k=5                    : 5.333%
+% of k=5-NN lists the largest hub occurs : 7.667%
+k=5-NN classification accuracy           : 86.0%
+Goodman-Kruskal index (higher=better)    : 0.156
+
+SHARED NEAREST NEIGHBORS (k=10):
+data set hubness (S^n=5)                 : 1.72
+% of anti-hubs at k=5                    : 8.0%
+% of k=5-NN lists the largest hub occurs : 8.333%
+k=5-NN classification accuracy           : 77.67%
+Goodman-Kruskal index (higher=better)    : 0.152
+

@@ -5,7 +5,7 @@
 
 This is the HUB TOOLBOX for Python3
 (c) 2015, Roman Feldbauer <roman.feldbauer@ofai.at>
-ported from the matlab code by
+Original matlab code by
 (c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
 
 If you use the functions in your publication, please cite:

@@ -22,6 +22,7 @@ from hub_toolbox.IntrinsicDim import IntrinsicDim
 from hub_toolbox.MutualProximity import MutualProximity, Distribution
 from hub_toolbox.LocalScaling import LocalScaling
 from hub_toolbox.SharedNN import SharedNN
+from hub_toolbox.Centering import Centering
 
 
 class HubnessAnalysis():
@@ -112,6 +113,29 @@ class HubnessAnalysis():
         hubness = Hubness(Dn)
         Sn5, Nk5 = hubness.calculate_hubness()[::2]
         self.print_results('SHARED NEAREST NEIGHBORS (k=10)', Dn, Sn5, Nk5)
+        
+        # Hubness after centering
+        vectors = self.load_dexter(rawData=True)
+        cent = Centering(vectors)
+        D_cent = cosine_distance(cent.centering())
+        hubness = Hubness(D_cent)
+        Sn5, Nk5 = hubness.calculate_hubness()[::2]
+        self.print_results('CENTERING', D_cent, Sn5, Nk5)
+        
+        
+        # Hubness after weighted centering
+        gamma = 0.4
+        D_wcent = cosine_distance(cent.weighted_centering(gamma))
+        hubness = Hubness(D_wcent)
+        Sn5, Nk5 = hubness.calculate_hubness()[::2]
+        self.print_results('WEIGHTED CENTERING (gamma={})'.format(gamma), \
+                           D_wcent, Sn5, Nk5)
+        
+        # Hubness after localized centering
+        D_lcent = 1 - cent.localized_centering(10, 1)
+        hubness = Hubness(D_lcent)
+        Sn5, Nk5 = hubness.calculate_hubness()[::2]
+        self.print_results('LOCALIZED CENTERING', D_lcent, Sn5, Nk5)
           
           
         
@@ -151,7 +175,7 @@ class HubnessAnalysis():
                 print('original dimensionality                  : No vectors given')
                 print('intrinsic dimensionality estimate        : No vectors given')
         
-    def load_dexter(self):
+    def load_dexter(self, rawData = False):
         """Load the example data set (dexter)."""
         
         print('\nNO PARAMETERS GIVEN! Loading & evaluating DEXTER data set.\n');
@@ -186,9 +210,12 @@ class HubnessAnalysis():
                     vectors[row][int(col)-1] = int(val)
             row += 1
         
-        # Calc distance
-        D = cosine_distance(vectors)
-        return D, classes, vectors
+        if rawData:
+            return vectors
+        else:
+            # Calc distance
+            D = cosine_distance(vectors)
+            return D, classes, vectors
                 
 def cosine_distance(x):
     """Calculate the cosine distance."""

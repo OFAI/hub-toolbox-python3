@@ -53,7 +53,7 @@ class MutualProximity():
         self.D = np.copy(D)
         
     def calculate_mutual_proximity(self, distrType=None):
-        """Applies MP on a distance matrix."""
+        """Apply MP on a distance matrix."""
         
         if distrType is None:
             print("No Mutual Proximity type given. Using: Distribution.empiric")
@@ -109,7 +109,7 @@ class MutualProximity():
         return Dmp # CHECK: max matlab-numpy difference: 0.0
     
     def mp_gauss(self):
-        """Compute Mutual Proximity distances with Gaussian model (really slow)."""
+        """Compute Mutual Proximity distances with Gaussian model (very slow)."""
         
         np.fill_diagonal(self.D, 0)
         mu = np.mean(self.D, 0)

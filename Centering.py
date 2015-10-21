@@ -7,7 +7,7 @@ EARLY DEVELOPMENT VERSION
 """
 
 import numpy as np
-from scipy.spatial.distance import cosine
+from hub_toolbox import Distances as htd
 
 class Centering(object):
     """Transform data (in vector space) by various 'centering' approaches."""
@@ -42,7 +42,6 @@ class Centering(object):
     def localized_centering(self, kappa:int, gamma:float = 1):
         """Perform localized centering."""
         # TODO CHECK CORRECTNESS!!
-        from hub_toolbox.HubnessAnalysis import cosine_distance
         
         if kappa == None:
             kappa = 20
@@ -53,7 +52,7 @@ class Centering(object):
         v = self.vectors / np.sqrt((self.vectors ** 2).sum(-1))[..., np.newaxis]
         
         # for unit vectors it holds inner() == cosine()
-        sim = -(cosine_distance(v) - 1)
+        sim = -(htd.cosine_distance(v) - 1)
         n = sim.shape[0]
         local_affinity = np.zeros(n)
         for i in range(n):
@@ -61,15 +60,16 @@ class Centering(object):
             sim_i = sim[i, :]
             #TODO randomization
             nn = np.argsort(sim_i)[::-1][1 : kappa+1]
-            c_kappa_x = np.mean(v[nn], 0)     
-            #local_affinity[i] = np.inner(x, c_kappa_x)       
-            local_affinity[i] = cosine(x, c_kappa_x) 
+            c_kappa_x = np.mean(v[nn], 0)
+            # c_kappa_x has not unit length in general
+            local_affinity[i] = np.inner(x, c_kappa_x)       
+            #local_affinity[i] = cosine(x, c_kappa_x) 
         sim_lcent = sim - (local_affinity ** gamma)
         return sim_lcent
 
 if __name__ == '__main__':
-    vectors = np.arange(1200).reshape(30,40)
+    vectors = np.arange(12).reshape(3,4)
     c = Centering(vectors)
-    c.centering()
-    c.weighted_centering(0.5)
-    c.localized_centering(20)
+    print("Centering: ............. {}".format(c.centering()))
+    print("Weighted centering: .... {}".format(c.weighted_centering(0.4)))
+    print("Localized centering: ... {}".format(c.localized_centering(2)))

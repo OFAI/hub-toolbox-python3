@@ -23,6 +23,7 @@ from hub_toolbox.MutualProximity import MutualProximity, Distribution
 from hub_toolbox.LocalScaling import LocalScaling
 from hub_toolbox.SharedNN import SharedNN
 from hub_toolbox.Centering import Centering
+from hub_toolbox import Distances as htd
 
 
 class HubnessAnalysis():
@@ -57,88 +58,92 @@ class HubnessAnalysis():
                 self.haveVectors = True
         self.n = len(self.D)
                 
-    def analyse_hubness(self):
+    def analyse_hubness(self, origData=True, mp=True, mp_gauss=False, \
+                        mp_gaussi=True, mp_gammai=True, ls=True, snn=True, \
+                        cent=True, wcent=True, wcent_g=0.4, \
+                        lcent=True, lcent_k=40, lcent_g=1.4):
         """Analyse hubness in original data and rescaled distances.
         
-        Rescale algorithms: Mutual Proximity (empiric), 
-        Local Scaling, Shared Nearest Neighbors"""
+        Use boolean parameters to choose which analyses to perform.        
+        Rescale algorithms: Mutual Proximity (empiric, gaussian, independent 
+        gaussian, independent gamma), Local Scaling, Shared Nearest Neighbors,
+        Centering, Weighted Centering, Localized Centering"""
         
         print()
         print("Hubness Analysis")
             
-        #"""    
-        # Hubness in original data
-        hubness = Hubness(self.D) 
-        # Get hubness and n-occurence (slice omits elem 1, i.e. kNN)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('ORIGINAL DATA', self.D, Sn5, Nk5, True)
-        #"""
-        
-        # Hubness in empiric mutual proximity distance space
-        mut_prox = MutualProximity(self.D)
-        Dn = mut_prox.calculate_mutual_proximity(Distribution.empiric)
-        hubness = Hubness(Dn)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('MUTUAL PROXIMITY (Empiric/Slow)', Dn, Sn5, Nk5)
-        """
-        # Hubness in mutual proximity distance space, Gaussian model
-        Dn = mut_prox.calculate_mutual_proximity(Distribution.gauss)
-        hubness = Hubness(Dn)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('MUTUAL PROXIMITY (Gaussian)', Dn, Sn5, Nk5)
-        """
-        # Hubness in mutual proximity distance space, independent Gaussians
-        Dn = mut_prox.calculate_mutual_proximity(Distribution.gaussi)
-        hubness = Hubness(Dn)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('MUTUAL PROXIMITY (Independent Gaussians)', \
-                           Dn, Sn5, Nk5)
-        
-        # Hubness in mutual proximity distance space, independent Gamma distr.
-        Dn = mut_prox.calculate_mutual_proximity(Distribution.gammai)
-        hubness = Hubness(Dn)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('MUTUAL PROXIMITY (Independent Gamma)', Dn, Sn5, Nk5)
-        
-        # Hubness in local scaling distance space
-        ls = LocalScaling(self.D, 10, 'original')
-        Dn = ls.perform_local_scaling()
-        hubness = Hubness(Dn)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('LOCAL SCALING (Original, k=10)', Dn, Sn5, Nk5)
-        
-        # Hubness in shared nearest neighbors space
-        snn = SharedNN(self.D, 10)
-        Dn = snn.perform_snn()
-        hubness = Hubness(Dn)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('SHARED NEAREST NEIGHBORS (k=10)', Dn, Sn5, Nk5)
-        
-        # Hubness after centering
-        vectors = self.load_dexter(rawData=True)
-        cent = Centering(vectors)
-        D_cent = cosine_distance(cent.centering())
-        hubness = Hubness(D_cent)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('CENTERING', D_cent, Sn5, Nk5)
-        
-        
-        # Hubness after weighted centering
-        gamma = 0.4
-        D_wcent = cosine_distance(cent.weighted_centering(gamma))
-        hubness = Hubness(D_wcent)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('WEIGHTED CENTERING (gamma={})'.format(gamma), \
-                           D_wcent, Sn5, Nk5)
-        
-        # Hubness after localized centering
-        D_lcent = 1 - cent.localized_centering(10, 1)
-        hubness = Hubness(D_lcent)
-        Sn5, Nk5 = hubness.calculate_hubness()[::2]
-        self.print_results('LOCALIZED CENTERING', D_lcent, Sn5, Nk5)
-          
-          
-        
+        if origData:
+            # Hubness in original data
+            hubness = Hubness(self.D) 
+            # Get hubness and n-occurence (slice omits elem 1, i.e. kNN)
+            Sn5, Nk5 = hubness.calculate_hubness()[::2]
+            self.print_results('ORIGINAL DATA', self.D, Sn5, Nk5, True)
+        if mp:  
+            # Hubness in empiric mutual proximity distance space
+            mut_prox = MutualProximity(self.D)
+            Dn = mut_prox.calculate_mutual_proximity(Distribution.empiric)
+            hubness = Hubness(Dn)
+            Sn5, Nk5 = hubness.calculate_hubness()[::2]
+            self.print_results('MUTUAL PROXIMITY (Empiric/Slow)', Dn, Sn5, Nk5)
+        if mp_gauss:    
+            # Hubness in mutual proximity distance space, Gaussian model
+            Dn = mut_prox.calculate_mutual_proximity(Distribution.gauss)
+            hubness = Hubness(Dn)
+            Sn5, Nk5 = hubness.calculate_hubness()[::2]
+            self.print_results('MUTUAL PROXIMITY (Gaussian)', Dn, Sn5, Nk5)
+        if mp_gaussi:
+            # Hubness in mutual proximity distance space, independent Gaussians
+            Dn = mut_prox.calculate_mutual_proximity(Distribution.gaussi)
+            hubness = Hubness(Dn)
+            Sn5, Nk5 = hubness.calculate_hubness()[::2]
+            self.print_results('MUTUAL PROXIMITY (Independent Gaussians)', \
+                               Dn, Sn5, Nk5)
+        if mp_gammai:
+            # Hubness in mutual proximity distance space, indep. Gamma distr.
+            Dn = mut_prox.calculate_mutual_proximity(Distribution.gammai)
+            hubness = Hubness(Dn)
+            Sn5, Nk5 = hubness.calculate_hubness()[::2]
+            self.print_results('MUTUAL PROXIMITY (Independent Gamma)', \
+                               Dn, Sn5, Nk5)
+        if ls:
+            # Hubness in local scaling distance space
+            ls = LocalScaling(self.D, 10, 'original')
+            Dn = ls.perform_local_scaling()
+            hubness = Hubness(Dn)
+            Sn5, Nk5 = hubness.calculate_hubness()[::2]
+            self.print_results('LOCAL SCALING (Original, k=10)', Dn, Sn5, Nk5)
+        if snn:
+            # Hubness in shared nearest neighbors space
+            snn = SharedNN(self.D, 10)
+            Dn = snn.perform_snn()
+            hubness = Hubness(Dn)
+            Sn5, Nk5 = hubness.calculate_hubness()[::2]
+            self.print_results('SHARED NEAREST NEIGHBORS (k=10)', Dn, Sn5, Nk5)
+        if cent or wcent or lcent:
+            cent = Centering(self.vectors)
+            if cent:
+                # Hubness after centering
+                D_cent = htd.cosine_distance(cent.centering())
+                hubness = Hubness(D_cent)
+                Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                self.print_results('CENTERING', D_cent, Sn5, Nk5)
+            if wcent:        
+                # Hubness after weighted centering
+                D_wcent = htd.cosine_distance(cent.weighted_centering(wcent_g))
+                hubness = Hubness(D_wcent)
+                Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
+                                    wcent_g), D_wcent, Sn5, Nk5)
+            if lcent:
+                # Hubness after localized centering
+                D_lcent = 1 - cent.localized_centering(kappa=lcent_k, \
+                                                       gamma=lcent_g)
+                hubness = Hubness(D_lcent)
+                Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                self.print_results(\
+                    'LOCALIZED CENTERING (k={}, gamma={})'.format(\
+                    lcent_k, lcent_g), D_lcent, Sn5, Nk5)
+    
     def print_results(self, heading : str, distances, Sn5 : float, Nk5 : float, 
                       calc_intrinsic_dimensionality : bool = False):
         """Print the results of a hubness analysis."""      
@@ -175,7 +180,7 @@ class HubnessAnalysis():
                 print('original dimensionality                  : No vectors given')
                 print('intrinsic dimensionality estimate        : No vectors given')
         
-    def load_dexter(self, rawData = False):
+    def load_dexter(self):
         """Load the example data set (dexter)."""
         
         print('\nNO PARAMETERS GIVEN! Loading & evaluating DEXTER data set.\n');
@@ -210,25 +215,10 @@ class HubnessAnalysis():
                     vectors[row][int(col)-1] = int(val)
             row += 1
         
-        if rawData:
-            return vectors
-        else:
-            # Calc distance
-            D = cosine_distance(vectors)
-            return D, classes, vectors
+        # Calc distance
+        D = htd.cosine_distance(vectors)
+        return D, classes, vectors
                 
-def cosine_distance(x):
-    """Calculate the cosine distance."""
-    
-    xn = np.sqrt(np.sum(x**2, 1))
-    x = x / np.tile(xn[:, np.newaxis], np.size(x, 1))
-    D = 1 - np.dot(x, x.T )
-    #np.clip(D, 0, np.finfo(np.float64).max, out=D) # clip max set to MaxFloat
-    D[D<0] = 0
-    D = np.triu(D, 0) + np.triu(D, 0).T
-    
-    return D
-
 if __name__=="__main__":
     hub = HubnessAnalysis()
     hub.analyse_hubness()

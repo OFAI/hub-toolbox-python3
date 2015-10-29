@@ -1,5 +1,5 @@
 -------------------------
- HUB TOOLBOX VERSION 2.1 
+ HUB TOOLBOX VERSION 2.2 
  October 16, 2015
 -------------------------
 
@@ -41,6 +41,7 @@ Internally the function uses the:
   *  mutual_proximity(D),
   *  local_scaling(D, k),
   *  shared_nn(D, k)
+  *  centering(vectors) # EXPERIMENTAL, under active development
 functions to reduce hubness with different methods, and
   *  hubness(D, k),
   *  knn_classification(D, classes, k),

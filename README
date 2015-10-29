@@ -123,3 +123,8 @@ Goodman-Kruskal index (higher=better)    : 0.152
 + NumPy
 + SciPy
 
+----------------
+ACKNOWLEDGEMENTS
+----------------
+PyVmMonitor is being used to support the development of this free open source software package. For more information go to http://www.pyvmmonitor.com
+

@@ -78,33 +78,35 @@ class HubnessAnalysis():
             # Get hubness and n-occurence (slice omits elem 1, i.e. kNN)
             Sn5, Nk5 = hubness.calculate_hubness()[::2]
             self.print_results('ORIGINAL DATA', self.D, Sn5, Nk5, True)
-        if mp:  
-            # Hubness in empiric mutual proximity distance space
+        if mp or mp_gaussi or mp_gammai or mp_gauss:
             mut_prox = MutualProximity(self.D)
-            Dn = mut_prox.calculate_mutual_proximity(Distribution.empiric)
-            hubness = Hubness(Dn)
-            Sn5, Nk5 = hubness.calculate_hubness()[::2]
-            self.print_results('MUTUAL PROXIMITY (Empiric/Slow)', Dn, Sn5, Nk5)
-        if mp_gauss:    
-            # Hubness in mutual proximity distance space, Gaussian model
-            Dn = mut_prox.calculate_mutual_proximity(Distribution.gauss)
-            hubness = Hubness(Dn)
-            Sn5, Nk5 = hubness.calculate_hubness()[::2]
-            self.print_results('MUTUAL PROXIMITY (Gaussian)', Dn, Sn5, Nk5)
-        if mp_gaussi:
-            # Hubness in mutual proximity distance space, independent Gaussians
-            Dn = mut_prox.calculate_mutual_proximity(Distribution.gaussi)
-            hubness = Hubness(Dn)
-            Sn5, Nk5 = hubness.calculate_hubness()[::2]
-            self.print_results('MUTUAL PROXIMITY (Independent Gaussians)', \
-                               Dn, Sn5, Nk5)
-        if mp_gammai:
-            # Hubness in mutual proximity distance space, indep. Gamma distr.
-            Dn = mut_prox.calculate_mutual_proximity(Distribution.gammai)
-            hubness = Hubness(Dn)
-            Sn5, Nk5 = hubness.calculate_hubness()[::2]
-            self.print_results('MUTUAL PROXIMITY (Independent Gamma)', \
-                               Dn, Sn5, Nk5)
+            if mp:  
+                # Hubness in empiric mutual proximity distance space
+                Dn = mut_prox.calculate_mutual_proximity(Distribution.empiric)
+                hubness = Hubness(Dn)
+                Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                self.print_results('MUTUAL PROXIMITY (Empiric/Slow)', \
+                                   Dn, Sn5, Nk5)
+            if mp_gauss:    
+                # Hubness in mutual proximity distance space, Gaussian model
+                Dn = mut_prox.calculate_mutual_proximity(Distribution.gauss)
+                hubness = Hubness(Dn)
+                Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                self.print_results('MUTUAL PROXIMITY (Gaussian)', Dn, Sn5, Nk5)
+            if mp_gaussi:
+                # Hubness in mutual proximity distance space, independent Gaussians
+                Dn = mut_prox.calculate_mutual_proximity(Distribution.gaussi)
+                hubness = Hubness(Dn)
+                Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                self.print_results('MUTUAL PROXIMITY (Independent Gaussians)', \
+                                   Dn, Sn5, Nk5)
+            if mp_gammai:
+                # Hubness in mutual proximity distance space, indep. Gamma distr.
+                Dn = mut_prox.calculate_mutual_proximity(Distribution.gammai)
+                hubness = Hubness(Dn)
+                Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                self.print_results('MUTUAL PROXIMITY (Independent Gamma)', \
+                                   Dn, Sn5, Nk5)
         if ls:
             # Hubness in local scaling distance space
             ls = LocalScaling(self.D, 10, 'original')

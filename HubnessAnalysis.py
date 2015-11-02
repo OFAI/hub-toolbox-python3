@@ -122,7 +122,7 @@ class HubnessAnalysis():
             Sn5, Nk5 = hubness.calculate_hubness()[::2]
             self.print_results('SHARED NEAREST NEIGHBORS (k=10)', Dn, Sn5, Nk5)
         if cent or wcent or lcent:
-            if not self.vectors:
+            if not self.haveVectors:
                 print("Centering is currently only supported for vector data.")
             else:
                 cent = Centering(self.vectors)
@@ -222,7 +222,7 @@ class HubnessAnalysis():
         
         # Calc distance
         D = htd.cosine_distance(vectors)
-        return D, classes, vectors
+        return D, classes#, vectors
                 
 if __name__=="__main__":
     hub = HubnessAnalysis()

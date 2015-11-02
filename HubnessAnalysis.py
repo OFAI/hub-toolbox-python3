@@ -122,29 +122,32 @@ class HubnessAnalysis():
             Sn5, Nk5 = hubness.calculate_hubness()[::2]
             self.print_results('SHARED NEAREST NEIGHBORS (k=10)', Dn, Sn5, Nk5)
         if cent or wcent or lcent:
-            cent = Centering(self.vectors)
-            if cent:
-                # Hubness after centering
-                D_cent = htd.cosine_distance(cent.centering())
-                hubness = Hubness(D_cent)
-                Sn5, Nk5 = hubness.calculate_hubness()[::2]
-                self.print_results('CENTERING', D_cent, Sn5, Nk5)
-            if wcent:        
-                # Hubness after weighted centering
-                D_wcent = htd.cosine_distance(cent.weighted_centering(wcent_g))
-                hubness = Hubness(D_wcent)
-                Sn5, Nk5 = hubness.calculate_hubness()[::2]
-                self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
-                                    wcent_g), D_wcent, Sn5, Nk5)
-            if lcent:
-                # Hubness after localized centering
-                D_lcent = 1 - cent.localized_centering(kappa=lcent_k, \
-                                                       gamma=lcent_g)
-                hubness = Hubness(D_lcent)
-                Sn5, Nk5 = hubness.calculate_hubness()[::2]
-                self.print_results(\
-                    'LOCALIZED CENTERING (k={}, gamma={})'.format(\
-                    lcent_k, lcent_g), D_lcent, Sn5, Nk5)
+            if not self.vectors:
+                print("Centering is currently only supported for vector data.")
+            else:
+                cent = Centering(self.vectors)
+                if cent:
+                    # Hubness after centering
+                    D_cent = htd.cosine_distance(cent.centering())
+                    hubness = Hubness(D_cent)
+                    Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                    self.print_results('CENTERING', D_cent, Sn5, Nk5)
+                if wcent:        
+                    # Hubness after weighted centering
+                    D_wcent = htd.cosine_distance(cent.weighted_centering(wcent_g))
+                    hubness = Hubness(D_wcent)
+                    Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                    self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
+                                        wcent_g), D_wcent, Sn5, Nk5)
+                if lcent:
+                    # Hubness after localized centering
+                    D_lcent = 1 - cent.localized_centering(kappa=lcent_k, \
+                                                           gamma=lcent_g)
+                    hubness = Hubness(D_lcent)
+                    Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                    self.print_results(\
+                        'LOCALIZED CENTERING (k={}, gamma={})'.format(\
+                        lcent_k, lcent_g), D_lcent, Sn5, Nk5)
     
     def print_results(self, heading : str, distances, Sn5 : float, Nk5 : float, 
                       calc_intrinsic_dimensionality : bool = False):

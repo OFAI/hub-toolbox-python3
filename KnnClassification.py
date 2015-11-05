@@ -79,10 +79,10 @@ class KnnClassification():
                 
                 # "tie": use nearest neighbor
                 if len(max_cs) > 1:
-                    if seed_class == nn_class:
+                    if seed_class == nn_class[0]:
                         acc[j] += 1/n 
                         corr[i, j] = 1
-                    cmat[seed_class, nn_class] += 1       
+                    cmat[seed_class, nn_class[0]] += 1       
                 # majority vote
                 else:
                     if cl[max_cs] == seed_class:

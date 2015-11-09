@@ -109,18 +109,23 @@ class HubnessAnalysis():
                                    Dn, Sn5, Nk5)
         if ls:
             # Hubness in local scaling distance space
-            ls = LocalScaling(self.D, 10, 'original')
+            radius = 10
+            scalingType = 'nicdm' # 'original'
+            ls = LocalScaling(self.D, radius, scalingType)
             Dn = ls.perform_local_scaling()
             hubness = Hubness(Dn)
             Sn5, Nk5 = hubness.calculate_hubness()[::2]
-            self.print_results('LOCAL SCALING (Original, k=10)', Dn, Sn5, Nk5)
+            self.print_results('LOCAL SCALING ({}, k={})'.format(\
+                scalingType, radius), Dn, Sn5, Nk5)
         if snn:
             # Hubness in shared nearest neighbors space
-            snn = SharedNN(self.D, 10)
+            radius = 10
+            snn = SharedNN(self.D, radius)
             Dn = snn.perform_snn()
             hubness = Hubness(Dn)
             Sn5, Nk5 = hubness.calculate_hubness()[::2]
-            self.print_results('SHARED NEAREST NEIGHBORS (k=10)', Dn, Sn5, Nk5)
+            self.print_results('SHARED NEAREST NEIGHBORS (k={})'.format(\
+                radius), Dn, Sn5, Nk5)
         if cent or wcent or lcent:
             if not self.haveVectors:
                 print("Centering is currently only supported for vector data.")
@@ -161,11 +166,11 @@ class HubnessAnalysis():
         print('% of k=5-NN lists the largest hub occurs : {:.4}%'.format(\
             100 * max(Nk5)/self.n))
         if self.haveClasses:
-            k = 5
-            knn = KnnClassification(distances, self.classes, k)
-            acc = knn.perform_knn_classification()[0]
-            print('k=5-NN classification accuracy           : {:.4}%'.format(\
-                    100*float(acc[0])))
+            for k in [1, 5, 20]:
+                knn = KnnClassification(distances, self.classes, k)
+                acc = knn.perform_knn_classification()[0]
+                print('k={:2}-NN classification accuracy          : {:.4}%'.format(\
+                        k, 100*float(acc[0])))
                 
             gk = GoodmanKruskal(distances, self.classes) 
             print('Goodman-Kruskal index (higher=better)    : {:.3}'.format(\
@@ -222,7 +227,7 @@ class HubnessAnalysis():
         
         # Calc distance
         D = htd.cosine_distance(vectors)
-        return D, classes#, vectors
+        return D, classes, vectors
                 
 if __name__=="__main__":
     hub = HubnessAnalysis()

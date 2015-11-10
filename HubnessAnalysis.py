@@ -48,10 +48,11 @@ class HubnessAnalysis():
             self.D, self.classes, self.vectors = self.load_dexter()
             self.haveClasses, self.haveVectors = True, True
         else:
-            self.D = np.copy(D)
+            # copy data and ensure correct type (not int16 etc.)
+            self.D = np.copy(D).astype(np.float64)
            
-            self.classes = np.copy(classes)
-            self.vectors = np.copy(vectors)
+            self.classes = np.copy(classes).astype(np.float64)
+            self.vectors = np.copy(vectors).astype(np.float64)
             if classes is not None:
                 self.haveClasses = True
             if vectors is not None:
@@ -130,24 +131,24 @@ class HubnessAnalysis():
             if not self.haveVectors:
                 print("Centering is currently only supported for vector data.")
             else:
-                cent = Centering(self.vectors)
+                c = Centering(self.vectors)
                 if cent:
                     # Hubness after centering
-                    D_cent = htd.cosine_distance(cent.centering())
+                    D_cent = htd.cosine_distance(c.centering())
                     hubness = Hubness(D_cent)
                     Sn5, Nk5 = hubness.calculate_hubness()[::2]
                     self.print_results('CENTERING', D_cent, Sn5, Nk5)
                 if wcent:        
                     # Hubness after weighted centering
-                    D_wcent = htd.cosine_distance(cent.weighted_centering(wcent_g))
+                    D_wcent = htd.cosine_distance(c.weighted_centering(wcent_g))
                     hubness = Hubness(D_wcent)
                     Sn5, Nk5 = hubness.calculate_hubness()[::2]
                     self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
                                         wcent_g), D_wcent, Sn5, Nk5)
                 if lcent:
                     # Hubness after localized centering
-                    D_lcent = 1 - cent.localized_centering(kappa=lcent_k, \
-                                                           gamma=lcent_g)
+                    D_lcent = 1 - c.localized_centering(kappa=lcent_k, \
+                                                        gamma=lcent_g)
                     hubness = Hubness(D_lcent)
                     Sn5, Nk5 = hubness.calculate_hubness()[::2]
                     self.print_results(\

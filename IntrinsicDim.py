@@ -25,6 +25,7 @@ class IntrinsicDim():
     """
        
     def __init__(self, X):
+        # Deep copy required due to changes in vector data
         self.X = np.copy(X)
         
     def calculate_intrinsic_dimensionality(self):

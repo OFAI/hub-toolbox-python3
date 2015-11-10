@@ -44,21 +44,26 @@ class IntrinsicDim():
         n = np.shape(X)[1]
         X2 = np.sum(X**2, 0)
         knnmatrix = np.zeros((k2, n))
+        
         if n < 3000:
             distance = np.tile(X2, (n, 1)) + \
                 np.tile(X2, (n,1)).T - 2 * np.dot(X.T, X) 
             distance = np.sort(distance, 0)
+            # Replace invalid values with a small number 
+            distance[distance<0] = 1e-7
             knnmatrix = .5 * np.log(distance[1:k2+1, :])
         else:
             for i in range(n):
                 distance = np.sort(np.tile(X2[i], (1, n)) + X2 - 2 * np.dot(X[:, i], X) )
-                knnmatrix[:, i] = .5 * np.log(distance[0, 1:k2 + 1]).T
+                # Replace invalid values with a small number 
+                distance[distance<0] = 1e-7
+                knnmatrix[:, i] = .5 * np.log(distance.ravel()[1:k2+1]).T 
         
         # Compute the ML estimate
         S = np.cumsum(knnmatrix, 0)
-        k1k2range = np.arange(k1, k2+1)
-        indexk = np.tile(k1k2range, (n, 1)).T
-        dhat = -(indexk - 2) / ( S[k1-1:k2+1, :] - knnmatrix[k1-1:k2+1, :] * indexk)
+        k1k2range = np.arange(k1-1, k2)
+        indexk = np.tile(k1k2range+1, (n, 1)).T
+        dhat = -(indexk - 2) / ( S[k1-1:k2, :] - knnmatrix[k1-1:k2, :] * indexk)
         
         # Plot histogram of estimates for all datapoints
         # MATLAB: hist(mean(dhat), 80), pause

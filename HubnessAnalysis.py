@@ -23,7 +23,7 @@ from hub_toolbox.MutualProximity import MutualProximity, Distribution
 from hub_toolbox.LocalScaling import LocalScaling
 from hub_toolbox.SharedNN import SharedNN
 from hub_toolbox.Centering import Centering
-from hub_toolbox import Distances as htd
+from hub_toolbox import Distances as htd, KnnClassification_sklearn
 
 
 class HubnessAnalysis():
@@ -59,10 +59,10 @@ class HubnessAnalysis():
                 self.haveVectors = True
         self.n = len(self.D)
                 
-    def analyse_hubness(self, origData=True, mp=True, mp_gauss=False, \
-                        mp_gaussi=True, mp_gammai=True, ls=True, snn=True, \
-                        cent=True, wcent=True, wcent_g=0.4, \
-                        lcent=True, lcent_k=40, lcent_g=1.4):
+    def analyse_hubness(self, origData=False, mp=False, mp_gauss=False, \
+                        mp_gaussi=False, mp_gammai=False, ls=False, snn=False, \
+                        cent=False, wcent=False, wcent_g=0.4, \
+                        lcent=True, lcent_k=40, lcent_g=1.4, Sk10=False):
         """Analyse hubness in original data and rescaled distances.
         
         Use boolean parameters to choose which analyses to perform.        
@@ -73,6 +73,9 @@ class HubnessAnalysis():
         print()
         print("Hubness Analysis")
             
+        if not (origData or mp or mp_gauss or mp_gaussi or mp_gammai or \
+                ls or snn or cent or wcent or lcent):
+            print("---Nothing to do. Please specify tasks to be performed.---")
         if origData:
             # Hubness in original data
             hubness = Hubness(self.D) 
@@ -132,12 +135,31 @@ class HubnessAnalysis():
                 print("Centering is currently only supported for vector data.")
             else:
                 c = Centering(self.vectors)
+                # TODO remove again:
+                K = self.D#K = self.vectors.dot(self.vectors.T)
+                c_dist = Centering(K, is_distance_matrix=True)
                 if cent:
                     # Hubness after centering
                     D_cent = htd.cosine_distance(c.centering())
                     hubness = Hubness(D_cent)
                     Sn5, Nk5 = hubness.calculate_hubness()[::2]
-                    self.print_results('CENTERING', D_cent, Sn5, Nk5)
+                    self.print_results('CENTERING', D_cent, Sn5, Nk5)                    
+                    # TODO remove again
+                    if Sk10:
+                        hubness = Hubness(D_cent, k=10)
+                        Sn10, Nk10 = hubness.calculate_hubness()[::2]
+                        self.print_results('CENTERING', D_cent, Sn10, Nk10, Sn10=True)
+                    
+                    #Centering on distance matrix
+                    D_cent_dist = c_dist.centering()
+                    hubness = Hubness(D_cent_dist)
+                    Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                    self.print_results('CENTERING (dist)', D_cent_dist, Sn5, Nk5)
+                    # TODO remove again
+                    if Sk10:
+                        hubness = Hubness(D_cent, k=10)
+                        Sn10, Nk10 = hubness.calculate_hubness()[::2]
+                        self.print_results('CENTERING (dist)', D_cent_dist, Sn10, Nk10, Sn10=True)
                 if wcent:        
                     # Hubness after weighted centering
                     D_wcent = htd.cosine_distance(c.weighted_centering(wcent_g))
@@ -145,19 +167,39 @@ class HubnessAnalysis():
                     Sn5, Nk5 = hubness.calculate_hubness()[::2]
                     self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
                                         wcent_g), D_wcent, Sn5, Nk5)
+
+                    # TODO remove again
+                    if Sk10:
+                        hubness = Hubness(D_cent, k=10)
+                        Sn10, Nk10 = hubness.calculate_hubness()[::2]
+                        self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
+                                        wcent_g), D_wcent, Sn10, Nk10, Sn10=True)
                 if lcent:
                     # Hubness after localized centering
-                    D_lcent = 1 - c.localized_centering(kappa=lcent_k, \
+                    D_lcent = c.localized_centering(kappa=lcent_k, \
                                                         gamma=lcent_g)
                     hubness = Hubness(D_lcent)
                     Sn5, Nk5 = hubness.calculate_hubness()[::2]
                     self.print_results(\
                         'LOCALIZED CENTERING (k={}, gamma={})'.format(\
                         lcent_k, lcent_g), D_lcent, Sn5, Nk5)
+                    #TODO remove again
+                    D_lcent = c.localized_centering_with_test_set(
+                        kappa=lcent_k, gamma=lcent_g)
+                    hubness = Hubness(D_lcent)
+                    Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                    self.print_results(\
+                        'LOCALIZED CENTERING (k={}, gamma={})'.format(\
+                        lcent_k, lcent_g), D_lcent, Sn5, Nk5)
+                    #TODO end remove
     
     def print_results(self, heading : str, distances, Sn5 : float, Nk5 : float, 
-                      calc_intrinsic_dimensionality : bool = False):
-        """Print the results of a hubness analysis."""      
+                      calc_intrinsic_dimensionality : bool = False, Sn10=False):
+        """Print the results of a hubness analysis."""     
+        
+        if Sn10:
+            print('data set hubness (S^n=10)                : {:.3}'.format(Sn5)) 
+            return
         
         print()
         print(heading + ':')
@@ -168,10 +210,21 @@ class HubnessAnalysis():
             100 * max(Nk5)/self.n))
         if self.haveClasses:
             for k in [1, 5, 20]:
+                #import time
+                #tic1 = time.clock()
                 knn = KnnClassification(distances, self.classes, k)
                 acc = knn.perform_knn_classification()[0]
+                #toc1 = time.clock() - tic1
                 print('k={:2}-NN classification accuracy          : {:.4}%'.format(\
                         k, 100*float(acc[0])))
+                #tic2 = time.clock()
+                #knn = KnnClassification_sklearn.KnnClassification(k)
+                #acc = knn.perform_knn_classification(distances, self.classes)[0]
+                #toc2 = time.clock() - tic2
+                #print('k={:2}-NN classification accuracy (sklearn): {:.4}%'.format(\
+                #        k, 100*float(acc)))
+                #print("Standard kNN: {}\nsklearn kNN: {}\nspeedup={:.2}".format(\
+                #        toc1, toc2, toc1/toc2))
                 
             gk = GoodmanKruskal(distances, self.classes) 
             print('Goodman-Kruskal index (higher=better)    : {:.3}'.format(\
@@ -232,6 +285,7 @@ class HubnessAnalysis():
                 
 if __name__=="__main__":
     hub = HubnessAnalysis()
-    hub.analyse_hubness()
+    hub.analyse_hubness(origData=True, mp=True, mp_gaussi=True, \
+                        ls=True, snn=True, cent=True, wcent=True)
     
     

@@ -52,22 +52,27 @@ class MutualProximity():
     def __init__(self, D):
         self.D = np.copy(D)
         
-    def calculate_mutual_proximity(self, distrType=None):
+    def calculate_mutual_proximity(self, distrType=None, test_set_mask=None):
         """Apply MP on a distance matrix."""
         
+        if test_set_mask is not None:
+            train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
+        else:
+            train_set_mask = np.ones(self.D.shape[0], np.bool)
+            
         if distrType is None:
             print("No Mutual Proximity type given. Using: Distribution.empiric")
             print("For fast results use: Distribution.gaussi")
-            Dmp = self.mp_empiric()
+            Dmp = self.mp_empiric(train_set_mask)
         else:
             if distrType == Distribution.empiric:
-                Dmp = self.mp_empiric()
+                Dmp = self.mp_empiric(train_set_mask)
             elif distrType == Distribution.gauss:
-                Dmp = self.mp_gauss()
+                Dmp = self.mp_gauss(train_set_mask)
             elif distrType == Distribution.gaussi:
-                Dmp = self.mp_gaussi()
+                Dmp = self.mp_gaussi(train_set_mask)
             elif distrType == Distribution.gammai:
-                Dmp = self.mp_gammai()
+                Dmp = self.mp_gammai(train_set_mask)
             else:
                 self.warning("Valid Mutual Proximity type missing!\n"+\
                              "Use: \n"+\
@@ -79,9 +84,10 @@ class MutualProximity():
        
         return Dmp
          
-    def mp_empiric(self):
+    def mp_empiric_with_trainsetmask_BROKEN(self, train_set_mask=None):
         """Compute Mutual Proximity distances with empirical data (slow)."""
         
+        #TODO implement train_set_mask! Currently BROKEN.
         np.fill_diagonal(self.D, 0)
         n = np.shape(self.D)[0]
         Dmp_list = [np.zeros(n-i) for i in range(n)]
@@ -92,8 +98,8 @@ class MutualProximity():
             j_idx = np.arange(i+1, n)
             j_len = np.size(j_idx, 0)
             
-            dI = np.tile(self.D[i, :], (j_len, 1))
-            dJ = self.D[j_idx, :]
+            dI = np.tile(self.D[i, train_set_mask], (j_len, 1))
+            dJ = self.D[j_idx[:,None], train_set_mask]
             d = np.tile(self.D[j_idx, i][:, np.newaxis], (1, n))
             
             sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
@@ -106,14 +112,44 @@ class MutualProximity():
             Dmp[i, j_idx] = Dmp_list[i]
             Dmp[j_idx, i] = Dmp_list[i]
             
-        return Dmp # CHECK: max matlab-numpy difference: 0.0
+        return Dmp
     
-    def mp_gauss(self):
+    def mp_empiric(self):
+        """Compute Mutual Proximity distances with empirical data (slow)."""
+         
+        #TODO implement train_set_mask!
+        np.fill_diagonal(self.D, 0)
+        n = np.shape(self.D)[0]
+        Dmp_list = [np.zeros(n-i) for i in range(n)]
+         
+        for i in range(n-1):
+             
+            # Select only finite distances for MP
+            j_idx = np.arange(i+1, n)
+            j_len = np.size(j_idx, 0)
+             
+            dI = np.tile(self.D[i, :], (j_len, 1))
+            dJ = self.D[j_idx, :]
+            d = np.tile(self.D[j_idx, i][:, np.newaxis], (1, n))
+             
+            sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
+            sIJ_overlap = 1 - (sIJ_intersect / n)
+            Dmp_list[i] = sIJ_overlap
+             
+        Dmp = np.zeros(np.shape(self.D), dtype=self.D.dtype)
+        for i in range(n-1):
+            j_idx = np.arange(i+1, n)
+            Dmp[i, j_idx] = Dmp_list[i]
+            Dmp[j_idx, i] = Dmp_list[i]
+            
+        return Dmp
+    
+    def mp_gauss(self, train_set_mask=None):
         """Compute Mutual Proximity distances with Gaussian model (very slow)."""
         
         np.fill_diagonal(self.D, 0)
-        mu = np.mean(self.D, 0)
-        sd = np.std(self.D, 0, ddof=1)
+        mu = np.mean(self.D[train_set_mask], 0)
+        sd = np.std(self.D[train_set_mask], 0, ddof=1)
                 
         #Code for the BadMatrixSigma error
         eps = np.spacing(1)
@@ -131,33 +167,23 @@ class MutualProximity():
                 p1 = norm.cdf(self.D[j, i], mu[i], sd[i])
                 p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
                 
-                """#in MATLAB
-                try
-                    p12 = mvncdf(x, m, c);
-                catch err
-                    if (strcmp(err.identifier,'stats:mvncdf:BadMatrixSigma'))
-                        c = c + epsmat;
-                        p12 = mvncdf(x, m, c);
-                    end
-                end
-                """
                 low = np.tile(np.finfo(np.float32).min, 2)
                 p12 = mvn.mvnun(low, x, m, c)[0] # [0]...p, [1]...inform
                 if np.isnan(p12):
-                    c += epsmat*1e7 # MUCH more than in matlab
+                    c += epsmat*1e7 
                     p12 = mvn.mvnun(low, x, m, c)[0]
                 assert not np.isnan(p12), "p12 is NaN: i={}, j={}".format(i, j)
                 Dmp[j, i] = p1 + p2 - p12
                 Dmp[i, j] = Dmp[j, i]
 
-        return Dmp # CHECK: matlab-numpy differnce: 2x 1e-5 (NaN cases), otherwise 1e-15
+        return Dmp
     
-    def mp_gaussi(self):
+    def mp_gaussi(self, train_set_mask=None):
         """Compute Mutual Proximity modeled with independent Gaussians (fast)."""
         
         np.fill_diagonal(self.D, 0)
-        mu = np.mean(self.D, 0)
-        sd = np.std(self.D, 0, ddof=1)
+        mu = np.mean(self.D[train_set_mask], 0)
+        sd = np.std(self.D[train_set_mask], 0, ddof=1)
         
         Dmp = np.zeros_like(self.D)
         n = np.size(self.D, 0)
@@ -174,14 +200,14 @@ class MutualProximity():
             Dmp[i, j_idx] = (1 - p1 * p2).ravel()
             Dmp[j_idx, i] = Dmp[i, j_idx]
 
-        return Dmp #CHECK: max matlab-numpy difference : 2e-15
+        return Dmp
     
-    def mp_gammai(self):
+    def mp_gammai(self, train_set_mask=None):
         """Compute Mutual Proximity modeled with independent Gamma distributions."""
         
         np.fill_diagonal(self.D, 0)
-        mu = np.mean(self.D, 0)
-        va = np.var(self.D, 0, ddof=1)
+        mu = np.mean(self.D[train_set_mask], 0)
+        va = np.var(self.D[train_set_mask], 0, ddof=1)
         A = (mu**2) / va
         B = va / mu
         

@@ -1,7 +1,7 @@
 """
 Intrinsic dimensionality estimation based on the DR-Toolbox 
 
-This file is part of the Matlab Toolbox for Dimensionality Reduction v0.7.2b.
+This file is based on the Matlab Toolbox for Dimensionality Reduction v0.7.2b.
 The toolbox can be obtained from http://homepage.tudelft.nl/19j49
 You are free to use, change, or redistribute this code in any way you
 want for non-commercial purposes. However, it is appreciated if you 
@@ -65,10 +65,7 @@ class IntrinsicDim():
         k1k2range = np.arange(k1-1, k2)
         indexk = np.tile(k1k2range+1, (n, 1)).T
         dhat = -(indexk - 2) / ( S[k1-1:k2, :] - knnmatrix[k1-1:k2, :] * indexk)
-        
-        # Plot histogram of estimates for all datapoints
-        # MATLAB: hist(mean(dhat), 80), pause
-        
+             
         # Average over estimates and over values of k
         no_dims = np.mean(dhat)
         return no_dims

@@ -91,3 +91,68 @@ class KnnClassification():
                     cmat[seed_class, cl[max_cs]] += 1
                            
         return acc, corr, cmat
+    
+    def perform_knn_classification_with_test_set(self, test_set_mask=None):
+        """Performs k-nearest neighbor classification."""
+        
+        # Indices of training examples
+        train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
+        # Why would there be a need for more than one k?
+        k_length = np.size(self.k)
+            
+        acc = np.zeros( (k_length, 1) )
+        corr = np.zeros( (np.size(self.D, 0), k_length) )
+        
+        # number of points to be classified
+        #n = np.size(self.D, 1)
+        n = np.size(test_set_mask)
+        
+        cl = np.sort(np.unique(self.classes))
+        cmat = np.zeros( (len(cl), len(cl)) )
+        
+        classes = self.classes
+        for idx in range(len(cl)):
+            classes[self.classes == cl[idx]] = idx
+            
+        cl = range(len(cl))
+        
+        # Classify each point in test set
+        #for i in range(n):
+        for i in test_set_mask:
+            seed_class = classes[i]
+            
+            row = self.D[i, :]
+            row[i] = np.inf
+            
+            # Sort points in training set according to distance
+            # Randomize, in case there are several points of same distance
+            # (this is especially relevant for SNN rescaling)
+            rp = train_set_mask
+            rp = np.random.permutation(rp)
+            d2 = row[rp]
+            d2idx = np.argsort(d2, axis=0)
+            idx = rp[d2idx]      
+            
+            # OLD code, non-randomized
+            #idx = np.argsort(row)
+            
+            # More than one k?
+            for j in range(k_length):
+                nn_class = classes[idx[0:self.k[j]]]
+                cs = np.bincount(nn_class.astype(int))
+                max_cs = np.where(cs == np.max(cs))[0]
+                
+                # "tie": use nearest neighbor
+                if len(max_cs) > 1:
+                    if seed_class == nn_class[0]:
+                        acc[j] += 1/n 
+                        corr[i, j] = 1
+                    cmat[seed_class, nn_class[0]] += 1       
+                # majority vote
+                else:
+                    if cl[max_cs] == seed_class:
+                        acc[j] += 1/n
+                        corr[i, j] = 1
+                    cmat[seed_class, cl[max_cs]] += 1
+                           
+        return acc, corr, cmat

@@ -38,42 +38,42 @@ class LocalScaling():
     
     """
     
-    def __init__(self, D, k: int = -1, scalingType = None):
+    def __init__(self, D, k:int=7, scalingType='nicdm'):
+        """ Create an instance for local scaling. 
+        Parameters:
+        k... neighborhood radius (DEFAULT = 7)
+        scalingType... local scaling algorithm ['original', 'nicdm'] (DEFAULT='nicdm')
+        """
         self.D = np.copy(D)
         self.k = k
         self.scalingType = scalingType
         
-    def perform_local_scaling(self):
+    def perform_local_scaling(self, test_set_mask=None):
         """Transform distance matrix using local scaling."""
         
-        if self.k == -1:
-            # ah, ugly. Would be better to have k = 7 in init, 
-            # but still give info to the user 
-            self.k = 7
-            print("No neighborhood radius given. Using k=7")
-       
-        if self.scalingType is None:
-            print("No Local Scaling type given. Using: 'original'")
-            print("For more stable results use: 'nicdm'")
-            Dls = self.ls_k()
+        if self.scalingType == 'original':
+            Dls = self.ls_k(test_set_mask)
+        elif self.scalingType == 'nicdm':
+            Dls = self.ls_nicdm(test_set_mask)
         else:
-            if self.scalingType == 'original':
-                Dls = self.ls_k()
-            elif self.scalingType == 'nicdm':
-                Dls = self.ls_nicdm()
-            else:
-                self.warning("Valid Local scaling type missing!\n"+\
-                             "Use: \nls = LocalScaling(D, 'original'|'nicdm')\n"+\
-                             "Dls = ls.perform_local_scaling()")
-                Dls = np.array([])
+            self.warning("Invalid local scaling type!\n"+\
+                         "Use: \nls = LocalScaling(D, 'original'|'nicdm')\n"+\
+                         "Dls = ls.perform_local_scaling()")
+            Dls = np.array([])
                 
         return Dls
                 
-    def ls_k(self):
+    def ls_k(self, test_set_mask=None):
+        """Perform local scaling (original), using the k-th nearest neighbor."""
+        if test_set_mask is not None:
+            train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
+        else:
+            train_set_mask = np.ones(self.D.shape[0], np.bool)        
+        
         length_D = np.max(np.shape(self.D))
         r = np.zeros((length_D, 1))
         for i in range(length_D):
-            di = self.D[i, :]
+            di = self.D[i, train_set_mask]
             di[i] = np.inf
             nn = np.argsort(di)
             r[i] = di[nn[self.k-1]]
@@ -86,24 +86,32 @@ class LocalScaling():
                 Dls[j, i] = Dls[i, j]
         
         return Dls
-    
-    
-    def ls_nicdm(self):
+        
+    def ls_nicdm(self, test_set_mask=None):
+        """Local scaling variant: Non-Iterative Contextual Dissimilarity Measure
+            This uses the mean over the k nearest neighbors.
+        """
+         
+        if test_set_mask is not None:
+            train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
+        else:
+            train_set_mask = np.ones(self.D.shape[0], np.bool)
+             
         length_D = np.max(np.shape(self.D))
         r = np.zeros((length_D, 1))
+        np.fill_diagonal(self.D, np.inf)
         for i in range(length_D):
-            di = self.D[i, :]
-            di[i] = np.inf
+            di = self.D[i, train_set_mask]
             nn = np.argsort(di)
             r[i] = np.mean(di[nn[0:self.k]])
         rg = self.local_geomean(r)
-        
+         
         Dnicdm = np.zeros(np.shape(self.D), dtype = self.D.dtype)
         for i in range(length_D):
             for j in range(i+1, length_D):
                 Dnicdm[i, j] = (rg * self.D[i, j]) / np.sqrt( r[i] * r[j] )
                 Dnicdm[j, i] = Dnicdm[i, j]
-        
+         
         return Dnicdm
             
     def local_geomean(self, x):

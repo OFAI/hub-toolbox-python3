@@ -44,8 +44,11 @@ class Hubness():
             self.sort_order = 1 # ascending, interested in smallest distance
         np.random.seed()
                 
-    def calculate_hubness(self):
+    def calculate_hubness(self, debug = False):
         """Calculate hubness."""
+        
+        if debug:
+            print("Hubness...")
                 
         Dk = np.zeros( (self.k, np.size(self.D, 1)) )
         
@@ -56,6 +59,8 @@ class Hubness():
             
         i = 0
         for d in self.D:
+            if debug and (i % 1000 == 0):
+                print("NN: {} of {}.".format(i, self.D.shape[0]))
             # randomize the distance matrix rows to avoid the problem case
             # if all numbers to sort are the same, which would yield high
             # hubness, even if there is none
@@ -67,9 +72,15 @@ class Hubness():
             i += 1
             
         # N-occurence
+        if debug:
+            print("Counting n-occurence...")
         Nk = np.bincount(Dk.astype(int).ravel())    
         # Hubness
+        if debug:
+            print("Calculation skewness = hubness...")
         Sn = stat.skew(Nk)
          
         # return hubness, k-nearest neighbors, N occurence
+        if debug:
+            print("Hubness: done.")
         return (Sn, Dk, Nk)

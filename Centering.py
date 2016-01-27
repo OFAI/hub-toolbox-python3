@@ -13,35 +13,52 @@ class Centering(object):
     """Transform data (in vector space) by various 'centering' approaches."""
 
 
-    def __init__(self, vectors:np.ndarray, is_distance_matrix=False):
-        """Create an object for subsequent centering of vector data. \
+    def __init__(self, vectors:np.ndarray=None, dist:np.ndarray=None, 
+                 is_distance_matrix=False):
+        """Create an object for subsequent centering of vector data X with 
+        n objects in an m-dimensional feature space.
         Set is_distance_matrix=True when using distance data.
+        The distance matrix must be of form K = X(X.T), if X is an n x m matrix; 
+        and of form K = (X.T)X, if X is an m x n matrix, where X.T denotes the
+        transpose of X.
+        
         """
-        self.vectors = np.copy(vectors)
-        self.distance_matrix = is_distance_matrix
+        if is_distance_matrix:
+            self.distance_matrix = np.copy(dist)
+            self.vectors = None
+        else:
+            self.distance_matrix = None
+            self.vectors = np.copy(vectors)
                 
     def centering(self, distance_based=False, test_set_mask=None):
-        """Perform standard centering.
+        """Perform standard centering, i.e. shift the origin to the data 
+        centroid.
         
-        Returns centered vectors (not distance matrix!)
+        The mean of each feature is calculated and subtracted from each point.
+        
+        In distance based mode, it must be checked upstream, that the distance
+        matrix is a gram matrix as described in the constructor! 
+        
+        Returns centered vectors, when given vector data; and
+        return centered gram matrix, when given distance data.
         """
-        
-        if test_set_mask is not None:
-            if distance_based:
-                raise NotImplementedError("Distance based centering does not "
-                                          "support train/test splits so far.")
-            train_set_mask = np.setdiff1d(\
-                np.arange(self.vectors.shape[0]), test_set_mask)
-        else:
-            train_set_mask = np.ones(self.vectors.shape[0], np.bool)
             
-        if distance_based:
-            n = self.vectors.shape[0]
+        if self.distance_matrix is not None:
+            if test_set_mask is not None:
+                    raise NotImplementedError("Distance based centering does not "
+                                              "support train/test splits so far.")
+            n = self.distance_matrix.shape[0]
             H = np.identity(n) - (1.0/n) * np.ones((n, n))
-            K = self.vectors
+            K = self.distance_matrix # K = X.T.X must be provided upstream
             K_cent = H.dot(K).dot(H)
             return K_cent
         else:
+            if test_set_mask is not None:
+                train_set_mask = np.setdiff1d(\
+                    np.arange(self.vectors.shape[0]), test_set_mask)
+            else:
+                train_set_mask = np.ones(self.vectors.shape[0], np.bool)
+            
             vectors_mean = np.mean(self.vectors[train_set_mask], 0)
             vectors_cent = self.vectors - vectors_mean
             return vectors_cent
@@ -50,7 +67,7 @@ class Centering(object):
                            distance_metric=Distance.cosine, test_set_mask=None):
         """Perform weighted centering.
         
-        Returns a distance matrix (not centered vectors!)
+        Returns centered vectors (not distance matrix).
         """
                    
         # Indices of training examples
@@ -83,57 +100,18 @@ class Centering(object):
         vectors_mean_weighted = np.sum(w.reshape(n,1) * self.vectors, 0)
         vectors_weighted = self.vectors - vectors_mean_weighted
         return vectors_weighted
-        
-    #===========================================================================
-    # def localized_centering(self, kappa:int, gamma:float=1, 
-    #                         distance_metric='cosine',test_set_mask=None):
-    #     """Perform localized centering.
-    #     
-    #     Returns a distance matrix (not centered vectors!)
-    #     """
-    #     # TODO CHECK CORRECTNESS!!
-    #     
-    #     if kappa == None:
-    #         kappa = 20
-    #         print("No 'kappa' defined for localized centering. \
-    #             Using kappa=20 for 20 nearest neighbors.")
-    #         
-    #     # Rescale vectors to unit length
-    #     v = self.vectors / np.sqrt((self.vectors ** 2).sum(-1))[..., np.newaxis]
-    #     
-    #     # for unit vectors it holds inner() == cosine()
-    #     sim = -(htd.cosine_distance(v) - 1)
-    #     n = sim.shape[0]
-    #     local_affinity = np.zeros(n)
-    #     for i in range(n):
-    #         x = v[i]
-    #         sim_i = sim[i, :]
-    #         #TODO randomization
-    #         nn = np.argsort(sim_i)[::-1][1 : kappa+1]
-    #         c_kappa_x = np.mean(v[nn], 0)
-    #         # c_kappa_x has no unit length in general
-    #         local_affinity[i] = np.inner(x, c_kappa_x)       
-    #         #local_affinity[i] = cosine(x, c_kappa_x) 
-    #     sim_lcent = sim - (local_affinity ** gamma)
-    #     return 1 - sim_lcent
-    #===========================================================================
     
     def localized_centering(self, kappa:int=20, gamma:float=1, 
                         distance_metric=Distance.cosine, test_set_mask=None):
         """Perform localized centering.
         
         Returns a distance matrix (not centered vectors!)
-        Default parameters: kappa=20
+        Default parameters: kappa=20, gamma=1.0
         """
         # TODO CHECK CORRECTNESS!!
         if test_set_mask is None:
             test_set_mask = np.zeros(self.vectors.shape[0], np.bool)
             
-        #if kappa == None:
-        #    kappa = 20
-        #    print("No 'kappa' defined for localized centering. \
-        #        Using kappa=20 for 20 nearest neighbors.")
-         
         if distance_metric == Distance.cosine:   
             # Rescale vectors to unit length
             v = self.vectors / np.sqrt((self.vectors ** 2).sum(-1))[..., np.newaxis]
@@ -150,7 +128,7 @@ class Centering(object):
         for i in range(n):
             x = v[i]
             sim_i = sim[i, :]
-            # set similarity to test examples to zero to exclude them from fit
+            # set similarity of test examples to zero to exclude them from fit
             sim_i[test_set_mask] = 0 
             #TODO randomization
             nn = np.argsort(sim_i)[::-1][1 : kappa+1]
@@ -170,6 +148,6 @@ class Centering(object):
 if __name__ == '__main__':
     vectors = np.arange(12).reshape(3,4)
     c = Centering(vectors)
-    print("Centering: ............. {}".format(c.centering()))
-    print("Weighted centering: .... {}".format(c.weighted_centering(0.4)))
-    print("Localized centering: ... {}".format(c.localized_centering(2)))
+    print("Centering: ............. \n{}".format(c.centering()))
+    print("Weighted centering: .... \n{}".format(c.weighted_centering(0.4)))
+    print("Localized centering: ... \n{}".format(c.localized_centering(2)))

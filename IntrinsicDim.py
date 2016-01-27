@@ -17,6 +17,9 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 @date: 2015-09-15
 """
 import numpy as np
+from hub_toolbox import IO
+from tempfile import mkdtemp
+import os.path as path
 
 class IntrinsicDim():
     """Calculate intrinsic dimensionality based on a MLE.
@@ -26,21 +29,31 @@ class IntrinsicDim():
        
     def __init__(self, X):
         # Deep copy required due to changes in vector data
-        self.X = np.copy(X)
+        self.X = IO.copy_D_or_load_memmap(X, writeable=True)
         
     def calculate_intrinsic_dimensionality(self):
         """Calculate intrinsic dimensionality based on a MLE."""
         
-        # New array with unique rows                
-        X = self.X[np.lexsort(np.fliplr(self.X).T)]  
+        # disk
+        if isinstance(self.X, np.memmap):
+            filename = path.join(mkdtemp(), 'intrdim.dat')
+            X = np.memmap(filename, dtype='float64', mode='w+', shape=self.X.shape)
+            X[:] = self.X[np.lexsort(np.fliplr(self.X).T)]
+        # memory
+        else:
+            # New array with unique rows                
+            X = self.X[np.lexsort(np.fliplr(self.X).T)]  
+        # in both cases...
+        self.X = None # free memory
         X -= np.tile(np.mean(X, 0), (np.size(X, 0), 1))
         X /= np.tile(np.var(X, 0) + 1e-7, (np.size(X, 0), 1))
-        
+                    
         # Set neighborhood range to search in 
         k1 = 6
         k2 = 12
         
         # Compute matrix of log nearest neighbor distances
+        # TODO memmap implementation...
         X = X.T
         n = np.shape(X)[1]
         X2 = np.sum(X**2, 0)
@@ -68,4 +81,4 @@ class IntrinsicDim():
              
         # Average over estimates and over values of k
         no_dims = np.mean(dhat)
-        return no_dims
+        return np.round(no_dims).astype(np.int)

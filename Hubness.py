@@ -26,6 +26,8 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 
 import numpy as np
 from scipy import stats as stat
+import time
+from hub_toolbox import IO
 
 class Hubness():
     """Computes the hubness of a distance matrix using its k nearest neighbors.
@@ -33,8 +35,11 @@ class Hubness():
     Hubness is the skewness of the n-occurrence histogram.
     """
     
-    def __init__(self, D, k: int = 5, isSimilarityMatrix: bool = False):
-        self.D = np.copy(D)
+    def __init__(self, D, k:int=5, isSimilarityMatrix:bool=False):
+        if isinstance(D, np.memmap):
+            self.D = D
+        else:
+            self.D = IO.copy_D_or_load_memmap(D, writeable=False)
         self.k = k
         if isSimilarityMatrix:
             self.d_self = -np.inf
@@ -44,23 +49,30 @@ class Hubness():
             self.sort_order = 1 # ascending, interested in smallest distance
         np.random.seed()
                 
-    def calculate_hubness(self, debug = False):
+    def calculate_hubness(self, debug=False):
         """Calculate hubness."""
         
         if debug:
             print("Hubness...")
-                
+                            
         Dk = np.zeros( (self.k, np.size(self.D, 1)) )
         
-        # Set self dist to inf
-        np.fill_diagonal(self.D, self.d_self)
-        # make non-finite (NaN, Inf) appear at the end of the sorted list
-        self.D[~np.isfinite(self.D)] = self.d_self
-            
-        i = 0
-        for d in self.D:
-            if debug and (i % 1000 == 0):
-                print("NN: {} of {}.".format(i, self.D.shape[0]))
+        if not isinstance(self.D, np.memmap):  # for D that fits into memory
+            # Set self dist to inf
+            np.fill_diagonal(self.D, self.d_self)
+            # make non-finite (NaN, Inf) appear at the end of the sorted list
+            self.D[~np.isfinite(self.D)] = self.d_self
+           
+        tic = time.clock()    
+        for i, d in enumerate(self.D):
+            if debug and ((i+1)%1000==0 or i+1==len(self.D)):
+                toc = time.clock() - tic
+                print("NN: {} of {}. Took {:.3} seconds.".format(i+1, self.D.shape[0], toc))
+                tic = time.clock()
+            if isinstance(self.D, np.memmap):
+                d = np.copy(d.astype(np.float))
+                d[i] = self.d_self
+                d[~np.isfinite(d)] = self.d_self
             # randomize the distance matrix rows to avoid the problem case
             # if all numbers to sort are the same, which would yield high
             # hubness, even if there is none
@@ -69,7 +81,6 @@ class Hubness():
             d2 = d[rp]
             d2idx = np.argsort(d2, axis=0)[::self.sort_order]
             Dk[:, i] = rp[d2idx[0:self.k]]      
-            i += 1
             
         # N-occurence
         if debug:

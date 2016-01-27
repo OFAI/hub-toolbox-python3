@@ -23,7 +23,7 @@ from hub_toolbox.MutualProximity import MutualProximity, Distribution
 from hub_toolbox.LocalScaling import LocalScaling
 from hub_toolbox.SharedNN import SharedNN
 from hub_toolbox.Centering import Centering
-from hub_toolbox import Distances as htd, KnnClassification_sklearn
+from hub_toolbox import Distances as htd
 
 
 class HubnessAnalysis():
@@ -136,8 +136,10 @@ class HubnessAnalysis():
             else:
                 c = Centering(self.vectors)
                 # TODO remove again:
-                K = self.D#K = self.vectors.dot(self.vectors.T)
-                c_dist = Centering(K, is_distance_matrix=True)
+                #K = self.D#
+                #K = htd.cosine_distance(self.vectors.T)
+                #K = self.vectors.dot(self.vectors.T)
+                #c_dist = Centering(dist=K, is_distance_matrix=True)
                 if cent:
                     # Hubness after centering
                     D_cent = htd.cosine_distance(c.centering())
@@ -150,16 +152,18 @@ class HubnessAnalysis():
                         Sn10, Nk10 = hubness.calculate_hubness()[::2]
                         self.print_results('CENTERING', D_cent, Sn10, Nk10, Sn10=True)
                     
-                    #Centering on distance matrix
-                    D_cent_dist = c_dist.centering()
-                    hubness = Hubness(D_cent_dist)
-                    Sn5, Nk5 = hubness.calculate_hubness()[::2]
-                    self.print_results('CENTERING (dist)', D_cent_dist, Sn5, Nk5)
+                    #===========================================================
+                    # #Centering on distance matrix
+                    # D_cent_dist = c_dist.centering()
+                    # hubness = Hubness(D_cent_dist)
+                    # Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                    # self.print_results('CENTERING (dist)', D_cent_dist, Sn5, Nk5)
+                    #===========================================================
                     # TODO remove again
-                    if Sk10:
-                        hubness = Hubness(D_cent, k=10)
-                        Sn10, Nk10 = hubness.calculate_hubness()[::2]
-                        self.print_results('CENTERING (dist)', D_cent_dist, Sn10, Nk10, Sn10=True)
+                    #if Sk10:
+                    #    hubness = Hubness(D_cent, k=10)
+                    #    Sn10, Nk10 = hubness.calculate_hubness()[::2]
+                    #    self.print_results('CENTERING (dist)', D_cent_dist, Sn10, Nk10, Sn10=True)
                 if wcent:        
                     # Hubness after weighted centering
                     D_wcent = htd.cosine_distance(c.weighted_centering(wcent_g))
@@ -184,13 +188,15 @@ class HubnessAnalysis():
                         'LOCALIZED CENTERING (k={}, gamma={})'.format(\
                         lcent_k, lcent_g), D_lcent, Sn5, Nk5)
                     #TODO remove again
-                    D_lcent = c.localized_centering_with_test_set(
-                        kappa=lcent_k, gamma=lcent_g)
-                    hubness = Hubness(D_lcent)
-                    Sn5, Nk5 = hubness.calculate_hubness()[::2]
-                    self.print_results(\
-                        'LOCALIZED CENTERING (k={}, gamma={})'.format(\
-                        lcent_k, lcent_g), D_lcent, Sn5, Nk5)
+                    #===========================================================
+                    # D_lcent = c.localized_centering_with_test_set(
+                    #     kappa=lcent_k, gamma=lcent_g)
+                    # hubness = Hubness(D_lcent)
+                    # Sn5, Nk5 = hubness.calculate_hubness()[::2]
+                    # self.print_results(\
+                    #     'LOCALIZED CENTERING (k={}, gamma={})'.format(\
+                    #     lcent_k, lcent_g), D_lcent, Sn5, Nk5)
+                    #===========================================================
                     #TODO end remove
     
     def print_results(self, heading : str, distances, Sn5 : float, Nk5 : float, 
@@ -286,6 +292,6 @@ class HubnessAnalysis():
 if __name__=="__main__":
     hub = HubnessAnalysis()
     hub.analyse_hubness(origData=True, mp=True, mp_gaussi=True, \
-                        ls=True, snn=True, cent=True, wcent=True)
+                        ls=False, snn=False, cent=False, wcent=False, lcent=False)
     
     

@@ -27,7 +27,7 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy import stats as stat
 import time
-from hub_toolbox import IO
+from hub_toolbox import IO, Logging
 
 class Hubness():
     """Computes the hubness of a distance matrix using its k nearest neighbors.
@@ -36,6 +36,7 @@ class Hubness():
     """
     
     def __init__(self, D, k:int=5, isSimilarityMatrix:bool=False):
+        self.log = Logging.ConsoleLogging()
         if isinstance(D, np.memmap):
             self.D = D
         else:
@@ -53,7 +54,8 @@ class Hubness():
         """Calculate hubness."""
         
         if debug:
-            print("Hubness...")
+            self.log.message("Start hubness calculation "
+                             "(skewness of {}-occurence".format(self.k))
                             
         Dk = np.zeros( (self.k, np.size(self.D, 1)) )
         
@@ -67,7 +69,8 @@ class Hubness():
         for i, d in enumerate(self.D):
             if debug and ((i+1)%1000==0 or i+1==len(self.D)):
                 toc = time.clock() - tic
-                print("NN: {} of {}. Took {:.3} seconds.".format(i+1, self.D.shape[0], toc))
+                self.log.message("NN: {} of {}. Took {:.3} seconds.".
+                                 format(i+1, self.D.shape[0], toc))
                 tic = time.clock()
             if isinstance(self.D, np.memmap):
                 d = np.copy(d.astype(np.float))
@@ -84,14 +87,14 @@ class Hubness():
             
         # N-occurence
         if debug:
-            print("Counting n-occurence...")
+            self.log.message("Counting n-occurence...")
         Nk = np.bincount(Dk.astype(int).ravel())    
         # Hubness
         if debug:
-            print("Calculation skewness = hubness...")
+            self.log.message("Calculating hubness...")
         Sn = stat.skew(Nk)
          
         # return hubness, k-nearest neighbors, N occurence
         if debug:
-            print("Hubness: done.")
+            self.log.message("Hubness calculation done.")
         return (Sn, Dk, Nk)

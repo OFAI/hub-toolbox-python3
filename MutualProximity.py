@@ -65,8 +65,9 @@ class MutualProximity():
             train_set_mask = np.ones(self.D.shape[0], np.bool)
             
         if distrType is None:
-            print("No Mutual Proximity type given. Using: Distribution.empiric")
-            print("For fast results use: Distribution.gaussi")
+            self.log.message("No Mutual Proximity type given. "
+                             "Using: Distribution.empiric \n"
+                             "For fast results use: Distribution.gaussi")
             Dmp = self.mp_empiric(train_set_mask, verbose)
         else:
             if distrType == Distribution.empiric:
@@ -307,7 +308,7 @@ class MutualProximity():
                     current_cols[r, c] = 0 
                 updated_rows = np.zeros_like(current_rows)
                 # calculations on submatrix in memory
-                for inner_row, outer_row in enumerate(idx):
+                for inner_row in range(len(idx)):
                     if verbose and ((i+1)%1000 == 0 or i+1==n):
                         toc = time.clock() - tic
                         self.log.message("MP_gaussi: {} of {}. Took {:.3} "

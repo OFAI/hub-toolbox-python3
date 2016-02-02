@@ -56,7 +56,7 @@ class MutualProximity():
         
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, enforce_disk=False,
-                                   sample_size=0):
+                                   sample_size=0, filename=None):
         """Apply MP on a distance matrix."""
         
         if test_set_mask is not None:
@@ -76,7 +76,7 @@ class MutualProximity():
                 Dmp = self.mp_gauss(train_set_mask, verbose)
             elif distrType == Distribution.gaussi:
                 Dmp = self.mp_gaussi(train_set_mask, verbose, 
-                                     enforce_disk, sample_size)
+                                     enforce_disk, sample_size, filename)
             elif distrType == Distribution.gammai:
                 Dmp = self.mp_gammai(train_set_mask, verbose)
             else:
@@ -202,7 +202,7 @@ class MutualProximity():
         return Dmp
     
     def mp_gaussi(self, train_set_mask=None, verbose=False, enforce_disk=False,
-                  sample_size=0):
+                  sample_size=0, filename=None):
         """Compute Mutual Proximity modeled with independent Gaussians (fast). 
         Use enforce_disk=True to use memory maps for matrices that do not fit 
         into main memory.
@@ -276,9 +276,12 @@ class MutualProximity():
         
         # work on disk
         if isinstance(self.D, np.memmap) or enforce_disk:
-            # create distance matrix on disk
-            from tempfile import mkstemp
-            filename = mkstemp(suffix='pytmp')[1] # [0]... fd, [1]... filename
+            if filename is None:
+                # create distance matrix on disk
+                from tempfile import mkstemp
+                filename = mkstemp(suffix='pytmp')[1] # [0]... fd, [1]... filename
+            #else: 
+            #    filename was provided via function call
             self.log.message("Writing rescaled distance matrix to file:", filename)
             Dmp = np.memmap(filename, dtype='float64', mode='w+', shape=self.D.shape)
             # determine number of rows that fit into free memory

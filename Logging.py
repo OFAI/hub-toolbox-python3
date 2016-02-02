@@ -13,7 +13,7 @@ class ConsoleLogging():
         return time.strftime('%Y-%m-%d %H:%M:%S')
     
     def message(self, *objs):
-        print(self._current_time, 'MESSAGE:', *objs)
+        print(self._current_time, 'INFO:', *objs)
         
     def warning(self, *objs):
         print(self._current_time, 'WARNING:', *objs, file=sys.stderr)

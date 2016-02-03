@@ -210,7 +210,7 @@ class MutualProximity():
         samples. Default sample_size=0: use all points."""
         
         if verbose:
-            self.log.message('Mutual proximity rescaling started.')
+            self.log.message('Mutual proximity rescaling started.', flush=True)
         n = np.size(self.D, 0)
         if not isinstance(self.D, np.memmap):
             np.fill_diagonal(self.D, 0)
@@ -292,7 +292,7 @@ class MutualProximity():
             if verbose:
                 self.log.message('Divided {}x{} matrix into {} '
                                 'batches of {} rows each.'.
-                                format(n, n, nr_batches, take_rows))
+                                format(n, n, nr_batches, take_rows), flush=True)
             tic = time.clock()
             i = 0
             # work on submatrices, trying to minimize disk I/O
@@ -315,7 +315,8 @@ class MutualProximity():
                     if verbose and ((i+1)%1000 == 0 or i+1==n):
                         toc = time.clock() - tic
                         self.log.message("MP_gaussi: {} of {}. Took {:.3} "
-                                        "seconds.".format(i+1, n, toc))
+                                        "seconds.".format(i+1, n, toc), 
+                                        flush=True)
                         tic = time.clock()
                     j_idx = np.arange(i+1, n)
                     j_len = np.size(j_idx)
@@ -335,7 +336,7 @@ class MutualProximity():
             for h in range(nr_batches):
                 if verbose:
                     self.log.message('MP finalization: batch {}/{}.'.
-                                     format(h, nr_batches-1))
+                                     format(h, nr_batches-1), flush=True)
                 row_start = h*take_rows
                 row_stop = (h+1)*take_rows
                 if row_stop > n:
@@ -358,7 +359,7 @@ class MutualProximity():
                 if verbose and ((i+1)%1000 == 0 or i+1==n):
                     toc = time.clock() - tic
                     self.log.message("MP_gaussi: {} of {}. Took {:.3} "
-                                    "seconds.".format(i+1, n, toc))
+                                    "seconds.".format(i+1, n, toc), flush=True)
                     tic = time.clock()
                 j_idx = np.arange(i+1, n)
                 j_len = np.size(j_idx)

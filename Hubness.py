@@ -55,7 +55,7 @@ class Hubness():
         
         if debug:
             self.log.message("Start hubness calculation "
-                             "(skewness of {}-occurence".format(self.k))
+                             "(skewness of {}-occurence)".format(self.k))
                             
         Dk = np.zeros( (self.k, np.size(self.D, 1)) )
         
@@ -70,7 +70,7 @@ class Hubness():
             if debug and ((i+1)%1000==0 or i+1==len(self.D)):
                 toc = time.clock() - tic
                 self.log.message("NN: {} of {}. Took {:.3} seconds.".
-                                 format(i+1, self.D.shape[0], toc))
+                                 format(i+1, self.D.shape[0], toc), flush=True)
                 tic = time.clock()
             if isinstance(self.D, np.memmap):
                 d = np.copy(d.astype(np.float))
@@ -96,5 +96,5 @@ class Hubness():
          
         # return hubness, k-nearest neighbors, N occurence
         if debug:
-            self.log.message("Hubness calculation done.")
+            self.log.message("Hubness calculation done.", flush=True)
         return (Sn, Dk, Nk)

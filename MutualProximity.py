@@ -254,22 +254,22 @@ class MutualProximity():
                 
                 tic = time.clock()
                 for i, row in enumerate(self.D[samples].T):
-                    if verbose and ((i+1)%1000 == 0 or i+1 == n):
+                    if verbose and ((i+1)%10000 == 0 or i+1 == n):
                         toc = time.clock() - tic
                         self.log.message("MP_gaussi mean/std: "
                                         "{} of {}. Took {:.3} seconds."
-                                        .format(i+1, n, toc))
+                                        .format(i+1, n, toc), flush=True)
                         tic = time.clock()
                     mu[i] = row.mean()
                     sd[i] = row.std(ddof=1)    
             else:
                 tic = time.clock()
                 for i, row in enumerate(self.D.T):
-                    if verbose and ((i+1)%1000 == 0 or i+1 == n):
+                    if verbose and ((i+1)%10000 == 0 or i+1 == n):
                         toc = time.clock() - tic
                         self.log.message("MP_gaussi mean/std: "
                                         "{} of {}. Took {:.3} seconds."
-                                        .format(i+1, n, toc))
+                                        .format(i+1, n, toc), flush=True)
                         tic = time.clock()
                     mu[i] = row.mean()
                     sd[i] = row.std(ddof=1)                            

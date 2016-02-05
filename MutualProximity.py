@@ -237,9 +237,9 @@ class MutualProximity():
         # ... using tertiary memory, if necessary
         else:
             if verbose:
-                self.log.message('Calculating distribution parameters on disk.'
-                                'Number of samples for parameter estimation: {}'.
-                                format(sample_size))
+                self.log.message('Calculating Gaussian parameters on disk. '
+                                'Number of samples for parameter estimation: '
+                                '{}'.format(sample_size))
             if not np.all(train_set_mask) and isinstance(self.D, np.memmap):
                 raise NotImplementedError("Using train/test splits and working "
                                           "and working on disk at the same time"
@@ -250,15 +250,15 @@ class MutualProximity():
             if sample_size != 0:
                 idx = np.arange(self.D.shape[0])
                 np.random.shuffle(idx)
-                samples = idx[sample_size]
+                samples = idx[0:sample_size]
                 
                 tic = time.clock()
                 for i, row in enumerate(self.D[samples].T):
-                    if verbose and ((i+1)%10000 == 0 or i+1 == n):
+                    if verbose and ((i+1)%10000 == 0 or i+1 == len(idx)):
                         toc = time.clock() - tic
                         self.log.message("MP_gaussi mean/std: "
                                         "{} of {}. Took {:.3} seconds."
-                                        .format(i+1, n, toc), flush=True)
+                                        .format(i+1, len(idx), toc), flush=True)
                         tic = time.clock()
                     mu[i] = row.mean()
                     sd[i] = row.std(ddof=1)    

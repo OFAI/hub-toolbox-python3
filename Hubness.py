@@ -67,7 +67,7 @@ class Hubness():
            
         tic = time.clock()    
         for i, d in enumerate(self.D):
-            if debug and ((i+1)%1000==0 or i+1==len(self.D)):
+            if debug and ((i+1)%10000==0 or i+1==len(self.D)):
                 toc = time.clock() - tic
                 self.log.message("NN: {} of {}. Took {:.3} seconds.".
                                  format(i+1, self.D.shape[0], toc), flush=True)

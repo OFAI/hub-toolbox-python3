@@ -254,11 +254,11 @@ class MutualProximity():
                 
                 tic = time.clock()
                 for i, row in enumerate(self.D[samples].T):
-                    if verbose and ((i+1)%10000 == 0 or i+1 == len(idx)):
+                    if verbose and ((i+1)%10000 == 0 or i+1 == n):
                         toc = time.clock() - tic
                         self.log.message("MP_gaussi mean/std: "
                                         "{} of {}. Took {:.3} seconds."
-                                        .format(i+1, len(idx), toc), flush=True)
+                                        .format(i+1, n, toc), flush=True)
                         tic = time.clock()
                     mu[i] = row.mean()
                     sd[i] = row.std(ddof=1)    

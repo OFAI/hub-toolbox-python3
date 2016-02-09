@@ -38,9 +38,13 @@ import numpy as np
 
 class GoodmanKruskal():
     
-    def __init__(self, D, classes):
+    def __init__(self, D, classes, isSimilarityMatrix=False):
         self.D = np.copy(D)
         self.classes = np.copy(classes)
+        if isSimilarityMatrix:
+            self.sort_order = -1
+        else:
+            self.sort_order = 1
         
     def calculate_goodman_kruskal_index(self) -> float:
         """Calculate the Goodman-Kruskal clustering index."""
@@ -74,7 +78,7 @@ class GoodmanKruskal():
             # (this is especially relevant for SNN rescaling)
             rp = np.random.permutation(np.size(D_full))
             d2 = D_full[rp]
-            d2idx = np.argsort(d2)
+            d2idx = np.argsort(d2)[::self.sort_order]
             full_idx = rp[d2idx]      
             
             # OLD code, non-randomized

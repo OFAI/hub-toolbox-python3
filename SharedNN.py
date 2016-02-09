@@ -24,13 +24,13 @@ class SharedNN():
     
     """
     
-    def __init__(self, D, k = None):
+    def __init__(self, D, k=10, isSimilarityMatrix=False):
         self.D = np.copy(D)
-        if k is None:
-            print("No neighborhood radius given. Using k=10")
-            self.k = 10
+        self.k = k
+        if isSimilarityMatrix:
+            self.sort_order = -1
         else:
-            self.k = k
+            self.sort_order = 1
         
     def perform_snn(self):
         """Transform distance matrix using shared nearest neighbor."""
@@ -40,7 +40,7 @@ class SharedNN():
         for i in range(n):
             di = self.D[i, :]
             di[i] = np.inf
-            nn = np.argsort(di)
+            nn = np.argsort(di)[::self.sort_order]
             z[i, nn[0:self.k]] = 1
             
         Dsnn = np.zeros_like(self.D)

@@ -38,7 +38,7 @@ class LocalScaling():
     
     """
     
-    def __init__(self, D, k:int=7, scalingType='nicdm'):
+    def __init__(self, D, k:int=7, scalingType='nicdm', isSimilarityMatrix=False):
         """ Create an instance for local scaling. 
         Parameters:
         k... neighborhood radius (DEFAULT = 7)
@@ -47,6 +47,21 @@ class LocalScaling():
         self.D = np.copy(D)
         self.k = k
         self.scalingType = scalingType
+        if isSimilarityMatrix:
+            if scalingType=='nicdm':
+                self.warning("NICDM does not support similarities. Distances "
+                             "will be calculated as D=1-S/S.max and used for "
+                             "NICDM scaling. Similarities are subsequently "
+                             "obtained by the same procedure S=1-D/D.max")
+            else:
+                self.warning("Similarity-based LS support is experimental.")
+        self.isSimilarityMatrix = isSimilarityMatrix
+        if self.isSimilarityMatrix:
+            self.sort_order = -1
+            self.exclude = -np.inf 
+        else:
+            self.sort_order = 1
+            self.exclude = np.inf
         
     def perform_local_scaling(self, test_set_mask=None):
         """Transform distance matrix using local scaling."""
@@ -74,15 +89,19 @@ class LocalScaling():
         r = np.zeros((length_D, 1))
         for i in range(length_D):
             di = self.D[i, train_set_mask]
-            di[i] = np.inf
-            nn = np.argsort(di)
-            r[i] = di[nn[self.k-1]]
+            di[i] = self.exclude
+            nn = np.argsort(di)[::self.sort_order]
+            r[i] = di[nn[self.k-1]] #largest similarities or smallest distances
         
         n = np.shape(self.D)[0]
         Dls = np.zeros(np.shape(self.D), dtype = self.D.dtype)
         for i in range(n):
             for j in range(i+1, n):
-                Dls[i, j] = self.D[i, j] / np.sqrt( r[i] * r[j] )
+                if self.isSimilarityMatrix:
+                    #Dls[i, j] = np.exp(-self.D[i, j] / np.sqrt( r[i] * r[j] ))
+                    Dls[i, j] = self.D[i, j] / np.sqrt( r[i] * r[j] )
+                else:
+                    Dls[i, j] = self.D[i, j] / np.sqrt( r[i] * r[j] )
                 Dls[j, i] = Dls[i, j]
         
         return Dls
@@ -102,15 +121,20 @@ class LocalScaling():
         np.fill_diagonal(self.D, np.inf)
         for i in range(length_D):
             di = self.D[i, train_set_mask]
-            nn = np.argsort(di)
-            r[i] = np.mean(di[nn[0:self.k]])
+            di[i] = self.exclude
+            nn = np.argsort(di)[::self.sort_order]
+            r[i] = np.mean(di[nn[0:self.k]]) # largest sim. or smallest dist.
         rg = self.local_geomean(r)
          
+        if self.isSimilarityMatrix:
+            self.D = 1 - self.D / self.D.max()
         Dnicdm = np.zeros(np.shape(self.D), dtype = self.D.dtype)
         for i in range(length_D):
             for j in range(i+1, length_D):
                 Dnicdm[i, j] = (rg * self.D[i, j]) / np.sqrt( r[i] * r[j] )
                 Dnicdm[j, i] = Dnicdm[i, j]
+        if self.isSimilarityMatrix:
+            Dnicdm = 1 - Dnicdm / Dnicdm.max() 
          
         return Dnicdm
             

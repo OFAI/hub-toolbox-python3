@@ -34,6 +34,7 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.special import gammainc
 from scipy.stats import norm, mvn
+from scipy.sparse import issparse
 import time
 from enum import Enum
 from hub_toolbox import IO, Logging
@@ -50,9 +51,16 @@ class MutualProximity():
     
     """
     
-    def __init__(self, D):
+    def __init__(self, D, isSimilarityMatrix=False):
         self.D = IO.copy_D_or_load_memmap(D, writeable=True)
         self.log = Logging.ConsoleLogging()
+        if isSimilarityMatrix:
+            self.self_value = 1
+        else:
+            self.self_value = 0
+        self.isSimilarityMatrix = isSimilarityMatrix
+        if issparse(self.D):
+            self.log.error("Sparse matrices not supported yet.")
         
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, enforce_disk=False,
@@ -69,17 +77,17 @@ class MutualProximity():
             self.log.message("No Mutual Proximity type given. "
                              "Using: Distribution.empiric \n"
                              "For fast results use: Distribution.gaussi")
-            Dmp = self.mp_empiric(train_set_mask, verbose, isSimilarityMatrix)
+            Dmp = self.mp_empiric(train_set_mask, verbose)
         else:
             if distrType == Distribution.empiric:
-                Dmp = self.mp_empiric(train_set_mask, verbose, isSimilarityMatrix)
+                Dmp = self.mp_empiric(train_set_mask, verbose)
             elif distrType == Distribution.gauss:
-                Dmp = self.mp_gauss(train_set_mask, verbose, isSimilarityMatrix)
+                Dmp = self.mp_gauss(train_set_mask, verbose)
             elif distrType == Distribution.gaussi:
                 Dmp = self.mp_gaussi(train_set_mask, verbose, enforce_disk, 
-                                     sample_size, filename, isSimilarityMatrix)
+                                     sample_size, filename)
             elif distrType == Distribution.gammai:
-                Dmp = self.mp_gammai(train_set_mask, verbose, isSimilarityMatrix)
+                Dmp = self.mp_gammai(train_set_mask, verbose)
             else:
                 self.log.warning("Valid Mutual Proximity type missing!\n"+\
                              "Use: \n"+\
@@ -91,15 +99,14 @@ class MutualProximity():
        
         return Dmp
          
-    def mp_empiric(self, train_set_mask=None, verbose=False, 
-                   isSimilarityMatrix=False):
+    def mp_empiric(self, train_set_mask=None, verbose=False):
         """Compute Mutual Proximity distances with empirical data (slow)."""   
         #TODO implement train_set_mask!
         if not np.all(train_set_mask):
-            print("WARNING: MP empiric does not support train/test splits yet.")
+            self.log.warning("WARNING: MP empiric does not support train/test splits yet.")
             return
         #TODO implement similarity based MP
-        if isSimilarityMatrix:
+        if self.isSimilarityMatrix:
             self.log.warning("Similarity-based empiric MP support is still experimental.")
             
         if isinstance(self.D, np.memmap): # work on disk
@@ -108,7 +115,7 @@ class MutualProximity():
             self.log.message("Writing rescaled distance matrix to file:", filename)
             Dmp = np.memmap(filename, dtype='float64', mode='w+', shape=self.D.shape)
             n = self.D.shape[0]
-            np.fill_diagonal(self.D, 0)
+            np.fill_diagonal(self.D, self.self_value)
             
             tic = time.clock() 
             for i in range(n-1):
@@ -124,8 +131,8 @@ class MutualProximity():
                 dJ = self.D[j_idx, :]
                 d = np.tile(self.D[j_idx, i][:, np.newaxis], (1, n))
                 
-                if isSimilarityMatrix:
-                    sIJ_intersect = np.sum((dI < d) & (dJ < d), 1)
+                if self.isSimilarityMatrix:
+                    sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
                     sIJ_overlap = sIJ_intersect / n
                 else: 
                     sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
@@ -134,7 +141,9 @@ class MutualProximity():
             Dmp += Dmp.T   
               
         else: # work in memory
-            np.fill_diagonal(self.D, 0)
+            if not issparse(self.D):
+                # ensure correct self distances (NOT done for sparse matrices!)
+                np.fill_diagonal(self.D, self.self_value)
             n = np.shape(self.D)[0]
             Dmp_list = [0 for i in range(n)]
              
@@ -153,8 +162,8 @@ class MutualProximity():
                 dJ = self.D[j_idx, :]
                 d = np.tile(self.D[j_idx, i][:, np.newaxis], (1, n))
                  
-                if isSimilarityMatrix:
-                    sIJ_intersect = np.sum((dI < d) & (dJ < d), 1)
+                if self.isSimilarityMatrix:
+                    sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
                     sIJ_overlap = sIJ_intersect / n
                 else:
                     sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
@@ -169,14 +178,14 @@ class MutualProximity():
             
         return Dmp
     
-    def mp_gauss(self, train_set_mask=None, verbose=False,
-                 isSimilarityMatrix=False):
+    def mp_gauss(self, train_set_mask=None, verbose=False):
         """Compute Mutual Proximity distances with Gaussian model (very slow)."""
-        #TODO implement similarity based MP
-        if isSimilarityMatrix:
-            raise ValueError("Gaussian MP does not yet support similarity matrices.")
         
-        np.fill_diagonal(self.D, 0)
+        if self.isSimilarityMatrix:
+            self.log.warning("Similarity-based Gaussian MP support is still experimental.")
+        
+        if not issparse(self.D):
+            np.fill_diagonal(self.D, self.self_value)
         mu = np.mean(self.D[train_set_mask], 0)
         sd = np.std(self.D[train_set_mask], 0, ddof=1)
                 
@@ -205,36 +214,45 @@ class MutualProximity():
                 x = np.array([self.D[i, j], self.D[j, i]])
                 m = np.array([mu[i], mu[j]])
                 
-                p1 = norm.cdf(self.D[j, i], mu[i], sd[i])
-                p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
-                
                 low = np.tile(np.finfo(np.float32).min, 2)
                 p12 = mvn.mvnun(low, x, m, c)[0] # [0]...p, [1]...inform
                 if np.isnan(p12):
-                    c += epsmat*1e7 
-                    p12 = mvn.mvnun(low, x, m, c)[0]
-                assert not np.isnan(p12), "p12 is NaN: i={}, j={}".format(i, j)
-                Dmp[j, i] = p1 + p2 - p12
+                    power = 7
+                    while np.isnan(p12):
+                        c += epsmat * (10**power) 
+                        p12 = mvn.mvnun(low, x, m, c)[0]
+                        power += 1
+                    self.log.warning("p12 is NaN: i={}, j={}. "
+                                     "Increased cov matrix by O({}).".format(
+                                     i, j, epsmat[0,0]*(10**power)))
+                
+                if self.isSimilarityMatrix:
+                    Dmp[j, i] = p12
+                else:
+                    p1 = norm.cdf(self.D[j, i], mu[i], sd[i])
+                    p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
+                    Dmp[j, i] = p1 + p2 - p12
+                
                 Dmp[i, j] = Dmp[j, i]
 
         return Dmp
     
     def mp_gaussi(self, train_set_mask=None, verbose=False, enforce_disk=False,
-                  sample_size=0, filename=None, isSimilarityMatrix=False):
+                  sample_size=0, filename=None):
         """Compute Mutual Proximity modeled with independent Gaussians (fast). 
         Use enforce_disk=True to use memory maps for matrices that do not fit 
         into main memory.
         Set sample_size=SIZE to estimate Gaussian distribution from SIZE 
         samples. Default sample_size=0: use all points."""
         #TODO implement similarity based MP
-        if isSimilarityMatrix:
-            raise ValueError("I.Gaussian MP does not yet support similarity matrices.")
+        if self.isSimilarityMatrix:
+            self.log.warning("Similarity-based I.Gaussian MP support is still experimental.")
         
         if verbose:
             self.log.message('Mutual proximity rescaling started.', flush=True)
         n = np.size(self.D, 0)
-        if not isinstance(self.D, np.memmap):
-            np.fill_diagonal(self.D, 0)
+        if not isinstance(self.D, np.memmap) and not issparse(self.D):
+            np.fill_diagonal(self.D, self.self_value)
         # else: do this later on the fly
         
         # Get memory info
@@ -342,12 +360,22 @@ class MutualProximity():
                     j_idx = np.arange(i+1, n)
                     j_len = np.size(j_idx)
                     
-                    p1 = 1 - norm.cdf(current_rows[inner_row, j_idx], \
-                                      np.tile(mu[i], (1, j_len)), \
-                                      np.tile(sd[i], (1, j_len)))        
-                    p2 = 1 - norm.cdf(current_cols[j_idx, inner_row].T, \
-                                      mu[j_idx], sd[j_idx])
-                    updated_rows[inner_row, j_idx] = (1 - p1 * p2).ravel()
+                    if self.isSimilarityMatrix:
+                        p1 = norm.cdf(current_rows[inner_row, j_idx], \
+                                          np.tile(mu[i], (1, j_len)), \
+                                          np.tile(sd[i], (1, j_len)))        
+                        p2 = norm.cdf(current_cols[j_idx, inner_row].T, \
+                                          mu[j_idx], \
+                                          sd[j_idx])
+                        updated_rows[inner_row, j_idx] = (p1 * p2).ravel()
+                    else:
+                        p1 = 1 - norm.cdf(current_rows[inner_row, j_idx], \
+                                          np.tile(mu[i], (1, j_len)), \
+                                          np.tile(sd[i], (1, j_len)))        
+                        p2 = 1 - norm.cdf(current_cols[j_idx, inner_row].T, \
+                                          mu[j_idx], \
+                                          sd[j_idx])
+                        updated_rows[inner_row, j_idx] = (1 - p1 * p2).ravel()
                     i += 1
                 # writing changes for many rows at once
                 Dmp[idx, :] = updated_rows
@@ -385,24 +413,35 @@ class MutualProximity():
                 j_idx = np.arange(i+1, n)
                 j_len = np.size(j_idx)
                 
-                p1 = 1 - norm.cdf(self.D[i, j_idx], \
+                if self.isSimilarityMatrix:
+                    p1 = norm.cdf(self.D[i, j_idx], \
                                   np.tile(mu[i], (1, j_len)), \
                                   np.tile(sd[i], (1, j_len)))
-                p2 = 1 - norm.cdf(self.D[j_idx, i].T, \
-                                  mu[j_idx], sd[j_idx])
-                Dmp[i, j_idx] = (1 - p1 * p2).ravel()
+                    p2 = norm.cdf(self.D[j_idx, i].T, \
+                                  mu[j_idx], \
+                                  sd[j_idx])
+                    Dmp[i, j_idx] = (p1 * p2).ravel()
+                else:
+                    p1 = 1 - norm.cdf(self.D[i, j_idx], \
+                                      np.tile(mu[i], (1, j_len)), \
+                                      np.tile(sd[i], (1, j_len)))
+                    p2 = 1 - norm.cdf(self.D[j_idx, i].T, \
+                                      mu[j_idx], \
+                                      sd[j_idx])
+                    Dmp[i, j_idx] = (1 - p1 * p2).ravel()
+                    
                 Dmp[j_idx, i] = Dmp[i, j_idx]
     
         return Dmp
     
-    def mp_gammai(self, train_set_mask=None, verbose=False,
-                  isSimilarityMatrix=False):
+    def mp_gammai(self, train_set_mask=None, verbose=False):
         """Compute Mutual Proximity modeled with independent Gamma distributions."""
         #TODO implement similarity based MP
-        if isSimilarityMatrix:
-            raise ValueError("I.Gamma MP does not yet support similarity matrices.")
+        if self.isSimilarityMatrix:
+            self.log.warning("Similarity-based I.Gamma MP support is still experimental.")
         
-        np.fill_diagonal(self.D, 0)
+        if not issparse(self.D):
+            np.fill_diagonal(self.D, self.self_value)
         mu = np.mean(self.D[train_set_mask], 0)
         va = np.var(self.D[train_set_mask], 0, ddof=1)
         A = (mu**2) / va
@@ -427,12 +466,23 @@ class MutualProximity():
             j_idx = np.arange(i+1, n)
             j_len = np.size(j_idx)
             
-            p1 = 1 - self.local_gamcdf(self.D[i, j_idx], \
+            if self.isSimilarityMatrix:
+                p1 = self.local_gamcdf(self.D[i, j_idx], \
                                        np.tile(A[i], (1, j_len)), \
                                        np.tile(B[i], (1, j_len)))
-            p2 = 1 - self.local_gamcdf(self.D[j_idx, i].T, A[j_idx], B[j_idx])
-            
-            Dmp[i, j_idx] = (1 - p1 * p2).ravel()
+                p2 = self.local_gamcdf(self.D[j_idx, i].T, 
+                                       A[j_idx], 
+                                       B[j_idx])
+                Dmp[i, j_idx] = (p1 * p2).ravel()
+            else:
+                p1 = 1 - self.local_gamcdf(self.D[i, j_idx], \
+                                           np.tile(A[i], (1, j_len)), \
+                                           np.tile(B[i], (1, j_len)))
+                p2 = 1 - self.local_gamcdf(self.D[j_idx, i].T, 
+                                           A[j_idx], 
+                                           B[j_idx])
+                Dmp[i, j_idx] = (1 - p1 * p2).ravel()
+                
             Dmp[j_idx, i] = Dmp[i, j_idx]               
         
         return Dmp

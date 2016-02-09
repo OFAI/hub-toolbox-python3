@@ -26,6 +26,7 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 
 import numpy as np
 from scipy import stats as stat
+from scipy import sparse
 import time
 from hub_toolbox import IO, Logging
 
@@ -59,7 +60,9 @@ class Hubness():
                             
         Dk = np.zeros( (self.k, np.size(self.D, 1)) )
         
-        if not isinstance(self.D, np.memmap):  # for D that fits into memory
+        if not isinstance(self.D, np.memmap) and \
+            not sparse.issparse(self.D): 
+            # correct self-distance must be ensured upstream for sparse/memmap
             # Set self dist to inf
             np.fill_diagonal(self.D, self.d_self)
             # make non-finite (NaN, Inf) appear at the end of the sorted list

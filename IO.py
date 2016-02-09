@@ -5,6 +5,7 @@ Created on Jan 5, 2016
 """
 
 import numpy as np
+from scipy import sparse
 import os
 
 def copy_D_or_load_memmap(D, writeable=False):
@@ -15,6 +16,10 @@ def copy_D_or_load_memmap(D, writeable=False):
         return D
     elif isinstance(D, np.ndarray):
         newD = np.copy(D.astype(np.float64))
+    elif sparse.issparse(D):
+        print("WARNING: Not all class of the hub toolbox support sparse "
+              "matrices as of now. Errors are to be expected.")
+        newD = D.copy()
     elif isinstance(D, str):
         if os.path.isfile(D):
             # keep matrix on disk

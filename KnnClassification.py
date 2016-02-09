@@ -26,13 +26,20 @@ class KnnClassification():
     
     """
     
-    def __init__(self, D, classes, k):
+    def __init__(self, D, classes, k, isSimilarityMatrix=False):
         self.D = np.copy(D)
         self.classes = np.copy(classes)
         if type(k) is np.ndarray:
             self.k = np.copy(k)
         else:
             self.k = np.array([k])
+        self.isSimilarityMatrix = isSimilarityMatrix
+        if self.isSimilarityMatrix:
+            self.self_value = -np.inf
+            self.sort_order = -1
+        else:
+            self.self_value = np.inf
+            self.sort_order = 1
         
     def perform_knn_classification(self):
         """Performs k-nearest neighbor classification."""
@@ -58,14 +65,15 @@ class KnnClassification():
             seed_class = classes[i]
             
             row = self.D[i, :]
-            row[i] = np.inf
+            
+            row[i] = self.self_value
             
             # Randomize, in case there are several points of same distance
             # (this is especially relevant for SNN rescaling)
             rp = np.indices( (np.size(self.D, 1), ) )[0]
             rp = np.random.permutation(rp)
             d2 = row[rp]
-            d2idx = np.argsort(d2, axis=0)
+            d2idx = np.argsort(d2, axis=0)[::self.sort_order]
             idx = rp[d2idx]      
             
             # OLD code, non-randomized
@@ -73,7 +81,7 @@ class KnnClassification():
             
             # More than one k?
             for j in range(k_length):
-                nn_class = classes[idx[0:self.k[j]]]
+                nn_class = classes[idx[0:self.k[j]]] #smallest dist/highest sim
                 cs = np.bincount(nn_class.astype(int))
                 max_cs = np.where(cs == np.max(cs))[0]
                 
@@ -122,7 +130,7 @@ class KnnClassification():
             seed_class = classes[i]
             
             row = self.D[i, :]
-            row[i] = np.inf
+            row[i] = self.self_value
             
             # Sort points in training set according to distance
             # Randomize, in case there are several points of same distance
@@ -130,7 +138,7 @@ class KnnClassification():
             rp = train_set_mask
             rp = np.random.permutation(rp)
             d2 = row[rp]
-            d2idx = np.argsort(d2, axis=0)
+            d2idx = np.argsort(d2, axis=0)[::self.sort_order]
             idx = rp[d2idx]      
             
             # OLD code, non-randomized

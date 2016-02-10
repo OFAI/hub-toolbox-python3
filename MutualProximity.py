@@ -34,8 +34,7 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.special import gammainc
 from scipy.stats import norm, mvn
-from scipy.sparse import issparse
-import time
+from scipy.sparse import issparse, dok_matrix
 from enum import Enum
 from hub_toolbox import IO, Logging
 
@@ -44,7 +43,6 @@ class Distribution(Enum):
     gauss = 'gauss'
     gaussi = 'gaussi'
     gammai = 'gammai'
-
 
 class MutualProximity():
     """Transform a distance matrix with Mutual Proximity.
@@ -59,13 +57,10 @@ class MutualProximity():
         else:
             self.self_value = 0
         self.isSimilarityMatrix = isSimilarityMatrix
-        if issparse(self.D):
-            self.log.error("Sparse matrices not supported yet.")
         
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, enforce_disk=False,
-                                   sample_size=0, filename=None,
-                                   isSimilarityMatrix=False):
+                                   sample_size=0, filename=None):
         """Apply MP on a distance matrix."""
         
         if test_set_mask is not None:
@@ -75,7 +70,7 @@ class MutualProximity():
             
         if distrType is None:
             self.log.message("No Mutual Proximity type given. "
-                             "Using: Distribution.empiric \n"
+                             "Using: Distribution.empiric. "
                              "For fast results use: Distribution.gaussi")
             Dmp = self.mp_empiric(train_set_mask, verbose)
         else:
@@ -99,15 +94,48 @@ class MutualProximity():
        
         return Dmp
          
+
+    def mp_empiric_sparse(self, train_set_mask=None, verbose=False):
+        n = np.shape(self.D)[0]
+        Dmp = dok_matrix(self.D.shape)
+        
+        for i in range(n-1):
+            if verbose and ((i+1)%1000 == 0 or i==n):
+                self.log.message("MP_empiric: {} of {}.".format(i+1, n-1))
+            for j in range(i+1, n):
+                d = self.D[j, i]
+                if d>0: 
+                    dI = self.D[i, :].todense()
+                    dJ = self.D[j, :].todense()
+                    
+                     
+                    if self.isSimilarityMatrix:
+                        sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
+                        sIJ_overlap = sIJ_intersect / n
+                    else:
+                        sIJ_intersect = ((dI > d) & (dJ > d)).sum()
+                        sIJ_overlap = 1 - (sIJ_intersect / n)
+                    Dmp[i, j] = sIJ_overlap
+                    Dmp[j, i] = sIJ_overlap
+                else:
+                    pass # skip zero entries
+        
+        if self.isSimilarityMatrix:
+            Dmp[n-1, n-1] = 1 #since the loop stops before the last row
+            
+        return Dmp.tocsr()
+    
     def mp_empiric(self, train_set_mask=None, verbose=False):
         """Compute Mutual Proximity distances with empirical data (slow)."""   
         #TODO implement train_set_mask!
         if not np.all(train_set_mask):
-            self.log.warning("WARNING: MP empiric does not support train/test splits yet.")
+            self.log.error("MP empiric does not support train/test splits yet.")
             return
-        #TODO implement similarity based MP
         if self.isSimilarityMatrix:
             self.log.warning("Similarity-based empiric MP support is still experimental.")
+        if issparse(self.D):
+            self.log.warning("Sparse matrix support is still experimental.")
+            return self.mp_empiric_sparse(train_set_mask, verbose)
             
         if isinstance(self.D, np.memmap): # work on disk
             from tempfile import mkstemp
@@ -117,13 +145,9 @@ class MutualProximity():
             n = self.D.shape[0]
             np.fill_diagonal(self.D, self.self_value)
             
-            tic = time.clock() 
             for i in range(n-1):
                 if verbose and ((i+1)%1000 == 0 or i==n):
-                    toc = time.clock() - tic
-                    self.log.message("MP_empiric: {} of {}. Took {:.3} "
-                                    "seconds.".format(i+1, n-1, toc))
-                    tic = time.clock()
+                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1))
                 j_idx = np.arange(i+1, n)
                 j_len = np.size(j_idx, 0)
                
@@ -147,13 +171,9 @@ class MutualProximity():
             n = np.shape(self.D)[0]
             Dmp_list = [0 for i in range(n)]
              
-            tic = time.clock()
             for i in range(n-1):
                 if verbose and ((i+1)%1000 == 0 or i==n):
-                    toc = time.clock() - tic
-                    self.log.message("MP_empiric: {} of {}. Took {:.3} "
-                                    "seconds.".format(i+1, n-1, toc))
-                    tic = time.clock() 
+                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1))
                 # Select only finite distances for MP
                 j_idx = np.arange(i+1, n)
                 j_len = np.size(j_idx, 0)
@@ -186,6 +206,10 @@ class MutualProximity():
         
         if not issparse(self.D):
             np.fill_diagonal(self.D, self.self_value)
+        else:
+            self.log.error("Sparse matrices not supported yet.")
+            return
+        
         mu = np.mean(self.D[train_set_mask], 0)
         sd = np.std(self.D[train_set_mask], 0, ddof=1)
                 
@@ -202,13 +226,9 @@ class MutualProximity():
             Dmp = np.zeros(np.shape(self.D), dtype=self.D.dtype)
         n = np.size(self.D, 0)
         
-        tic = time.clock()
         for i in range(n):
             if verbose and ((i+1)%1000 == 0 or i+1==n):
-                toc = time.clock() - tic
-                self.log.message("MP_gauss: {} of {}. Took {:.3} "
-                                "seconds.".format(i+1, n, toc))
-                tic = time.clock()
+                self.log.message("MP_gauss: {} of {}.".format(i+1, n))
             for j in range(i+1, n):
                 c = np.cov(self.D[[i,j], :])
                 x = np.array([self.D[i, j], self.D[j, i]])
@@ -237,6 +257,35 @@ class MutualProximity():
 
         return Dmp
     
+    
+    def mp_gaussi_sparse(self, train_set_mask, verbose):
+        n = self.D.shape[0]
+        #mu = self.D[train_set_mask].mean(0)
+        #sd = self.D[train_set_mask].std(0, ddof=1)
+        from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
+        mu, var = csr_mean_variance_axis0(self.D[train_set_mask])
+        sd = np.sqrt(var)
+        
+        Dmp = dok_matrix(self.D.shape)
+        
+        for i in range(n):
+            if verbose and ((i+1)%1000 == 0 or i+1==n):
+                self.log.message("MP_gaussi: {} of {}."
+                                 .format(i+1, n), flush=True)
+            for j in range(i+1, n):
+                if self.D[i, j] > 0:       
+                    if self.isSimilarityMatrix:
+                        p1 = norm.cdf(self.D[i, j], mu[i], sd[i])
+                        p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
+                        Dmp[i, j] = (p1 * p2).ravel()
+                    else:
+                        p1 = 1 - norm.cdf(self.D[i, j], mu[i], sd[i])
+                        p2 = 1 - norm.cdf(self.D[j, i], mu[j], sd[j])
+                        Dmp[i, j] = (1 - p1 * p2).ravel()
+                    Dmp[j, i] = Dmp[i, j]
+        
+        return Dmp.tocsr()
+
     def mp_gaussi(self, train_set_mask=None, verbose=False, enforce_disk=False,
                   sample_size=0, filename=None):
         """Compute Mutual Proximity modeled with independent Gaussians (fast). 
@@ -244,7 +293,7 @@ class MutualProximity():
         into main memory.
         Set sample_size=SIZE to estimate Gaussian distribution from SIZE 
         samples. Default sample_size=0: use all points."""
-        #TODO implement similarity based MP
+        
         if self.isSimilarityMatrix:
             self.log.warning("Similarity-based I.Gaussian MP support is still experimental.")
         
@@ -254,6 +303,9 @@ class MutualProximity():
         if not isinstance(self.D, np.memmap) and not issparse(self.D):
             np.fill_diagonal(self.D, self.self_value)
         # else: do this later on the fly
+        if issparse(self.D):
+            #self.log.error("Sparse matrices not supported yet.")
+            return self.mp_gaussi_sparse(train_set_mask, verbose)
         
         # Get memory info
         free_mem = IO.FreeMemLinux(unit='k').user_free
@@ -291,25 +343,17 @@ class MutualProximity():
                 np.random.shuffle(idx)
                 samples = idx[0:sample_size]
                 
-                tic = time.clock()
                 for i, row in enumerate(self.D[samples].T):
                     if verbose and ((i+1)%10000 == 0 or i+1 == n):
-                        toc = time.clock() - tic
                         self.log.message("MP_gaussi mean/std: "
-                                        "{} of {}. Took {:.3} seconds."
-                                        .format(i+1, n, toc), flush=True)
-                        tic = time.clock()
+                                        "{} of {}.".format(i+1, n), flush=True)
                     mu[i] = row.mean()
                     sd[i] = row.std(ddof=1)    
             else:
-                tic = time.clock()
                 for i, row in enumerate(self.D.T):
                     if verbose and ((i+1)%10000 == 0 or i+1 == n):
-                        toc = time.clock() - tic
                         self.log.message("MP_gaussi mean/std: "
-                                        "{} of {}. Took {:.3} seconds."
-                                        .format(i+1, n, toc), flush=True)
-                        tic = time.clock()
+                                        "{} of {}.".format(i+1, n), flush=True)
                     mu[i] = row.mean()
                     sd[i] = row.std(ddof=1)                            
         
@@ -332,7 +376,6 @@ class MutualProximity():
                 self.log.message('Divided {}x{} matrix into {} '
                                 'batches of {} rows each.'.
                                 format(n, n, nr_batches, take_rows), flush=True)
-            tic = time.clock()
             i = 0
             # work on submatrices, trying to minimize disk I/O
             for h in range(nr_batches):
@@ -352,11 +395,8 @@ class MutualProximity():
                 # calculations on submatrix in memory
                 for inner_row in range(len(idx)):
                     if verbose and ((i+1)%1000 == 0 or i+1==n):
-                        toc = time.clock() - tic
-                        self.log.message("MP_gaussi: {} of {}. Took {:.3} "
-                                        "seconds.".format(i+1, n, toc), 
+                        self.log.message("MP_gaussi: {} of {}.".format(i+1, n), 
                                         flush=True)
-                        tic = time.clock()
                     j_idx = np.arange(i+1, n)
                     j_len = np.size(j_idx)
                     
@@ -403,13 +443,10 @@ class MutualProximity():
     
         else: # work in memory
             Dmp = np.zeros_like(self.D)
-            tic = time.clock()
             for i in range(n):
                 if verbose and ((i+1)%1000 == 0 or i+1==n):
-                    toc = time.clock() - tic
-                    self.log.message("MP_gaussi: {} of {}. Took {:.3} "
-                                    "seconds.".format(i+1, n, toc), flush=True)
-                    tic = time.clock()
+                    self.log.message("MP_gaussi: {} of {}."
+                                     .format(i+1, n), flush=True)
                 j_idx = np.arange(i+1, n)
                 j_len = np.size(j_idx)
                 
@@ -436,12 +473,15 @@ class MutualProximity():
     
     def mp_gammai(self, train_set_mask=None, verbose=False):
         """Compute Mutual Proximity modeled with independent Gamma distributions."""
-        #TODO implement similarity based MP
         if self.isSimilarityMatrix:
             self.log.warning("Similarity-based I.Gamma MP support is still experimental.")
         
         if not issparse(self.D):
             np.fill_diagonal(self.D, self.self_value)
+        else:
+            self.log.error("Sparse matrices not supported yet.")
+            return
+        
         mu = np.mean(self.D[train_set_mask], 0)
         va = np.var(self.D[train_set_mask], 0, ddof=1)
         A = (mu**2) / va
@@ -456,13 +496,9 @@ class MutualProximity():
             Dmp = np.zeros_like(self.D)
         n = np.size(self.D, 0)
         
-        tic = time.clock()
         for i in range(n):
             if verbose and ((i+1)%1000 == 0 or i+1==n):
-                toc = time.clock() - tic
-                self.log.message("MP_gammai: {} of {}. Took {:.3} "
-                                "seconds.".format(i+1, n, toc))
-                tic = time.clock()
+                self.log.message("MP_gammai: {} of {}".format(i+1, n))
             j_idx = np.arange(i+1, n)
             j_len = np.size(j_idx)
             

@@ -20,6 +20,7 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
+from scipy.sparse.base import issparse
 
 class KnnClassification():
     """Performs k-nearest neighbor classification.
@@ -27,7 +28,10 @@ class KnnClassification():
     """
     
     def __init__(self, D, classes, k, isSimilarityMatrix=False):
-        self.D = np.copy(D)
+        if issparse(D):
+            self.D = D
+        else:
+            self.D = np.copy(D)
         self.classes = np.copy(classes)
         if type(k) is np.ndarray:
             self.k = np.copy(k)
@@ -40,6 +44,7 @@ class KnnClassification():
         else:
             self.self_value = np.inf
             self.sort_order = 1
+        assert D.shape[0] == len(classes)
         
     def perform_knn_classification(self):
         """Performs k-nearest neighbor classification."""
@@ -48,7 +53,7 @@ class KnnClassification():
         k_length = np.size(self.k)
             
         acc = np.zeros( (k_length, 1) )
-        corr = np.zeros( (np.size(self.D, 0), k_length) )
+        corr = np.zeros( (self.D.shape[0], k_length) )
         
         n = np.size(self.D, 1)
         
@@ -64,7 +69,10 @@ class KnnClassification():
         for i in range(n):
             seed_class = classes[i]
             
-            row = self.D[i, :]
+            if issparse(self.D):
+                row = self.D[i, :].toarray().ravel()
+            else:
+                row = self.D[i, :]
             
             row[i] = self.self_value
             
@@ -109,7 +117,7 @@ class KnnClassification():
         k_length = np.size(self.k)
             
         acc = np.zeros( (k_length, 1) )
-        corr = np.zeros( (np.size(self.D, 0), k_length) )
+        corr = np.zeros( (self.D.shape[0], k_length) )
         
         # number of points to be classified
         #n = np.size(self.D, 1)
@@ -129,7 +137,10 @@ class KnnClassification():
         for i in test_set_mask:
             seed_class = classes[i]
             
-            row = self.D[i, :]
+            if issparse(self.D):
+                row = self.D[i, :].toarray().ravel()
+            else:
+                row = self.D[i, :]
             row[i] = self.self_value
             
             # Sort points in training set according to distance

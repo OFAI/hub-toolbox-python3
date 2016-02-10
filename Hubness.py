@@ -27,8 +27,8 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy import stats as stat
 from scipy import sparse
-import time
 from hub_toolbox import IO, Logging
+from scipy.sparse.base import issparse
 
 class Hubness():
     """Computes the hubness of a distance matrix using its k nearest neighbors.
@@ -67,18 +67,20 @@ class Hubness():
             np.fill_diagonal(self.D, self.d_self)
             # make non-finite (NaN, Inf) appear at the end of the sorted list
             self.D[~np.isfinite(self.D)] = self.d_self
-           
-        tic = time.clock()    
-        for i, d in enumerate(self.D):
+         
+        
+        for i in range(self.D.shape[0]):
             if debug and ((i+1)%10000==0 or i+1==len(self.D)):
-                toc = time.clock() - tic
-                self.log.message("NN: {} of {}. Took {:.3} seconds.".
-                                 format(i+1, self.D.shape[0], toc), flush=True)
-                tic = time.clock()
-            if isinstance(self.D, np.memmap):
-                d = np.copy(d.astype(np.float))
-                d[i] = self.d_self
-                d[~np.isfinite(d)] = self.d_self
+                self.log.message("NN: {} of {}.".
+                                 format(i+1, self.D.shape[0]), flush=True)
+            if issparse(self.D):
+                d = self.D[i, :].toarray().ravel() # dense copy of one row
+            elif isinstance(self.D, np.memmap):
+                d = np.copy(d.astype(np.float)) # in memory copy
+            else: # normal ndarray
+                d = self.D[i, :]
+            d[i] = self.d_self
+            d[~np.isfinite(d)] = self.d_self
             # randomize the distance matrix rows to avoid the problem case
             # if all numbers to sort are the same, which would yield high
             # hubness, even if there is none
@@ -87,7 +89,7 @@ class Hubness():
             d2 = d[rp]
             d2idx = np.argsort(d2, axis=0)[::self.sort_order]
             Dk[:, i] = rp[d2idx[0:self.k]]      
-            
+                   
         # N-occurence
         if debug:
             self.log.message("Counting n-occurence...")

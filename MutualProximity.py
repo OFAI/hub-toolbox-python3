@@ -260,29 +260,50 @@ class MutualProximity():
     
     def mp_gaussi_sparse(self, train_set_mask, verbose):
         n = self.D.shape[0]
-        #mu = self.D[train_set_mask].mean(0)
-        #sd = self.D[train_set_mask].std(0, ddof=1)
         from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
         mu, var = csr_mean_variance_axis0(self.D[train_set_mask])
         sd = np.sqrt(var)
         
         Dmp = dok_matrix(self.D.shape)
-        
+
         for i in range(n):
             if verbose and ((i+1)%1000 == 0 or i+1==n):
                 self.log.message("MP_gaussi: {} of {}."
                                  .format(i+1, n), flush=True)
-            for j in range(i+1, n):
-                if self.D[i, j] > 0:       
-                    if self.isSimilarityMatrix:
-                        p1 = norm.cdf(self.D[i, j], mu[i], sd[i])
-                        p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
-                        Dmp[i, j] = (p1 * p2).ravel()
-                    else:
-                        p1 = 1 - norm.cdf(self.D[i, j], mu[i], sd[i])
-                        p2 = 1 - norm.cdf(self.D[j, i], mu[j], sd[j])
-                        Dmp[i, j] = (1 - p1 * p2).ravel()
-                    Dmp[j, i] = Dmp[i, j]
+            j_idx = np.arange(i+1, n)
+            j_len = np.size(j_idx)
+            
+            Dij = self.D[i].toarray()[:, j_idx] #Extract dense rows temporarily
+            Dji = self.D[j_idx].toarray()[:, i] #for vectorization below.
+            
+            p1 = norm.cdf(Dij, 
+                          np.tile(mu[i], (1, j_len)), 
+                          np.tile(sd[i], (1, j_len)))
+            p2 = norm.cdf(Dji, 
+                          mu[j_idx], 
+                          sd[j_idx])
+            tmp = (p1 * p2).ravel()
+            Dmp[i, j_idx] = tmp            
+            Dmp[j_idx, i] = tmp[:, np.newaxis]   
+    
+        # non-vectorized code
+        #=======================================================================
+        # for i in range(n):
+        #     if verbose and ((i+1)%1000 == 0 or i+1==n):
+        #         self.log.message("MP_gaussi: {} of {}."
+        #                          .format(i+1, n), flush=True)
+        #     for j in range(i+1, n):
+        #         if self.D[i, j] > 0:       
+        #             if self.isSimilarityMatrix:
+        #                 p1 = norm.cdf(self.D[i, j], mu[i], sd[i])
+        #                 p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
+        #                 Dmp[i, j] = (p1 * p2).ravel()
+        #             else:
+        #                 p1 = 1 - norm.cdf(self.D[i, j], mu[i], sd[i])
+        #                 p2 = 1 - norm.cdf(self.D[j, i], mu[j], sd[j])
+        #                 Dmp[i, j] = (1 - p1 * p2).ravel()
+        #             Dmp[j, i] = Dmp[i, j]
+        #=======================================================================
         
         return Dmp.tocsr()
 
@@ -471,6 +492,63 @@ class MutualProximity():
     
         return Dmp
     
+
+    def mp_gammai_sparse(self, train_set_mask, verbose):
+        from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
+        mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
+        A = (mu**2) / va
+        B = va / mu
+        A[A<0] = np.nan
+        B[B<=0] = np.nan
+        
+        Dmp = dok_matrix(self.D.shape)
+        n = self.D.shape[0]
+        
+        for i in range(n):
+            if verbose and ((i+1)%1000 == 0 or i+1==n):
+                self.log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
+            j_idx = np.arange(i+1, n)
+            j_len = np.size(j_idx)
+             
+            Dij = self.D[i].toarray()[:, j_idx] #Extract dense rows temporarily
+            Dji = self.D[j_idx].toarray()[:, i] #for vectorization below.
+             
+            p1 = self.local_gamcdf(Dij, \
+                                   np.tile(A[i], (1, j_len)), \
+                                   np.tile(B[i], (1, j_len)))
+            p2 = self.local_gamcdf(Dji, 
+                                   A[j_idx], 
+                                   B[j_idx])
+            tmp = (p1 * p2).ravel()
+            Dmp[i, j_idx] = tmp            
+            Dmp[j_idx, i] = tmp[:, np.newaxis]   
+               
+        # non-vectorized code      
+        #=======================================================================
+        # for i in range(n):
+        #     if verbose and ((i+1)%1000 == 0 or i+1==n):
+        #         self.log.message("MP_gammai: {} of {}".format(i+1, n))
+        #     for j in range(n):
+        #         Dij = self.D[i, j]
+        #         Dji = self.D[j, i]
+        #         if Dij>0 and Dji>0:          
+        #             if self.isSimilarityMatrix:
+        #                 p1 = gammainc(A[i], Dij / B[i]) # self.local_gamcdf(self.D[i, j], A[i], B[i])
+        #                 p2 = gammainc(A[j], Dji / B[j]) # self.local_gamcdf(self.D[j, i], A[j], B[j])
+        #                 tmp = (p1 * p2).ravel()
+        #                 Dmp[i, j] = tmp
+        #                 Dmp[j, i] = tmp
+        #             else:
+        #                 p1 = 1 - gammainc(A[i], Dij / B[i]) # self.local_gamcdf(self.D[i, j], A[i], B[i])
+        #                 p2 = 1 - gammainc(A[j], Dji / B[j]) # self.local_gamcdf(self.D[j, i], A[j], B[j])
+        #                 tmp = (1 - p1 * p2).ravel()
+        #                 Dmp[i, j] = tmp
+        #                 Dmp[j, i] = tmp
+        #=======================================================================
+                             
+        return Dmp.tocsr()
+    
+    
     def mp_gammai(self, train_set_mask=None, verbose=False):
         """Compute Mutual Proximity modeled with independent Gamma distributions."""
         if self.isSimilarityMatrix:
@@ -479,8 +557,8 @@ class MutualProximity():
         if not issparse(self.D):
             np.fill_diagonal(self.D, self.self_value)
         else:
-            self.log.error("Sparse matrices not supported yet.")
-            return
+            #self.log.error("Sparse matrices not supported yet.")
+            return self.mp_gammai_sparse(train_set_mask, verbose)
         
         mu = np.mean(self.D[train_set_mask], 0)
         va = np.var(self.D[train_set_mask], 0, ddof=1)
@@ -498,7 +576,7 @@ class MutualProximity():
         
         for i in range(n):
             if verbose and ((i+1)%1000 == 0 or i+1==n):
-                self.log.message("MP_gammai: {} of {}".format(i+1, n))
+                self.log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
             j_idx = np.arange(i+1, n)
             j_len = np.size(j_idx)
             

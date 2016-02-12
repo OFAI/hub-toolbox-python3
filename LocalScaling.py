@@ -32,6 +32,9 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 
 import numpy as np
 import sys
+from scipy.sparse.base import issparse
+from scipy.sparse.dok import dok_matrix
+from hub_toolbox import Logging
 
 class LocalScaling():
     """Transform a distance matrix with Local Scaling.
@@ -44,17 +47,23 @@ class LocalScaling():
         k... neighborhood radius (DEFAULT = 7)
         scalingType... local scaling algorithm ['original', 'nicdm'] (DEFAULT='nicdm')
         """
+        self.log = Logging.ConsoleLogging()
         self.D = np.copy(D)
         self.k = k
         self.scalingType = scalingType
         if isSimilarityMatrix:
             if scalingType=='nicdm':
-                self.warning("NICDM does not support similarities. Distances "
-                             "will be calculated as D=1-S/S.max and used for "
-                             "NICDM scaling. Similarities are subsequently "
-                             "obtained by the same procedure S=1-D/D.max")
+                if issparse(D):
+                    self.log.error("NICDM does not support sparse matrices.")
+                    raise NotImplementedError(
+                                   "NICDM does not support sparse matrices.")
+                else:
+                    self.log.warning("NICDM does not support similarities. "
+                        "Distances will be calculated as D=1-S/S.max and used "
+                        "for NICDM scaling. Similarities are subsequently "
+                        "obtained by the same procedure S=1-D/D.max")
             else:
-                self.warning("Similarity-based LS support is experimental.")
+                self.log.warning("Similarity-based LS support is experimental.")
         self.isSimilarityMatrix = isSimilarityMatrix
         if self.isSimilarityMatrix:
             self.sort_order = -1
@@ -62,7 +71,14 @@ class LocalScaling():
         else:
             self.sort_order = 1
             self.exclude = np.inf
-        
+        if issparse(D):
+            if isSimilarityMatrix:
+                self.log.warning("Sparse matrix support for LS is experimental.")
+            else:
+                self.log.error("Sparse distance matrices are not supported.")
+                raise NotImplementedError(
+                               "Sparse distance matrices are not supported.")    
+            
     def perform_local_scaling(self, test_set_mask=None):
         """Transform distance matrix using local scaling."""
         
@@ -88,13 +104,19 @@ class LocalScaling():
         length_D = np.max(np.shape(self.D))
         r = np.zeros((length_D, 1))
         for i in range(length_D):
-            di = self.D[i, train_set_mask]
+            if issparse(self.D):
+                di = self.D[i, train_set_mask].toarray()
+            else:
+                di = self.D[i, train_set_mask]
             di[i] = self.exclude
             nn = np.argsort(di)[::self.sort_order]
             r[i] = di[nn[self.k-1]] #largest similarities or smallest distances
         
         n = np.shape(self.D)[0]
-        Dls = np.zeros(np.shape(self.D), dtype = self.D.dtype)
+        if issparse(self.D):
+            Dls = dok_matrix(self.D.shape)
+        else:
+            Dls = np.zeros(np.shape(self.D), dtype = self.D.dtype)
         for i in range(n):
             for j in range(i+1, n):
                 if self.isSimilarityMatrix:
@@ -103,8 +125,10 @@ class LocalScaling():
                 else:
                     Dls[i, j] = self.D[i, j] / np.sqrt( r[i] * r[j] )
                 Dls[j, i] = Dls[i, j]
-        
-        return Dls
+        if issparse(self.D):
+            return Dls.tocsr()
+        else:
+            return Dls
         
     def ls_nicdm(self, test_set_mask=None):
         """Local scaling variant: Non-Iterative Contextual Dissimilarity Measure

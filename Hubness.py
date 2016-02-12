@@ -70,7 +70,7 @@ class Hubness():
          
         
         for i in range(self.D.shape[0]):
-            if debug and ((i+1)%10000==0 or i+1==len(self.D)):
+            if debug and ((i+1)%10000==0 or i+1==self.D.shape[0]):
                 self.log.message("NN: {} of {}.".
                                  format(i+1, self.D.shape[0]), flush=True)
             if issparse(self.D):

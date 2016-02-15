@@ -121,7 +121,8 @@ class MutualProximity():
                     pass # skip zero entries
         
         if self.isSimilarityMatrix:
-            Dmp[n-1, n-1] = 1 #since the loop stops before the last row
+            for i in range(n):
+                Dmp[i, i] = 1 #need to set self values
             
         return Dmp.tocsr()
     
@@ -158,6 +159,7 @@ class MutualProximity():
                 if self.isSimilarityMatrix:
                     sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
                     sIJ_overlap = sIJ_intersect / n
+                    Dmp[i, i] = 1
                 else: 
                     sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
                     sIJ_overlap = 1 - (sIJ_intersect / n)
@@ -185,6 +187,7 @@ class MutualProximity():
                 if self.isSimilarityMatrix:
                     sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
                     sIJ_overlap = sIJ_intersect / n
+                    Dmp[i, i] = 1
                 else:
                     sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
                     sIJ_overlap = 1 - (sIJ_intersect / n)
@@ -254,6 +257,8 @@ class MutualProximity():
                     Dmp[j, i] = p1 + p2 - p12
                 
                 Dmp[i, j] = Dmp[j, i]
+            if self.isSimilarityMatrix:
+                Dmp[i, i] = 1
 
         return Dmp
     
@@ -279,10 +284,15 @@ class MutualProximity():
             p1 = norm.cdf(Dij, 
                           np.tile(mu[i], (1, j_len)), 
                           np.tile(sd[i], (1, j_len)))
+            p1[Dij==0] = 0
+            del Dij
             p2 = norm.cdf(Dji, 
                           mu[j_idx], 
                           sd[j_idx])
+            p2[Dji==0] = 0
+            del Dji
             tmp = (p1 * p2).ravel()
+            Dmp[i, i] = 1
             Dmp[i, j_idx] = tmp            
             Dmp[j_idx, i] = tmp[:, np.newaxis]   
     
@@ -440,6 +450,7 @@ class MutualProximity():
                     i += 1
                 # writing changes for many rows at once
                 Dmp[idx, :] = updated_rows
+            
             # make symmetric distance matrix
             #Dmp += Dmp.T # inefficient
             # hopefully faster using submatrices:
@@ -461,6 +472,10 @@ class MutualProximity():
                 # mirroring the matrix
                 current_cols += current_rows.T
                 Dmp[np.ix_(col_idx, row_idx)] = current_cols 
+            
+            # need to set self value in case of similarity matrix
+            if self.isSimilarityMatrix:
+                np.fill_diagonal(Dmp, 1)
     
         else: # work in memory
             Dmp = np.zeros_like(self.D)
@@ -478,6 +493,7 @@ class MutualProximity():
                     p2 = norm.cdf(self.D[j_idx, i].T, \
                                   mu[j_idx], \
                                   sd[j_idx])
+                    Dmp[i, i] = 1
                     Dmp[i, j_idx] = (p1 * p2).ravel()
                 else:
                     p1 = 1 - norm.cdf(self.D[i, j_idx], \
@@ -534,6 +550,7 @@ class MutualProximity():
             #print("p2: ", p2.shape, p2.__class__, p2.nbytes/1024/1024)
             tmp = (p1 * p2).ravel()
             #print("tmp: ", tmp.shape, tmp.__class__, tmp.nbytes/1024/1024)
+            Dmp[i, i] = 1
             Dmp[i, j_idx] = tmp        
             Dmp[j_idx, i] = tmp[:, np.newaxis]
             
@@ -572,7 +589,7 @@ class MutualProximity():
         #                 Dmp[i, j] = tmp
         #                 Dmp[j, i] = tmp
         #=======================================================================
-                             
+                   
         return Dmp.tocsr()
     
     
@@ -580,6 +597,8 @@ class MutualProximity():
         """Compute Mutual Proximity modeled with independent Gamma distributions."""
         if self.isSimilarityMatrix:
             self.log.warning("Similarity-based I.Gamma MP support is still experimental.")
+        if verbose:
+            self.log.message('Mutual proximity rescaling started.', flush=True)
         
         if not issparse(self.D):
             np.fill_diagonal(self.D, self.self_value)
@@ -614,6 +633,7 @@ class MutualProximity():
                 p2 = self.local_gamcdf(self.D[j_idx, i].T, 
                                        A[j_idx], 
                                        B[j_idx])
+                Dmp[i, i] = 1
                 Dmp[i, j_idx] = (p1 * p2).ravel()
             else:
                 p1 = 1 - self.local_gamcdf(self.D[i, j_idx], \

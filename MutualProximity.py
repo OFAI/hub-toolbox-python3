@@ -500,6 +500,8 @@ class MutualProximity():
         B = va / mu
         A[A<0] = np.nan
         B[B<=0] = np.nan
+        #print("A: ", A.shape, A.__class__, A.nbytes/1024/1024)
+        #print("B: ", B.shape, B.__class__, B.nbytes/1024/1024)
         
         Dmp = dok_matrix(self.D.shape)
         n = self.D.shape[0]
@@ -510,18 +512,43 @@ class MutualProximity():
             j_idx = np.arange(i+1, n)
             j_len = np.size(j_idx)
              
-            Dij = self.D[i].toarray()[:, j_idx] #Extract dense rows temporarily
-            Dji = self.D[j_idx].toarray()[:, i] #for vectorization below.
+            #===================================================================
+            # Dij = self.D[i].toarray()[:, j_idx] #Extract dense rows temporarily
+            # Dji = self.D[j_idx].toarray()[:, i] #for vectorization below.
+            #===================================================================
+            Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
+            Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
+            
+            #print("Dij: ", Dij.shape, Dij.__class__, Dij.nbytes/1024/1024)
+            #print("Dji: ", Dji.shape, Dji.__class__, Dji.nbytes/1024/1024)
              
             p1 = self.local_gamcdf(Dij, \
                                    np.tile(A[i], (1, j_len)), \
                                    np.tile(B[i], (1, j_len)))
+            #x = np.tile(A[i], (1, j_len))
+            #print("tileA: ", x.shape, x.__class__, x.nbytes/1024/1024)
+            #print("p1: ", p1.shape, p1.__class__, p1.nbytes/1024/1024)
             p2 = self.local_gamcdf(Dji, 
                                    A[j_idx], 
                                    B[j_idx])
+            #print("p2: ", p2.shape, p2.__class__, p2.nbytes/1024/1024)
             tmp = (p1 * p2).ravel()
-            Dmp[i, j_idx] = tmp            
-            Dmp[j_idx, i] = tmp[:, np.newaxis]   
+            #print("tmp: ", tmp.shape, tmp.__class__, tmp.nbytes/1024/1024)
+            Dmp[i, j_idx] = tmp        
+            Dmp[j_idx, i] = tmp[:, np.newaxis]
+            
+            #===================================================================
+            # Dij = self.D[i, j_idx] # extract sparse rows
+            # Dji = self.D[j_idx, i]
+            #  
+            # p1 = self.local_gamcdf_sparse1(Dij, A[i], B[i])
+            # p2 = self.local_gamcdf_sparse2(Dji, 
+            #                        A[j_idx, np.newaxis], 
+            #                        B[j_idx, np.newaxis])
+            # tmp = (p1 * np.asarray(p2.T)).ravel()
+            # Dmp[i, j_idx] = tmp        
+            # Dmp[j_idx, i] = tmp[:, np.newaxis]   
+            #===================================================================
                
         # non-vectorized code      
         #=======================================================================
@@ -602,6 +629,24 @@ class MutualProximity():
         return Dmp
     
     def local_gamcdf(self, x, a, b):
+        a[a<0] = np.nan
+        b[b<=0] = np.nan
+        x[x<0] = 0
+        z = x / b
+        p = gammainc(a, z)
+        return p
+    
+    def local_gamcdf_sparse1(self, x, a, b):
+        if a<0:
+            a = np.nan
+        if b<=0:
+            b = np.nan
+        #x[x<0] = 0
+        z = x / b
+        p = gammainc(a, z.toarray())
+        return p
+    
+    def local_gamcdf_sparse2(self, x, a, b):
         a[a<0] = np.nan
         b[b<=0] = np.nan
         x[x<0] = 0

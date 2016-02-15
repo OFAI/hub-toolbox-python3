@@ -268,6 +268,7 @@ class MutualProximity():
         from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
         mu, var = csr_mean_variance_axis0(self.D[train_set_mask])
         sd = np.sqrt(var)
+        del var
         
         Dmp = dok_matrix(self.D.shape)
 
@@ -276,14 +277,12 @@ class MutualProximity():
                 self.log.message("MP_gaussi: {} of {}."
                                  .format(i+1, n), flush=True)
             j_idx = np.arange(i+1, n)
-            j_len = np.size(j_idx)
+            #j_len = np.size(j_idx)
             
             Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
             Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
             
-            p1 = norm.cdf(Dij, 
-                          np.tile(mu[i], (1, j_len)), 
-                          np.tile(sd[i], (1, j_len)))
+            p1 = norm.cdf(Dij, mu[i], sd[i]) # mu, sd broadcasted
             p1[Dij==0] = 0
             del Dij
             p2 = norm.cdf(Dji, 
@@ -291,10 +290,12 @@ class MutualProximity():
                           sd[j_idx])
             p2[Dji==0] = 0
             del Dji
+            #del mu, sd # with del mu, sd, error in line with mu broadcasting
             tmp = (p1 * p2).ravel()
             Dmp[i, i] = 1
             Dmp[i, j_idx] = tmp            
             Dmp[j_idx, i] = tmp[:, np.newaxis]   
+            del tmp, j_idx
     
         # non-vectorized code
         #=======================================================================
@@ -514,6 +515,7 @@ class MutualProximity():
         mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
         A = (mu**2) / va
         B = va / mu
+        del mu, va
         A[A<0] = np.nan
         B[B<=0] = np.nan
         #print("A: ", A.shape, A.__class__, A.nbytes/1024/1024)
@@ -541,18 +543,21 @@ class MutualProximity():
             p1 = self.local_gamcdf(Dij, \
                                    np.tile(A[i], (1, j_len)), \
                                    np.tile(B[i], (1, j_len)))
+            del Dij
             #x = np.tile(A[i], (1, j_len))
             #print("tileA: ", x.shape, x.__class__, x.nbytes/1024/1024)
             #print("p1: ", p1.shape, p1.__class__, p1.nbytes/1024/1024)
             p2 = self.local_gamcdf(Dji, 
                                    A[j_idx], 
                                    B[j_idx])
+            del Dji#, A, B
             #print("p2: ", p2.shape, p2.__class__, p2.nbytes/1024/1024)
             tmp = (p1 * p2).ravel()
             #print("tmp: ", tmp.shape, tmp.__class__, tmp.nbytes/1024/1024)
             Dmp[i, i] = 1
             Dmp[i, j_idx] = tmp        
             Dmp[j_idx, i] = tmp[:, np.newaxis]
+            del tmp, j_idx
             
             #===================================================================
             # Dij = self.D[i, j_idx] # extract sparse rows
@@ -656,21 +661,23 @@ class MutualProximity():
         p = gammainc(a, z)
         return p
     
-    def local_gamcdf_sparse1(self, x, a, b):
-        if a<0:
-            a = np.nan
-        if b<=0:
-            b = np.nan
-        #x[x<0] = 0
-        z = x / b
-        p = gammainc(a, z.toarray())
-        return p
-    
-    def local_gamcdf_sparse2(self, x, a, b):
-        a[a<0] = np.nan
-        b[b<=0] = np.nan
-        x[x<0] = 0
-        z = x / b
-        p = gammainc(a, z)
-        return p
+    #===========================================================================
+    # def local_gamcdf_sparse1(self, x, a, b):
+    #     if a<0:
+    #         a = np.nan
+    #     if b<=0:
+    #         b = np.nan
+    #     #x[x<0] = 0
+    #     z = x / b
+    #     p = gammainc(a, z.toarray())
+    #     return p
+    # 
+    # def local_gamcdf_sparse2(self, x, a, b):
+    #     a[a<0] = np.nan
+    #     b[b<=0] = np.nan
+    #     x[x<0] = 0
+    #     z = x / b
+    #     p = gammainc(a, z)
+    #     return p
+    #===========================================================================
     

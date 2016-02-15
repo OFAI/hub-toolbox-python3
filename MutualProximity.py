@@ -273,8 +273,8 @@ class MutualProximity():
             j_idx = np.arange(i+1, n)
             j_len = np.size(j_idx)
             
-            Dij = self.D[i].toarray()[:, j_idx] #Extract dense rows temporarily
-            Dji = self.D[j_idx].toarray()[:, i] #for vectorization below.
+            Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
+            Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
             
             p1 = norm.cdf(Dij, 
                           np.tile(mu[i], (1, j_len)), 

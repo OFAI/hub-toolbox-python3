@@ -101,7 +101,8 @@ class MutualProximity():
         
         for i in range(n-1):
             if verbose and ((i+1)%1000 == 0 or i==n):
-                self.log.message("MP_empiric: {} of {}.".format(i+1, n-1))
+                self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
+                                 flush=True)
             for j in range(i+1, n):
                 d = self.D[j, i]
                 if d>0: 

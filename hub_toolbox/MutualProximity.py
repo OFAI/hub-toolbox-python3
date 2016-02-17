@@ -188,7 +188,6 @@ class MutualProximity():
                 if self.isSimilarityMatrix:
                     sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
                     sIJ_overlap = sIJ_intersect / n
-                    Dmp[i, i] = 1
                 else:
                     sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
                     sIJ_overlap = 1 - (sIJ_intersect / n)
@@ -199,6 +198,10 @@ class MutualProximity():
                 j_idx = np.arange(i+1, n)
                 Dmp[i, j_idx] = Dmp_list[i]
                 Dmp[j_idx, i] = Dmp_list[i]
+                
+            if self.isSimilarityMatrix:
+                for i in range(n):
+                    Dmp[i, i] = 1
             
         return Dmp
     

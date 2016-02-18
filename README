@@ -123,6 +123,7 @@ Goodman-Kruskal index (higher=better)    : 0.152
 + Python3
 + NumPy
 + SciPy
++ (scikit-learn for some functions)
 
 ----------------
 ACKNOWLEDGEMENTS

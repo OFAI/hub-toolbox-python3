@@ -60,7 +60,7 @@ class MutualProximity():
         
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, enforce_disk=False,
-                                   sample_size=0, filename=None):
+                                   sample_size=0, filename=None, empspex=False):
         """Apply MP on a distance matrix."""
         
         if test_set_mask is not None:
@@ -72,10 +72,10 @@ class MutualProximity():
             self.log.message("No Mutual Proximity type given. "
                              "Using: Distribution.empiric. "
                              "For fast results use: Distribution.gaussi")
-            Dmp = self.mp_empiric(train_set_mask, verbose)
+            Dmp = self.mp_empiric(train_set_mask, verbose, empspex)
         else:
             if distrType == Distribution.empiric:
-                Dmp = self.mp_empiric(train_set_mask, verbose)
+                Dmp = self.mp_empiric(train_set_mask, verbose, empspex)
             elif distrType == Distribution.gauss:
                 Dmp = self.mp_gauss(train_set_mask, verbose)
             elif distrType == Distribution.gaussi:
@@ -95,21 +95,20 @@ class MutualProximity():
         return Dmp
          
 
-    def mp_empiric_sparse(self, train_set_mask=None, verbose=False):
+    def mp_empiric_sparse(self, train_set_mask=None, verbose=False, empspex=False):
         n = np.shape(self.D)[0]
-        Dmp = dok_matrix(self.D.shape)
-        
-        for i in range(n-1):
-            if verbose and ((i+1)%1000 == 0 or i==n):
-                self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
-                                 flush=True)
-            for j in range(i+1, n):
-                d = self.D[j, i]
-                if d>0: 
+                
+        if empspex:
+            Dmp = np.zeros(self.D.shape)
+            for i in range(n-1):
+                if verbose and ((i+1)%1000 == 0 or i==n):
+                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
+                                     flush=True)
+                for j in range(i+1, n):
+                    d = self.D[j, i]
                     dI = self.D[i, :].todense()
                     dJ = self.D[j, :].todense()
                     
-                     
                     if self.isSimilarityMatrix:
                         sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
                         sIJ_overlap = sIJ_intersect / n
@@ -118,16 +117,42 @@ class MutualProximity():
                         sIJ_overlap = 1 - (sIJ_intersect / n)
                     Dmp[i, j] = sIJ_overlap
                     Dmp[j, i] = sIJ_overlap
-                else:
-                    pass # skip zero entries
-        
-        if self.isSimilarityMatrix:
-            for i in range(n):
-                Dmp[i, i] = 1 #need to set self values
+                    
+            if self.isSimilarityMatrix:
+                np.fill_diagonal(Dmp, 1) #need to set self values
+                
+            return Dmp
+        else:
+            nnz = self.D.nnz
+            Dmp = dok_matrix(self.D.shape)
+            for i in range(n-1):
+                if verbose and ((i+1)%1000 == 0 or i==n):
+                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
+                                     flush=True)
+                for j in range(i+1, n):
+                    d = self.D[j, i]
+                    if d>0: 
+                        dI = self.D[i, :].todense()
+                        dJ = self.D[j, :].todense()
+                        
+                        if self.isSimilarityMatrix:
+                            sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
+                            sIJ_overlap = sIJ_intersect / nnz
+                        else:
+                            sIJ_intersect = ((dI > d) & (dJ > d)).sum()
+                            sIJ_overlap = 1 - (sIJ_intersect / nnz)
+                        Dmp[i, j] = sIJ_overlap
+                        Dmp[j, i] = sIJ_overlap
+                    else:
+                        pass # skip zero entries
             
-        return Dmp.tocsr()
+            if self.isSimilarityMatrix:
+                for i in range(n):
+                    Dmp[i, i] = 1 #need to set self values
+            
+                    return Dmp.tocsr()
     
-    def mp_empiric(self, train_set_mask=None, verbose=False):
+    def mp_empiric(self, train_set_mask=None, verbose=False, empspex=False):
         """Compute Mutual Proximity distances with empirical data (slow)."""   
         #TODO implement train_set_mask!
         if not np.all(train_set_mask):

@@ -16,7 +16,7 @@ def copy_D_or_load_memmap(D, writeable=False):
     if isinstance(D, np.memmap):
         return D
     elif isinstance(D, np.ndarray):
-        newD = np.copy(D.astype(np.float64))
+        newD = np.copy(D.astype(np.float32))
     elif sparse.issparse(D):
         log = Logging.ConsoleLogging()
         log.warning("Not all classes of the hub toolbox support sparse matrices"

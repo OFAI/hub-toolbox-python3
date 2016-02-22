@@ -58,7 +58,7 @@ class Hubness():
             self.log.message("Start hubness calculation "
                              "(skewness of {}-occurence)".format(self.k))
                             
-        Dk = np.zeros( (self.k, np.size(self.D, 1)) )
+        Dk = np.zeros( (self.k, np.size(self.D, 1)), dtype=np.float32 )
         
         if not isinstance(self.D, np.memmap) and \
             not sparse.issparse(self.D): 

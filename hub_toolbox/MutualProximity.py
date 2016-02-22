@@ -102,8 +102,8 @@ class MutualProximity():
             Dmp = np.zeros(self.D.shape)
             for i in range(n-1):
                 if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
-                                     flush=True)
+                    self.log.message("MP_empiric_sparse_exact: {} of {}."
+                                     .format(i+1, n-1), flush=True)
                 for j in range(i+1, n):
                     d = self.D[j, i]
                     dI = self.D[i, :].todense()
@@ -162,7 +162,7 @@ class MutualProximity():
             self.log.warning("Similarity-based empiric MP support is still experimental.")
         if issparse(self.D):
             self.log.warning("Sparse matrix support is still experimental.")
-            return self.mp_empiric_sparse(train_set_mask, verbose)
+            return self.mp_empiric_sparse(train_set_mask, verbose, empspex)
             
         if isinstance(self.D, np.memmap): # work on disk
             from tempfile import mkstemp

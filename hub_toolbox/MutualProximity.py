@@ -102,21 +102,44 @@ class MutualProximity():
             Dmp = np.zeros(self.D.shape, dtype=np.float32)
             for i in range(n-1):
                 if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric_sparse_exact: {} of {}."
-                                     .format(i+1, n-1), flush=True)
-                for j in range(i+1, n):
-                    d = self.D[j, i]
-                    dI = self.D[i, :].todense()
-                    dJ = self.D[j, :].todense()
-                    
-                    if self.isSimilarityMatrix:
-                        sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
-                        sIJ_overlap = sIJ_intersect / n
-                    else:
-                        sIJ_intersect = ((dI > d) & (dJ > d)).sum()
-                        sIJ_overlap = 1 - (sIJ_intersect / n)
-                    Dmp[i, j] = sIJ_overlap
-                    Dmp[j, i] = sIJ_overlap
+                    self.log.message("MP_empiric_sparse_exact: {} of {}.".format(i+1, n-1), flush=True)
+                # Select only finite distances for MP
+                j_idx = np.arange(i+1, n)
+                j_len = np.size(j_idx, 0)
+                 
+                dI = np.tile(self.D[i, :], (j_len, 1))
+                dJ = self.D[j_idx, :]
+                d = np.tile(self.D[j_idx, i][:, np.newaxis], (1, n))
+                 
+                if self.isSimilarityMatrix:
+                    sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
+                    sIJ_overlap = sIJ_intersect / n
+                else:
+                    sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
+                    sIJ_overlap = 1 - (sIJ_intersect / n)
+                Dmp[i, i+1:] = sIJ_overlap
+            Dmp += Dmp.T
+            
+            #===================================================================
+            # Dmp = np.zeros(self.D.shape, dtype=np.float32)
+            # for i in range(n-1):
+            #     if verbose and ((i+1)%1000 == 0 or i==n):
+            #         self.log.message("MP_empiric_sparse_exact: {} of {}."
+            #                          .format(i+1, n-1), flush=True)
+            #     for j in range(i+1, n):
+            #         d = self.D[j, i]
+            #         dI = self.D[i, :].todense()
+            #         dJ = self.D[j, :].todense()
+            #         
+            #         if self.isSimilarityMatrix:
+            #             sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
+            #             sIJ_overlap = sIJ_intersect / n
+            #         else:
+            #             sIJ_intersect = ((dI > d) & (dJ > d)).sum()
+            #             sIJ_overlap = 1 - (sIJ_intersect / n)
+            #         Dmp[i, j] = sIJ_overlap
+            #         Dmp[j, i] = sIJ_overlap
+            #===================================================================
                     
             if self.isSimilarityMatrix:
                 np.fill_diagonal(Dmp, self.self_value) #need to set self values
@@ -174,7 +197,7 @@ class MutualProximity():
             
             for i in range(n-1):
                 if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1))
+                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
                 j_idx = np.arange(i+1, n)
                 j_len = np.size(j_idx, 0)
                
@@ -201,7 +224,7 @@ class MutualProximity():
              
             for i in range(n-1):
                 if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1))
+                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
                 # Select only finite distances for MP
                 j_idx = np.arange(i+1, n)
                 j_len = np.size(j_idx, 0)

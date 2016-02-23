@@ -107,9 +107,9 @@ class MutualProximity():
                 j_idx = np.arange(i+1, n)
                 j_len = np.size(j_idx, 0)
                  
-                dI = np.tile(self.D[i, :], (j_len, 1))
-                dJ = self.D[j_idx, :]
-                d = np.tile(self.D[j_idx, i][:, np.newaxis], (1, n))
+                dI = np.tile(self.D[i, :].toarray(), (j_len, 1))
+                dJ = self.D[j_idx, :].toarray()
+                d = np.tile(self.D[j_idx, i].toarray(), (1, n))
                  
                 if self.isSimilarityMatrix:
                     sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)

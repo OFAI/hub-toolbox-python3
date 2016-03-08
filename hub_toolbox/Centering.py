@@ -7,7 +7,7 @@ EARLY DEVELOPMENT VERSION
 """
 
 import numpy as np
-from hub_toolbox.Distances import cosine_distance, Distance, euclidean_distance
+from hub_toolbox.Distances import cosine_distance, Distance#, euclidean_distance
 
 class Centering(object):
     """Transform data (in vector space) by various 'centering' approaches."""
@@ -88,13 +88,16 @@ class Centering(object):
                 #d[i] = n_train * cosine(self.vectors[i], vectors_sum / n_train)
                 d[i] = n_train * cosine_distance(\
                         np.array([self.vectors[i], vectors_sum/n_train]))[0, 1]
-        elif distance_metric == Distance.euclidean:
-            for i in range(n):
-                displ_v = self.vectors[train_set_mask] - d[i]
-                d[i] = np.sum(np.sqrt(displ_v * displ_v))
+        #=======================================================================
+        ## Using euclidean distances does not really make sense
+        # elif distance_metric == Distance.euclidean:
+        #     for i in range(n):
+        #         displ_v = self.vectors[train_set_mask] - d[i]
+        #         d[i] = np.sum(np.sqrt(displ_v * displ_v))
+        #=======================================================================
         else:
             raise ValueError("Weighted centering currently only supports "
-                             "cosine and euclidean distances.")
+                             "cosine distances.")
         d_sum = np.sum(d ** gamma)
         w = (d ** gamma) / d_sum
         vectors_mean_weighted = np.sum(w.reshape(n,1) * self.vectors, 0)
@@ -108,7 +111,7 @@ class Centering(object):
         Returns a distance matrix (not centered vectors!)
         Default parameters: kappa=20, gamma=1.0
         """
-        # TODO CHECK CORRECTNESS!!
+        
         if test_set_mask is None:
             test_set_mask = np.zeros(self.vectors.shape[0], np.bool)
             
@@ -117,12 +120,15 @@ class Centering(object):
             v = self.vectors / np.sqrt((self.vectors ** 2).sum(-1))[..., np.newaxis]
             # for unit vectors it holds inner() == cosine()
             sim = 1 - cosine_distance(v)
-        elif distance_metric == Distance.euclidean:
-            v = self.vectors # no scaling here...
-            sim = 1 / ( 1 + euclidean_distance(v))
+        #=======================================================================
+        ## Localized centering meaningful for Euclidean?
+        # elif distance_metric == Distance.euclidean:
+        #     v = self.vectors # no scaling here...
+        #     sim = 1 / ( 1 + euclidean_distance(v))
+        #=======================================================================
         else:
             raise ValueError("Localized centering currently only supports "
-                             "cosine or euclidean distances.")
+                             "cosine distances.")
         n = sim.shape[0]
         local_affinity = np.zeros(n)
         for i in range(n):
@@ -130,18 +136,20 @@ class Centering(object):
             sim_i = sim[i, :]
             # set similarity of test examples to zero to exclude them from fit
             sim_i[test_set_mask] = 0 
-            #TODO randomization
+            #TODO randomization?
             nn = np.argsort(sim_i)[::-1][1 : kappa+1]
             c_kappa_x = np.mean(v[nn], 0)
             if distance_metric == Distance.cosine:
                 # c_kappa_x has no unit length in general
                 local_affinity[i] = np.inner(x, c_kappa_x)       
                 #local_affinity[i] = cosine(x, c_kappa_x) 
-            elif distance_metric == Distance.euclidean:
-                local_affinity[i] = 1 / (1 + np.linalg.norm(x-c_kappa_x))
+            #===================================================================
+            # elif distance_metric == Distance.euclidean:
+            #     local_affinity[i] = 1 / (1 + np.linalg.norm(x-c_kappa_x))
+            #===================================================================
             else:
                 raise ValueError("Localized centering currently only supports "
-                                 "cosine or euclidean distances.")
+                                 "cosine distances.")
         sim_lcent = sim - (local_affinity ** gamma)
         return 1 - sim_lcent
 

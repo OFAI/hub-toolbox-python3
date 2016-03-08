@@ -126,9 +126,9 @@ class MutualProximity():
     def _partial_mp_empiric_sparse(self, batch, matrix, idx, n, verbose):
         Dmp = np.zeros((len(batch), self.D.shape[1]), dtype=np.float32)
         for i, b in enumerate(batch):
-            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-2):
+            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-1):
                 self.log.message("MP_empiric_sparse_exact: {} of {}."
-                                 .format(batch[i]+1, n-1), flush=True)
+                                 .format(batch[i]+1, n), flush=True)
             for j in range(b+1, n):
                 d = matrix[j, b]
                 dI = matrix[b, :].todense()
@@ -783,12 +783,12 @@ if __name__ == '__main__':
     Sn, _, _ = h.calculate_hubness()
     print("Hubness:", Sn)
     mp1 = MutProx.MutualProximity(D, True)
-    Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.empiric, None, False, False, 0, None, True)
+    Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.empiric, None, True, False, 0, None, True)
     h = Hubness.Hubness(Dmp1)
     Sn, _, _ = h.calculate_hubness()
     print("Hubness (empspex sequential):", Sn)
     mp2 = MutualProximity(D, True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, False, False, 0, None, True, -1)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, False, 0, None, True, -1)
     h = Hubness.Hubness(Dmp2)
     Sn, _, _ = h.calculate_hubness()
     print("Hubness (empspex parallel):", Sn)

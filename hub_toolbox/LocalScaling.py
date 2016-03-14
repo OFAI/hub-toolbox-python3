@@ -135,6 +135,11 @@ class LocalScaling():
             This uses the mean over the k nearest neighbors.
         """
          
+        #=======================================================================
+        # if self.isSimilarityMatrix:
+        #     return self.ls_nicdm_sim(test_set_mask)
+        # 
+        #=======================================================================
         if test_set_mask is not None:
             train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
         else:
@@ -161,6 +166,43 @@ class LocalScaling():
             Dnicdm = 1 - Dnicdm / Dnicdm.max() 
          
         return Dnicdm
+    
+    #===========================================================================
+    # def ls_nicdm_sim(self, test_set_mask=None):
+    #     """Local scaling variant: Non-Iterative Contextual Dissimilarity Measure
+    #         This uses the mean over the k nearest neighbors.
+    #     """
+    #      
+    #     if test_set_mask is not None:
+    #         train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
+    #     else:
+    #         train_set_mask = np.ones(self.D.shape[0], np.bool)
+    #          
+    #     if self.isSimilarityMatrix:
+    #         self.D /= self.D.max()
+    #         
+    #     length_D = np.max(np.shape(self.D))
+    #     f = np.zeros((length_D, 1))
+    #     np.fill_diagonal(self.D, self.exclude)
+    #     for i in range(length_D):
+    #         si = self.D[i, train_set_mask]
+    #         #di[i] = self.exclude
+    #         nn = np.argsort(si)[::self.sort_order]
+    #         f[i] = np.mean(1-si[nn[0:self.k]]) # largest sim. or smallest dist.
+    # 
+    #     fg = self.local_geomean(f)
+    #      
+    #     Snicdm = np.zeros(np.shape(self.D), dtype = self.D.dtype)
+    #     for i in range(length_D):
+    #         for j in range(i+1, length_D):
+    #             Snicdm[i, j] = 1 - (fg**2 * (1-self.D[i, j])) / ( f[i] * f[j] )
+    #             #Snicdm[i, j] = 1 - ((1-self.D[i, j]) * (f[i] * f[j])) / (fg**2) 
+    #             Snicdm[j, i] = Snicdm[i, j]
+    #     
+    #     np.fill_diagonal(Snicdm, 1)
+    #      
+    #     return Snicdm
+    #===========================================================================
             
     def local_geomean(self, x):
         return np.exp(np.sum(np.log(x)) / np.max(np.shape(x)))

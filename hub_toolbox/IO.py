@@ -7,7 +7,6 @@ Created on Jan 5, 2016
 import numpy as np
 from scipy import sparse
 import os
-from hub_toolbox import Logging
 
 def copy_D_or_load_memmap(D, writeable=False):
     """Return a deep copy of a numpy array (if D is an ndarray), 
@@ -18,9 +17,11 @@ def copy_D_or_load_memmap(D, writeable=False):
     elif isinstance(D, np.ndarray):
         newD = np.copy(D.astype(np.float32))
     elif sparse.issparse(D):
-        log = Logging.ConsoleLogging()
-        log.warning("Not all classes of the hub toolbox support sparse matrices"
-                    " as of now. This is work-in-progress.")
+        #=======================================================================
+        # log = Logging.ConsoleLogging()
+        # log.warning("Not all classes of the hub toolbox support sparse matrices"
+        #             " as of now. This is work-in-progress.")
+        #=======================================================================
         newD = D.copy()
     elif isinstance(D, str):
         if os.path.isfile(D):
@@ -33,7 +34,8 @@ def copy_D_or_load_memmap(D, writeable=False):
             raise FileNotFoundError("Distance matrix file not found.")
     else:
         raise Exception("Distance matrix type not understood. "
-                        "Must be np.ndarray or path to pickled ndarray.")
+                        "Must be np.ndarray or scipy.sparse.csr_matrix or "
+                        "path to pickled ndarray.")
         
     return newD
 

@@ -573,7 +573,7 @@ class MutualProximity():
         #print("A: ", A.shape, A.__class__, A.nbytes/1024/1024)
         #print("B: ", B.shape, B.__class__, B.nbytes/1024/1024)
         
-        Dmp = dok_matrix(self.D.shape)
+        Dmp = dok_matrix(self.D.shape, dtype=np.float32)
         n = self.D.shape[0]
         
         for i in range(n):

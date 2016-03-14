@@ -47,18 +47,43 @@ class Distribution(Enum):
 
 
 def _get_weighted_batches(n, jobs):
-    """Define batches with increasing length to average the runtime for each
-    batch (since MP gets faster while processing the distance matrix)."""
+    """Define batches with increasing size to average the runtime for each
+    batch.
+    
+    Observation: MP gets faster while processing the distance matrix. This 
+    approximately follows a linear function.
+    Idea: Give each row a weight w according to w(r) = 1 - r/n, where 
+    r... row number, n... number of rows. Now each batch should get the same
+    weight bw := n/jobs, where jobs... number of processes. The equation to 
+    solve is then sum[r=a..b]( 1-r/n ) = n / 2jobs. 
+    Solving for b yields the formula used below. (The last batch may get
+    additional left-over rows).    
+    """
      
     batches = []    
     a = 0
+    b = 0
     for i in range(jobs-1):  # @UnusedVariable
         b = int((np.sqrt(jobs)*(2*n-1)-np.sqrt(jobs*(-2*a+2*n+1)**2-4*n**2))/(2*np.sqrt(jobs)))
+        if b < 1:
+            b = 1 # Each batch must contain at least 1 row
         batches.append( np.arange(a, b) )
         a = b 
-    if batches[-1][-1] < n-1:
+    if b < n-1:
         batches.append( np.arange(a, n) )
     return batches
+
+def _worker(work_input, work_output):
+    """A helper function for cv parallelization."""
+    for func, args in iter(work_input.get, 'STOP'):
+        result = func(*args)
+        work_output.put(result)
+        
+#===============================================================================
+# def _calculate(self, func, args):
+#     """A helper function for cv parallelization."""
+#     return func(*args)
+#===============================================================================
 
 
 class MutualProximity():
@@ -95,12 +120,12 @@ class MutualProximity():
             if distrType == Distribution.empiric:
                 Dmp = self.mp_empiric(train_set_mask, verbose, empspex, n_jobs)
             elif distrType == Distribution.gauss:
-                Dmp = self.mp_gauss(train_set_mask, verbose)
+                Dmp = self.mp_gauss(train_set_mask, verbose, n_jobs)
             elif distrType == Distribution.gaussi:
                 Dmp = self.mp_gaussi(train_set_mask, verbose, enforce_disk, 
-                                     sample_size, filename)
+                                     sample_size, filename, n_jobs)
             elif distrType == Distribution.gammai:
-                Dmp = self.mp_gammai(train_set_mask, verbose)
+                Dmp = self.mp_gammai(train_set_mask, verbose, n_jobs)
             else:
                 self.log.warning("Valid Mutual Proximity type missing!\n"+\
                              "Use: \n"+\
@@ -112,23 +137,12 @@ class MutualProximity():
        
         return Dmp
          
-    def _worker(self, work_input, work_output):
-        """A helper function for cv parallelization."""
-        for func, args in iter(work_input.get, 'STOP'):
-            result = self._calculate(func, args)
-            work_output.put(result)
-            
-    def _calculate(self, func, args):
-        """A helper function for cv parallelization."""
-        return func(*args)
-
-
     def _partial_mp_empiric_sparse(self, batch, matrix, idx, n, verbose):
         Dmp = np.zeros((len(batch), self.D.shape[1]), dtype=np.float32)
         for i, b in enumerate(batch):
-            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-1):
-                self.log.message("MP_empiric_sparse_exact: {} of {}."
-                                 .format(batch[i]+1, n), flush=True)
+            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-1 or i==len(batch)-1):
+                self.log.message("MP_empiric_sparse_exact: {} of {}. On {}."
+                                 .format(batch[i]+1, n, mp.current_process().name), flush=True)  # @UndefinedVariable
             for j in range(b+1, n):
                 d = matrix[j, b]
                 dI = matrix[b, :].todense()
@@ -169,19 +183,46 @@ class MutualProximity():
             for task in tasks:
                 task_queue.put(task)
                 
+            processes = []
             for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
-                mp.Process(target=self._worker, args=(task_queue, done_queue)).start()  # @UndefinedVariable
+                processes.append(mp.Process(target=_worker, args=(task_queue, done_queue))) # @UndefinedVariable
+                if verbose:
+                    self.log.message("Starting {}".format(processes[i].name))
+                processes[i].start()  
             
             for i in range(len(tasks)):  # @UnusedVariable
                 rows, Dmp_part = done_queue.get()
+                if verbose:
+                    self.log.message("Merging submatrix {} (rows {}..{})".format(i, rows[0], rows[-1]), flush=True)
                 Dmp[rows, :] = Dmp_part
                 
             for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
+                if verbose:
+                    self.log.message("Stopping MP process {}".format(i), flush=True)
                 task_queue.put('STOP')
                 
+            for p in processes:
+                if verbose:
+                    self.log.message("Joining {}".format(p.name))
+                p.join()
+
+            import os, datetime
+            time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S')
+            folder = '/tmp/feldbauer/hubPDBs2/'
+            filename = 'D_mpempspex_triu_'+time
+            os.makedirs(folder, exist_ok=True)
+            if verbose:
+                self.log.message("Saving Dmp upper to {} as {}.npy".format(folder, filename), flush=True)
+            np.save(folder + filename, Dmp)
+            
+            if verbose:
+                self.log.message("Mirroring distance matrix", flush=True)
+                
             Dmp += Dmp.T
-                    
+        
             if self.isSimilarityMatrix:
+                if verbose:
+                    self.log.message("Setting self distances", flush=True)
                 np.fill_diagonal(Dmp, self.self_value) #need to set self values
                 
             return Dmp
@@ -221,10 +262,14 @@ class MutualProximity():
         if not np.all(train_set_mask):
             self.log.error("MP empiric does not support train/test splits yet.")
             return
-        if self.isSimilarityMatrix:
-            self.log.warning("Similarity-based empiric MP support is still experimental.")
+        #=======================================================================
+        # if self.isSimilarityMatrix:
+        #     self.log.warning("Similarity-based empiric MP support is still experimental.")
+        #=======================================================================
         if issparse(self.D):
-            self.log.warning("Sparse matrix support is still experimental.")
+            #===================================================================
+            # self.log.warning("Sparse matrix support is still experimental.")
+            #===================================================================
             return self.mp_empiric_sparse(train_set_mask, verbose, empspex, n_jobs)
             
         if isinstance(self.D, np.memmap): # work on disk
@@ -293,9 +338,11 @@ class MutualProximity():
             
         return Dmp
     
-    def mp_gauss(self, train_set_mask=None, verbose=False):
+    def mp_gauss(self, train_set_mask=None, verbose=False, n_jobs=-1):
         """Compute Mutual Proximity distances with Gaussian model (very slow)."""
         
+        if n_jobs is not None:
+            self.log.error("MP gauss does not support parallelization so far.")
         if self.isSimilarityMatrix:
             self.log.warning("Similarity-based Gaussian MP support is still experimental.")
         
@@ -411,13 +458,16 @@ class MutualProximity():
         return Dmp.tocsr()
 
     def mp_gaussi(self, train_set_mask=None, verbose=False, enforce_disk=False,
-                  sample_size=0, filename=None):
+                  sample_size=0, filename=None, n_jobs=-1):
         """Compute Mutual Proximity modeled with independent Gaussians (fast). 
         Use enforce_disk=True to use memory maps for matrices that do not fit 
         into main memory.
         Set sample_size=SIZE to estimate Gaussian distribution from SIZE 
         samples. Default sample_size=0: use all points."""
         
+        if n_jobs is not None:
+            self.log.error("MP gaussi does not support parallelization so far.")
+            
         if self.isSimilarityMatrix:
             self.log.warning("Similarity-based I.Gaussian MP support is still experimental.")
         
@@ -600,9 +650,42 @@ class MutualProximity():
                 Dmp[j_idx, i] = Dmp[i, j_idx]
     
         return Dmp
-    
 
-    def mp_gammai_sparse(self, train_set_mask, verbose):
+    def _partial_mp_gammai_sparse(self, batch, matrix, idx, n, A, B, verbose):
+        Dmp = dok_matrix((len(batch), self.D.shape[1]), dtype=np.float32)
+        
+        for i, b in enumerate(batch):
+            #print("i:", i, "b:", b)
+            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]+1==n):
+                self.log.message("MP_gammai: {} of {}".format(batch[i]+1, n), flush=True)
+            j_idx = np.arange(b+1, n)
+            j_len = np.size(j_idx)
+             
+            Dij = matrix[i, j_idx].toarray().ravel() #Extract dense rows temporarily
+            Dji = matrix[j_idx, i].toarray().ravel() #for vectorization below.
+            
+            p1 = self.local_gamcdf(Dij, \
+                                   np.tile(A[b], (1, j_len)), \
+                                   np.tile(B[b], (1, j_len)))
+            del Dij
+            
+            p2 = self.local_gamcdf(Dji, 
+                                   A[j_idx], 
+                                   B[j_idx])
+            del Dji#, A, B
+
+            #Dmp[i, b] = self.self_value
+            Dmp[i, j_idx] = (p1 * p2).ravel()     
+            #need to mirror later!!   
+        
+        #=======================================================================
+        # print(batch.__repr__())
+        # print(Dmp.__repr__())  
+        #=======================================================================
+        return batch, Dmp.tocsr()
+
+    def mp_gammai_sparse(self, train_set_mask, verbose, n_jobs=-1):
+        self.log.error("MP gammai sparse parallel implementation BROKEN!")
         from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
         mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
         A = (mu**2) / va
@@ -610,98 +693,77 @@ class MutualProximity():
         del mu, va
         A[A<0] = np.nan
         B[B<=0] = np.nan
-        #print("A: ", A.shape, A.__class__, A.nbytes/1024/1024)
-        #print("B: ", B.shape, B.__class__, B.nbytes/1024/1024)
         
-        Dmp = dok_matrix(self.D.shape)
+        Dmp = dok_matrix(self.D.shape, dtype=np.float32)
         n = self.D.shape[0]
         
-        for i in range(n):
-            if verbose and ((i+1)%1000 == 0 or i+1==n):
-                self.log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
-            j_idx = np.arange(i+1, n)
-            j_len = np.size(j_idx)
-             
-            #===================================================================
-            # Dij = self.D[i].toarray()[:, j_idx] #Extract dense rows temporarily
-            # Dji = self.D[j_idx].toarray()[:, i] #for vectorization below.
-            #===================================================================
-            Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
-            Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
+        # Parallelization
+        if n_jobs == -1: # take all cpus
+            NUMBER_OF_PROCESSES = mp.cpu_count()  # @UndefinedVariable
+        else:
+            NUMBER_OF_PROCESSES = n_jobs
+        tasks = []
+        
+        batches = _get_weighted_batches(n, NUMBER_OF_PROCESSES)
+        
+        for idx, batch in enumerate(batches):
+            matrix = self.D.copy()
+            tasks.append((self._partial_mp_gammai_sparse, (batch, matrix, idx, n, A, B, verbose)))   
+        
+        task_queue = mp.Queue()     # @UndefinedVariable
+        done_queue = mp.Queue()     # @UndefinedVariable
+        
+        for task in tasks:
+            task_queue.put(task)
             
-            #print("Dij: ", Dij.shape, Dij.__class__, Dij.nbytes/1024/1024)
-            #print("Dji: ", Dji.shape, Dji.__class__, Dji.nbytes/1024/1024)
-             
-            p1 = self.local_gamcdf(Dij, \
-                                   np.tile(A[i], (1, j_len)), \
-                                   np.tile(B[i], (1, j_len)))
-            del Dij
-            #x = np.tile(A[i], (1, j_len))
-            #print("tileA: ", x.shape, x.__class__, x.nbytes/1024/1024)
-            #print("p1: ", p1.shape, p1.__class__, p1.nbytes/1024/1024)
-            p2 = self.local_gamcdf(Dji, 
-                                   A[j_idx], 
-                                   B[j_idx])
-            del Dji#, A, B
-            #print("p2: ", p2.shape, p2.__class__, p2.nbytes/1024/1024)
-            tmp = (p1 * p2).ravel()
-            #print("tmp: ", tmp.shape, tmp.__class__, tmp.nbytes/1024/1024)
+        for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
+            mp.Process(target=_worker, args=(task_queue, done_queue)).start()  # @UndefinedVariable
+        
+        for i in range(len(tasks)):  # @UnusedVariable
+            rows, Dmp_part = done_queue.get()
+            if verbose:
+                self.log.message("Merging submatrix {} (rows {}..{})".format(i, rows[0], rows[-1]), flush=True)
+            Dmp[rows, :] = Dmp_part
+            
+        for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
+            if verbose:
+                self.log.message("Finalizing MP process {}".format(i), flush=True)
+            task_queue.put('STOP')
+         
+        import os
+        folder = '/tmp/feldbauer/hubPDBs2/'
+        filename = 'D_mpgammai_triu'
+        os.makedirs(folder, exist_ok=True)
+        from scipy import io
+        if verbose:
+            self.log.message("Saving Dmp upper to {} as {}".format(folder, filename), flush=True)
+        io.mmwrite(folder + filename, Dmp)
+        
+        Dmp = Dmp.tolil()
+        if verbose:
+            self.log.message("Mirroring distance matrix", flush=True)
+        Dmp += Dmp.T
+        
+        if verbose:
+            self.log.message("Setting self distances", flush=True)
+        for i in range(Dmp.shape[0]):
             Dmp[i, i] = self.self_value
-            Dmp[i, j_idx] = tmp        
-            Dmp[j_idx, i] = tmp[:, np.newaxis]
-            del tmp, j_idx
-            
-            #===================================================================
-            # Dij = self.D[i, j_idx] # extract sparse rows
-            # Dji = self.D[j_idx, i]
-            #  
-            # p1 = self.local_gamcdf_sparse1(Dij, A[i], B[i])
-            # p2 = self.local_gamcdf_sparse2(Dji, 
-            #                        A[j_idx, np.newaxis], 
-            #                        B[j_idx, np.newaxis])
-            # tmp = (p1 * np.asarray(p2.T)).ravel()
-            # Dmp[i, j_idx] = tmp        
-            # Dmp[j_idx, i] = tmp[:, np.newaxis]   
-            #===================================================================
-               
-        # non-vectorized code      
-        #=======================================================================
-        # for i in range(n):
-        #     if verbose and ((i+1)%1000 == 0 or i+1==n):
-        #         self.log.message("MP_gammai: {} of {}".format(i+1, n))
-        #     for j in range(n):
-        #         Dij = self.D[i, j]
-        #         Dji = self.D[j, i]
-        #         if Dij>0 and Dji>0:          
-        #             if self.isSimilarityMatrix:
-        #                 p1 = gammainc(A[i], Dij / B[i]) # self.local_gamcdf(self.D[i, j], A[i], B[i])
-        #                 p2 = gammainc(A[j], Dji / B[j]) # self.local_gamcdf(self.D[j, i], A[j], B[j])
-        #                 tmp = (p1 * p2).ravel()
-        #                 Dmp[i, j] = tmp
-        #                 Dmp[j, i] = tmp
-        #             else:
-        #                 p1 = 1 - gammainc(A[i], Dij / B[i]) # self.local_gamcdf(self.D[i, j], A[i], B[i])
-        #                 p2 = 1 - gammainc(A[j], Dji / B[j]) # self.local_gamcdf(self.D[j, i], A[j], B[j])
-        #                 tmp = (1 - p1 * p2).ravel()
-        #                 Dmp[i, j] = tmp
-        #                 Dmp[j, i] = tmp
-        #=======================================================================
-                   
+
+        if verbose:
+            self.log.message("Converting to CSR matrix", flush=True)
         return Dmp.tocsr()
     
-    
-    def mp_gammai(self, train_set_mask=None, verbose=False):
+    def mp_gammai(self, train_set_mask=None, verbose=False, n_jobs=-1):
         """Compute Mutual Proximity modeled with independent Gamma distributions."""
-        if self.isSimilarityMatrix:
-            self.log.warning("Similarity-based I.Gamma MP support is still experimental.")
+        
         if verbose:
             self.log.message('Mutual proximity rescaling started.', flush=True)
+            
         
         if not issparse(self.D):
             np.fill_diagonal(self.D, self.self_value)
         else:
-            #self.log.error("Sparse matrices not supported yet.")
-            return self.mp_gammai_sparse(train_set_mask, verbose)
+            return self.mp_gammai_sparse(train_set_mask, verbose, n_jobs=n_jobs)
         
         mu = np.mean(self.D[train_set_mask], 0)
         va = np.var(self.D[train_set_mask], 0, ddof=1)
@@ -753,44 +815,34 @@ class MutualProximity():
         p = gammainc(a, z)
         return p
     
-    #===========================================================================
-    # def local_gamcdf_sparse1(self, x, a, b):
-    #     if a<0:
-    #         a = np.nan
-    #     if b<=0:
-    #         b = np.nan
-    #     #x[x<0] = 0
-    #     z = x / b
-    #     p = gammainc(a, z.toarray())
-    #     return p
-    # 
-    # def local_gamcdf_sparse2(self, x, a, b):
-    #     a[a<0] = np.nan
-    #     b[b<=0] = np.nan
-    #     x[x<0] = 0
-    #     z = x / b
-    #     p = gammainc(a, z)
-    #     return p
-    #===========================================================================
-    
 if __name__ == '__main__':
-    """Test mp empiric similarity sparse sequential & parallel implemenations"""
-    from scipy.sparse import rand 
-    D = rand(200, 200, 0.5, 'csr', np.float32, 42)
+    """Test mp empiric similarity sparse sequential & parallel implementations"""
+    from scipy.sparse import rand, csr_matrix
+    D = rand(5000, 5000, 0.5, 'csr', np.float32, 42)
+    D = np.triu(D.toarray())
+    D = D + D.T
+    np.fill_diagonal(D, 1)
+    D = csr_matrix(D)
     from hub_toolbox import Hubness 
     from hub_toolbox import MutualProximity as MutProx
-    h = Hubness.Hubness(D)
+    h = Hubness.Hubness(D, 5, True)
     Sn, _, _ = h.calculate_hubness()
     print("Hubness:", Sn)
-    mp1 = MutProx.MutualProximity(D, True)
-    Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.empiric, None, True, False, 0, None, True)
-    h = Hubness.Hubness(Dmp1)
-    Sn, _, _ = h.calculate_hubness()
-    print("Hubness (empspex sequential):", Sn)
+    #===========================================================================
+    # mp1 = MutProx.MutualProximity(D, True)
+    # Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.empiric, None, True, False, 0, None, empspex=True)
+    # h = Hubness.Hubness(Dmp1, 5, True)
+    # Sn, _, _ = h.calculate_hubness()
+    # print("Hubness (sequential):", Sn)
+    #===========================================================================
     mp2 = MutualProximity(D, True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, False, 0, None, True, -1)
-    h = Hubness.Hubness(Dmp2)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, False, 0, None, empspex=True, n_jobs=4)
+    h = Hubness.Hubness(Dmp2, 5, True)
     Sn, _, _ = h.calculate_hubness()
-    print("Hubness (empspex parallel):", Sn)
-    print("Summed differences in the scaled matrices:", (Dmp1-Dmp2).sum())
+    print("Hubness (parallel):", Sn)
+    #print("Summed differences in the scaled matrices:", (Dmp1-Dmp2).sum())
+    #print(Dmp1-Dmp2)
+    #print("D", D)
+    #print("Dmp1", Dmp1)
+    #print("Dmp2", Dmp2)
     

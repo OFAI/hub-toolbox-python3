@@ -122,8 +122,8 @@ class Hubness():
         batch_size = n // NUMBER_OF_PROCESSES
         for i in range(NUMBER_OF_PROCESSES-1):
             batches.append( np.arange(i*batch_size, (i+1)*batch_size) )
-        if batches[-1][-1] < n-1:
-            batches.append( np.arange((NUMBER_OF_PROCESSES-1)*batch_size, n) )
+        #if batches[-1][-1] < n-1:
+        batches.append( np.arange((NUMBER_OF_PROCESSES-1)*batch_size, n) )
         
         for idx, batch in enumerate(batches):
             submatrix = self.D[batch]
@@ -146,17 +146,14 @@ class Hubness():
             task_queue.put('STOP')        
                    
         # N-occurence
-        if verbose:
-            self.log.message("Counting n-occurence...")
         Nk = np.bincount(Dk.astype(int).ravel())    
         # Hubness
-        if verbose:
-            self.log.message("Calculating hubness...")
         Sn = stat.skew(Nk)
          
-        # return hubness, k-nearest neighbors, N occurence
         if verbose:
             self.log.message("Hubness calculation done.", flush=True)
+            
+        # return hubness, k-nearest neighbors, N occurence
         return (Sn, Dk, Nk)
     
 if __name__ == '__main__':

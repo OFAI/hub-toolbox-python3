@@ -563,8 +563,22 @@ class MutualProximity():
     
 
     def mp_gammai_sparse(self, train_set_mask, verbose):
-        from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
-        mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
+        # mean, variance WITH zero values
+        #=======================================================================
+        # from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
+        # mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
+        #=======================================================================
+        
+        # mean, variance WITHOUT zero values (missing values)
+        # TODO implement train_test split
+        mu = np.array(self.D.sum(0) / self.D.getnnz(0)).ravel()
+        X = self.D.copy()
+        X.data **= 2
+        E1 = np.array(X.sum(0) / X.getnnz(0)).ravel()
+        del X
+        va = E1 - mu**2
+        del E1
+        
         A = (mu**2) / va
         B = va / mu
         del mu, va
@@ -607,7 +621,7 @@ class MutualProximity():
             tmp = (p1 * p2).ravel()
             #print("tmp: ", tmp.shape, tmp.__class__, tmp.nbytes/1024/1024)
             Dmp[i, i] = self.self_value
-            Dmp[i, j_idx] = tmp        
+            Dmp[i, j_idx] = tmp     
             Dmp[j_idx, i] = tmp[:, np.newaxis]
             del tmp, j_idx
             
@@ -646,7 +660,7 @@ class MutualProximity():
         #                 Dmp[i, j] = tmp
         #                 Dmp[j, i] = tmp
         #=======================================================================
-                   
+          
         return Dmp.tocsr()
     
     

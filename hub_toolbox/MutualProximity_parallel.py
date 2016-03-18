@@ -140,7 +140,7 @@ class MutualProximity():
     def _partial_mp_empiric_sparse(self, batch, matrix, idx, n, verbose):
         Dmp = np.zeros((len(batch), self.D.shape[1]), dtype=np.float32)
         for i, b in enumerate(batch):
-            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-1 or i==len(batch)-1):
+            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-1 or i==len(batch)-1 or i==0):
                 self.log.message("MP_empiric_sparse_exact: {} of {}. On {}."
                                  .format(batch[i]+1, n, mp.current_process().name), flush=True)  # @UndefinedVariable
             for j in range(b+1, n):
@@ -676,6 +676,7 @@ class MutualProximity():
 
             #Dmp[i, b] = self.self_value
             Dmp[i, j_idx] = (p1 * p2).ravel()     
+            
             #need to mirror later!!   
         
         #=======================================================================
@@ -686,14 +687,28 @@ class MutualProximity():
 
     def mp_gammai_sparse(self, train_set_mask, verbose, n_jobs=-1):
         self.log.error("MP gammai sparse parallel implementation BROKEN!")
-        from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
-        mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
+        # mean, variance WITH zero values
+        #=======================================================================
+        # from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
+        # mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
+        #=======================================================================
+        
+        # mean, variance WITHOUT zero values (missing values)
+        # TODO implement train_test split
+        mu = np.array(self.D.sum(0) / self.D.getnnz(0)).ravel()
+        X = self.D.copy()
+        X.data **= 2
+        E1 = np.array(X.sum(0) / X.getnnz(0)).ravel()
+        del X
+        va = E1 - mu**2
+        del E1
+        
         A = (mu**2) / va
         B = va / mu
         del mu, va
         A[A<0] = np.nan
         B[B<=0] = np.nan
-        
+
         Dmp = dok_matrix(self.D.shape, dtype=np.float32)
         n = self.D.shape[0]
         
@@ -818,7 +833,7 @@ class MutualProximity():
 if __name__ == '__main__':
     """Test mp empiric similarity sparse sequential & parallel implementations"""
     from scipy.sparse import rand, csr_matrix
-    D = rand(5000, 5000, 0.5, 'csr', np.float32, 42)
+    D = rand(5000, 5000, 0.05, 'csr', np.float32, 42)
     D = np.triu(D.toarray())
     D = D + D.T
     np.fill_diagonal(D, 1)
@@ -830,18 +845,17 @@ if __name__ == '__main__':
     print("Hubness:", Sn)
     #===========================================================================
     # mp1 = MutProx.MutualProximity(D, True)
-    # Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.empiric, None, True, False, 0, None, empspex=True)
+    # Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.gammai, None, True, False, 0, None, empspex=True)
     # h = Hubness.Hubness(Dmp1, 5, True)
     # Sn, _, _ = h.calculate_hubness()
     # print("Hubness (sequential):", Sn)
     #===========================================================================
     mp2 = MutualProximity(D, True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, False, 0, None, empspex=True, n_jobs=4)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gammai, None, True, False, 0, None, empspex=True, n_jobs=4)
     h = Hubness.Hubness(Dmp2, 5, True)
     Sn, _, _ = h.calculate_hubness()
     print("Hubness (parallel):", Sn)
     #print("Summed differences in the scaled matrices:", (Dmp1-Dmp2).sum())
-    #print(Dmp1-Dmp2)
     #print("D", D)
     #print("Dmp1", Dmp1)
     #print("Dmp2", Dmp2)

@@ -192,6 +192,7 @@ class MutualProximity():
             
             for i in range(len(tasks)):  # @UnusedVariable
                 rows, Dmp_part = done_queue.get()
+                task_queue.put('STOP')
                 if verbose:
                     self.log.message("Merging submatrix {} (rows {}..{})".format(i, rows[0], rows[-1]), flush=True)
                 Dmp[rows, :] = Dmp_part

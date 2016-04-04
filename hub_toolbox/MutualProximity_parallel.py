@@ -34,7 +34,7 @@ by Roman Feldbauer <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.special import gammainc
 from scipy.stats import norm, mvn
-from scipy.sparse import issparse, dok_matrix
+from scipy.sparse import issparse, lil_matrix
 from enum import Enum
 import multiprocessing as mp
 from hub_toolbox import IO, Logging
@@ -228,7 +228,7 @@ class MutualProximity():
             return Dmp
         else:
             nnz = self.D.nnz
-            Dmp = dok_matrix(self.D.shape)
+            Dmp = lil_matrix(self.D.shape)
             for i in range(n-1):
                 if verbose and ((i+1)%1000 == 0 or i==n):
                     self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
@@ -254,7 +254,7 @@ class MutualProximity():
                 for i in range(n):
                     Dmp[i, i] = self.self_value #need to set self values
             
-                    return Dmp.tocsr()
+            return Dmp.tocsr()
     
     def mp_empiric(self, train_set_mask=None, verbose=False, empspex=False, n_jobs=-1):
         """Compute Mutual Proximity distances with empirical data (slow)."""   
@@ -409,7 +409,7 @@ class MutualProximity():
         sd = np.sqrt(var)
         del var
         
-        Dmp = dok_matrix(self.D.shape)
+        Dmp = lil_matrix(self.D.shape)
 
         for i in range(n):
             if verbose and ((i+1)%1000 == 0 or i+1==n):
@@ -652,12 +652,13 @@ class MutualProximity():
         return Dmp
 
     def _partial_mp_gammai_sparse(self, batch, matrix, idx, n, A, B, verbose):
-        Dmp = dok_matrix((len(batch), self.D.shape[1]), dtype=np.float32)
+        Dmp = lil_matrix((len(batch), self.D.shape[1]), dtype=np.float32)
         
         for i, b in enumerate(batch):
             #print("i:", i, "b:", b)
-            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]+1==n):
-                self.log.message("MP_gammai: {} of {}".format(batch[i]+1, n), flush=True)
+            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]+1==n or i==len(batch)-1 or i==0):
+                self.log.message("MP_gammai_sparse: {} of {}. On {}.".format(
+                                batch[i]+1, n, mp.current_process().name, flush=True))  # @UndefinedVariable
             j_idx = np.arange(b+1, n)
             j_len = np.size(j_idx)
              
@@ -672,18 +673,12 @@ class MutualProximity():
             p2 = self.local_gamcdf(Dji, 
                                    A[j_idx], 
                                    B[j_idx])
-            del Dji#, A, B
+            del Dji
 
-            #Dmp[i, b] = self.self_value
             Dmp[i, j_idx] = (p1 * p2).ravel()     
-            
             #need to mirror later!!   
         
-        #=======================================================================
-        # print(batch.__repr__())
-        # print(Dmp.__repr__())  
-        #=======================================================================
-        return batch, Dmp.tocsr()
+        return batch, Dmp
 
     def mp_gammai_sparse(self, train_set_mask, verbose, n_jobs=-1):
         self.log.error("MP gammai sparse parallel implementation BROKEN!")
@@ -709,7 +704,7 @@ class MutualProximity():
         A[A<0] = np.nan
         B[B<=0] = np.nan
 
-        Dmp = dok_matrix(self.D.shape, dtype=np.float32)
+        Dmp = lil_matrix(self.D.shape, dtype=np.float32)
         n = self.D.shape[0]
         
         # Parallelization
@@ -736,6 +731,7 @@ class MutualProximity():
         
         for i in range(len(tasks)):  # @UnusedVariable
             rows, Dmp_part = done_queue.get()
+            task_queue.put('STOP')
             if verbose:
                 self.log.message("Merging submatrix {} (rows {}..{})".format(i, rows[0], rows[-1]), flush=True)
             Dmp[rows, :] = Dmp_part

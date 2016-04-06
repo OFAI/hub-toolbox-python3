@@ -173,7 +173,7 @@ class MutualProximity():
             for j in range(b+1, n):
                 d = matrix[j, b]
                 if d>0: 
-                    nnz = np.max(self.D[i].nnz, self.D[j].nnz)
+                    nnz = np.max([self.D[i].nnz, self.D[j].nnz])
                     dI = self.D[i, :].todense()
                     dJ = self.D[j, :].todense()
                     
@@ -888,7 +888,7 @@ class MutualProximity():
 if __name__ == '__main__':
     """Test mp empiric similarity sparse sequential & parallel implementations"""
     from scipy.sparse import rand, csr_matrix
-    D = rand(200, 200, 0.05, 'csr', np.float32, 42)
+    D = rand(5000, 5000, 0.05, 'csr', np.float32, 42)
     D = np.triu(D.toarray())
     D = D + D.T
     np.fill_diagonal(D, 1)
@@ -906,7 +906,7 @@ if __name__ == '__main__':
     # print("Hubness (sequential):", Sn)
     #===========================================================================
     mp2 = MutualProximity(D, True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, False, 0, None, empspex=True, n_jobs=4)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, False, 0, None, empspex=False, n_jobs=4)
     h = Hubness.Hubness(Dmp2, 5, True)
     Sn, _, _ = h.calculate_hubness()
     print("Hubness (parallel):", Sn)

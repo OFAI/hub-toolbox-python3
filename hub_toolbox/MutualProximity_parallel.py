@@ -37,6 +37,7 @@ from scipy.stats import norm, mvn
 from scipy.sparse import issparse, lil_matrix
 from enum import Enum
 import multiprocessing as mp
+#from numba import jit
 from hub_toolbox import IO, Logging
 
 class Distribution(Enum):
@@ -44,7 +45,6 @@ class Distribution(Enum):
     gauss = 'gauss'
     gaussi = 'gaussi'
     gammai = 'gammai'
-
 
 def _get_weighted_batches(n, jobs):
     """Define batches with increasing size to average the runtime for each
@@ -91,7 +91,7 @@ class MutualProximity():
     
     """
     
-    def __init__(self, D, isSimilarityMatrix=False):
+    def __init__(self, D, isSimilarityMatrix=False, tmp='/tmp/'):
         self.D = IO.copy_D_or_load_memmap(D, writeable=True)
         self.log = Logging.ConsoleLogging()
         if isSimilarityMatrix:
@@ -99,6 +99,7 @@ class MutualProximity():
         else:
             self.self_value = 0
         self.isSimilarityMatrix = isSimilarityMatrix
+        self.tmp = tmp
         
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, enforce_disk=False,
@@ -137,7 +138,7 @@ class MutualProximity():
        
         return Dmp
          
-    def _partial_mp_empiric_sparse(self, batch, matrix, idx, n, verbose):
+    def _partial_mp_empiric_sparse_exact(self, batch, matrix, idx, n, verbose):
         Dmp = np.zeros((len(batch), self.D.shape[1]), dtype=np.float32)
         for i, b in enumerate(batch):
             if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-1 or i==len(batch)-1 or i==0):
@@ -156,6 +157,42 @@ class MutualProximity():
                     sIJ_overlap = 1 - (sIJ_intersect / n)
                 Dmp[i, j] = sIJ_overlap
                 #need to mirror later!!
+        filenamewords = [str(batch[0]), str(batch[-1]), 'triu']
+        f = self.tmp + '_'.join(filenamewords)
+        self.log.message("MP_empiric_sparse_exact: Saving batch {}-{} to {}. On {}."
+                        .format(batch[0], batch[-1], f, mp.current_process().name), flush=True)  # @UndefinedVariable
+        np.save(f, Dmp)
+        return (batch, Dmp)
+    
+    def _partial_mp_empiric_sparse(self, batch, matrix, idx, n, verbose):
+        Dmp = lil_matrix((len(batch), self.D.shape[1]), dtype=np.float32)
+        for i, b in enumerate(batch):
+            if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-1 or i==len(batch)-1 or i==0):
+                self.log.message("MP_empiric_sparse: {} of {}. On {}."
+                                 .format(batch[i]+1, n, mp.current_process().name), flush=True)  # @UndefinedVariable
+            for j in range(b+1, n):
+                d = matrix[j, b]
+                if d>0: 
+                    nnz = np.max(self.D[i].nnz, self.D[j].nnz)
+                    dI = self.D[i, :].todense()
+                    dJ = self.D[j, :].todense()
+                    
+                    if self.isSimilarityMatrix:
+                        sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
+                        sIJ_overlap = sIJ_intersect / nnz
+                    else:
+                        sIJ_intersect = ((dI > d) & (dJ > d)).sum()
+                        sIJ_overlap = 1 - (sIJ_intersect / nnz)
+                    Dmp[i, j] = sIJ_overlap
+                    # need to mirror later
+                else:
+                    pass # skip zero entries
+        
+        filenamewords = [str(batch[0]), str(batch[-1]), 'triu']
+        f = self.tmp + '_'.join(filenamewords)
+        self.log.message("MP_empiric_sparse: Saving batch {}-{} to {}. On {}."
+                        .format(batch[0], batch[-1], f, mp.current_process().name), flush=True)  # @UndefinedVariable
+        np.save(f, Dmp)
         return (batch, Dmp)
     
     def mp_empiric_sparse(self, train_set_mask=None, verbose=False, empspex=False, n_jobs=-1):
@@ -163,99 +200,120 @@ class MutualProximity():
         
         if empspex:
             Dmp = np.zeros(self.D.shape, dtype=np.float32)
-            
-            # Parallelization
-            if n_jobs == -1: # take all cpus
-                NUMBER_OF_PROCESSES = mp.cpu_count()  # @UndefinedVariable
-            else:
-                NUMBER_OF_PROCESSES = n_jobs
-            tasks = []
-            
-            batches = _get_weighted_batches(n, NUMBER_OF_PROCESSES)
-            
-            for idx, batch in enumerate(batches):
-                matrix = self.D.copy()
-                tasks.append((self._partial_mp_empiric_sparse, (batch, matrix, idx, n, verbose)))   
-            
-            task_queue = mp.Queue()     # @UndefinedVariable
-            done_queue = mp.Queue()     # @UndefinedVariable
-            
-            for task in tasks:
-                task_queue.put(task)
-                
-            processes = []
-            for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
-                processes.append(mp.Process(target=_worker, args=(task_queue, done_queue))) # @UndefinedVariable
-                if verbose:
-                    self.log.message("Starting {}".format(processes[i].name))
-                processes[i].start()  
-            
-            for i in range(len(tasks)):  # @UnusedVariable
-                rows, Dmp_part = done_queue.get()
-                task_queue.put('STOP')
-                if verbose:
-                    self.log.message("Merging submatrix {} (rows {}..{})".format(i, rows[0], rows[-1]), flush=True)
-                Dmp[rows, :] = Dmp_part
-                
-            for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
-                if verbose:
-                    self.log.message("Stopping MP process {}".format(i), flush=True)
-                task_queue.put('STOP')
-                
-            for p in processes:
-                if verbose:
-                    self.log.message("Joining {}".format(p.name))
-                p.join()
-
-            import os, datetime
-            time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S')
-            folder = '/tmp/feldbauer/hubPDBs2/'
-            filename = 'D_mpempspex_triu_'+time
-            os.makedirs(folder, exist_ok=True)
-            if verbose:
-                self.log.message("Saving Dmp upper to {} as {}.npy".format(folder, filename), flush=True)
-            np.save(folder + filename, Dmp)
-            
-            if verbose:
-                self.log.message("Mirroring distance matrix", flush=True)
-                
-            Dmp += Dmp.T
-        
-            if self.isSimilarityMatrix:
-                if verbose:
-                    self.log.message("Setting self distances", flush=True)
-                np.fill_diagonal(Dmp, self.self_value) #need to set self values
-                
-            return Dmp
         else:
-            nnz = self.D.nnz
             Dmp = lil_matrix(self.D.shape)
-            for i in range(n-1):
-                if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
-                                     flush=True)
-                for j in range(i+1, n):
-                    d = self.D[j, i]
-                    if d>0: 
-                        dI = self.D[i, :].todense()
-                        dJ = self.D[j, :].todense()
-                        
-                        if self.isSimilarityMatrix:
-                            sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
-                            sIJ_overlap = sIJ_intersect / nnz
-                        else:
-                            sIJ_intersect = ((dI > d) & (dJ > d)).sum()
-                            sIJ_overlap = 1 - (sIJ_intersect / nnz)
-                        Dmp[i, j] = sIJ_overlap
-                        Dmp[j, i] = sIJ_overlap
-                    else:
-                        pass # skip zero entries
             
-            if self.isSimilarityMatrix:
+        # Parallelization
+        if n_jobs == -1: # take all cpus
+            NUMBER_OF_PROCESSES = mp.cpu_count()  # @UndefinedVariable
+        else:
+            NUMBER_OF_PROCESSES = n_jobs
+        tasks = []
+        
+        batches = _get_weighted_batches(n, NUMBER_OF_PROCESSES)
+        
+        for idx, batch in enumerate(batches):
+            matrix = self.D.copy()
+            if empspex:
+                tasks.append((self._partial_mp_empiric_sparse_exact, (batch, matrix, idx, n, verbose)))   
+            else:
+                tasks.append((self._partial_mp_empiric_sparse, (batch, matrix, idx, n, verbose)))
+        
+        task_queue = mp.Queue()     # @UndefinedVariable
+        done_queue = mp.Queue()     # @UndefinedVariable
+        
+        for task in tasks:
+            task_queue.put(task)
+            
+        processes = []
+        for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
+            processes.append(mp.Process(target=_worker, args=(task_queue, done_queue))) # @UndefinedVariable
+            if verbose:
+                self.log.message("Starting {}".format(processes[i].name))
+            processes[i].start()  
+        
+        for i in range(len(tasks)):  # @UnusedVariable
+            rows, Dmp_part = done_queue.get()
+            task_queue.put('STOP')
+            if verbose:
+                self.log.message("Merging submatrix {} (rows {}..{})".format(i, rows[0], rows[-1]), flush=True)
+            Dmp[rows, :] = Dmp_part
+            
+        #===================================================================
+        # for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
+        #     if verbose:
+        #         self.log.message("Stopping MP process {}".format(i), flush=True)
+        #     task_queue.put('STOP')
+        #===================================================================
+            
+        for p in processes:
+            if verbose:
+                self.log.message("Joining {}".format(p.name))
+            p.join()
+
+        import os, datetime
+        time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S')
+        folder = self.tmp + 'feldbauer/hubPDBs2/'
+        if empspex:
+            filename = 'D_mpempspex_triu_'+time
+        else:
+            filename = 'D_mpemp_triu_'+time
+        os.makedirs(folder, exist_ok=True)
+        if verbose:
+            self.log.message("Saving Dmp upper to {} as {}.npy".format(folder, filename), flush=True)
+        np.save(folder + filename, Dmp)
+        
+        if verbose:
+            self.log.message("Mirroring distance matrix", flush=True)
+        Dmp += Dmp.T
+    
+        if self.isSimilarityMatrix:
+            if verbose:
+                self.log.message("Setting self distances", flush=True)
+            if empspex:
+                np.fill_diagonal(Dmp, self.self_value) #need to set self values
+            else:
                 for i in range(n):
-                    Dmp[i, i] = self.self_value #need to set self values
+                    Dmp[i, i] = self.self_value
             
-            return Dmp.tocsr()
+        if not empspex:
+            Dmp = Dmp.tocsr()
+            
+        return Dmp
+    
+        #=======================================================================
+        # else:
+        #     #nnz = self.D.nnz
+        #     
+        #     for i in range(n-1):
+        #         if verbose and ((i+1)%100 == 0 or i==0 or i==n):
+        #             self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
+        #                              flush=True)
+        #         for j in range(i+1, n):
+        #             d = self.D[j, i]
+        #             if d>0: 
+        #                 nnz = np.max(self.D[i].nnz, self.D[j].nnz)
+        #                 dI = self.D[i, :].todense()
+        #                 dJ = self.D[j, :].todense()
+        #                 
+        #                 
+        #                 if self.isSimilarityMatrix:
+        #                     sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
+        #                     sIJ_overlap = sIJ_intersect / nnz
+        #                 else:
+        #                     sIJ_intersect = ((dI > d) & (dJ > d)).sum()
+        #                     sIJ_overlap = 1 - (sIJ_intersect / nnz)
+        #                 Dmp[i, j] = sIJ_overlap
+        #                 Dmp[j, i] = sIJ_overlap
+        #             else:
+        #                 pass # skip zero entries
+        #     
+        #     if self.isSimilarityMatrix:
+        #         for i in range(n):
+        #             Dmp[i, i] = self.self_value #need to set self values
+        #     
+        #     return Dmp.tocsr()
+        #=======================================================================
     
     def mp_empiric(self, train_set_mask=None, verbose=False, empspex=False, n_jobs=-1):
         """Compute Mutual Proximity distances with empirical data (slow)."""   
@@ -830,7 +888,7 @@ class MutualProximity():
 if __name__ == '__main__':
     """Test mp empiric similarity sparse sequential & parallel implementations"""
     from scipy.sparse import rand, csr_matrix
-    D = rand(5000, 5000, 0.05, 'csr', np.float32, 42)
+    D = rand(200, 200, 0.05, 'csr', np.float32, 42)
     D = np.triu(D.toarray())
     D = D + D.T
     np.fill_diagonal(D, 1)
@@ -848,7 +906,7 @@ if __name__ == '__main__':
     # print("Hubness (sequential):", Sn)
     #===========================================================================
     mp2 = MutualProximity(D, True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gammai, None, True, False, 0, None, empspex=True, n_jobs=4)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, False, 0, None, empspex=True, n_jobs=4)
     h = Hubness.Hubness(Dmp2, 5, True)
     Sn, _, _ = h.calculate_hubness()
     print("Hubness (parallel):", Sn)

@@ -555,7 +555,9 @@ class MutualProximity():
                                    B[j_idx])
             del Dji
 
-            Dmp[i, j_idx] = (p1 * p2).ravel()     
+            val = (p1 * p2).ravel()
+            val[val==np.nan] = 0
+            Dmp[i, j_idx] = val 
             #need to mirror later!!   
         
         return batch, Dmp

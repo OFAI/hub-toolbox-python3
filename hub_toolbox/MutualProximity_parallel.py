@@ -170,15 +170,19 @@ class MutualProximity():
             for j in range(b+1, n):
                 d = matrix[b, j]
                 if d>0: 
-                    nnz = np.max([self.D[b].nnz, self.D[j].nnz])
+                    #nnz = np.max([self.D[b].nnz, self.D[j].nnz])
                     dI = self.D[b, :].todense()
                     dJ = self.D[j, :].todense()
+                    # non-zeros elements
+                    nz = (dI > 0) & (dJ > 0)
+                    # number of non-zero elements
+                    nnz = nz.sum()
                     
                     if self.isSimilarityMatrix:
-                        sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
+                        sIJ_intersect = (nz & (dI <= d) & (dJ <= d)).sum()
                         sIJ_overlap = sIJ_intersect / nnz
                     else:
-                        sIJ_intersect = ((dI > d) & (dJ > d)).sum()
+                        sIJ_intersect = (nz & (dI > d) & (dJ > d)).sum()
                         sIJ_overlap = 1 - (sIJ_intersect / nnz)
                     Dmp[i, j] = sIJ_overlap
                     # need to mirror later
@@ -546,8 +550,8 @@ class MutualProximity():
             Dji = matrix[j_idx, b].toarray().ravel() #for vectorization below.
             
             p1 = self.local_gamcdf(Dij, \
-                                   np.tile(A[b], (1, j_len)), \
-                                   np.tile(B[b], (1, j_len)))
+                                   np.tile(A[b], j_len), #(1, j_len)), \
+                                   np.tile(B[b], j_len)) #(1, j_len)))
             del Dij
             
             p2 = self.local_gamcdf(Dji, 
@@ -556,7 +560,6 @@ class MutualProximity():
             del Dji
 
             val = (p1 * p2).ravel()
-            val[val==np.nan] = 0
             Dmp[i, j_idx] = val 
             #need to mirror later!!   
         
@@ -715,30 +718,42 @@ class MutualProximity():
         a[a<0] = np.nan
         b[b<=0] = np.nan
         x[x<0] = 0
-        z = x / b
-        p = gammainc(a, z)
+        
+        # don't calculate gamcdf for missing values
+        if self.mv == 0:
+            nz = x>0
+            z = x[nz] / b[nz]
+            p = np.zeros_like(x)
+            p[nz] = gammainc(a[nz], z)
+        else:
+            z = x / b
+            p = gammainc(a, z)
         return p
     
 if __name__ == '__main__':
     """Test mp empiric similarity sparse sequential & parallel implementations"""
     from scipy.sparse import rand, csr_matrix
-    D = rand(5000, 5000, 0.05, 'csr', np.float32, 42)
-    D = np.triu(D.toarray())
-    D = D + D.T
-    np.fill_diagonal(D, 1)
-    D = csr_matrix(D)
+    do = 'random'
+    #do = 'dexter'
+    if do == 'random':
+        D = rand(5000, 5000, 0.05, 'csr', np.float32, 42)
+        D = np.triu(D.toarray())
+        D = D + D.T
+        np.fill_diagonal(D, 1)
+        D = csr_matrix(D)
+    elif do == 'dexter':
+        from hub_toolbox import HubnessAnalysis, KnnClassification
+        D, c, v = HubnessAnalysis.HubnessAnalysis().load_dexter()
+        D = 1 - D
+        D = csr_matrix(D)
+        k = KnnClassification.KnnClassification(D, c, 5, True)
+        acc, corr, cmat = k.perform_knn_classification()
+        print('\nk-NN accuracy:', acc)
     from hub_toolbox import Hubness 
-    from hub_toolbox import HubnessAnalysis, KnnClassification
-    D, c, v = HubnessAnalysis.HubnessAnalysis().load_dexter()
-    D = 1 - D
-    D = csr_matrix(D)
-    k = KnnClassification.KnnClassification(D, c, 5, True)
-    acc, corr, cmat = k.perform_knn_classification()
     from hub_toolbox import MutualProximity as MutProx
     h = Hubness.Hubness(D, 5, True)
     Sn, _, _ = h.calculate_hubness()
     print("Hubness:", Sn)
-    print('\nk-NN accuracy:', acc)
     
     #===========================================================================
     # mp1 = MutProx.MutualProximity(D, True)
@@ -748,12 +763,15 @@ if __name__ == '__main__':
     # print("Hubness (sequential):", Sn)
     #===========================================================================
     mp2 = MutualProximity(D, isSimilarityMatrix=True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gammai, None, True, 0, empspex=False, n_jobs=2)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, 0, empspex=False, n_jobs=4)
     h = Hubness.Hubness(Dmp2, 5, isSimilarityMatrix=True)
     Sn, _, _ = h.calculate_hubness()
-    k = KnnClassification.KnnClassification(Dmp2, c, 5, True)
-    acc, corr, cmat = k.perform_knn_classification()
-    print("Hubness (parallel):", Sn, '\nk-NN accuracy:', acc)
+    if do == 'dexter':
+        k = KnnClassification.KnnClassification(Dmp2, c, 5, True)
+        acc, corr, cmat = k.perform_knn_classification()
+        print('\nk-NN accuracy:', acc)
+    print("Hubness (parallel):", Sn)
+    print(Dmp2.max(), Dmp2.min(), Dmp2.mean())
     
     #print("Summed differences in the scaled matrices:", (Dmp1-Dmp2).sum())
     #print("D", D)

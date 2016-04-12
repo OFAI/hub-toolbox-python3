@@ -546,8 +546,13 @@ class MutualProximity():
             j_idx = np.arange(b+1, n)
             j_len = np.size(j_idx)
              
-            Dij = matrix[b, j_idx].toarray().ravel() #Extract dense rows temporarily
-            Dji = matrix[j_idx, b].toarray().ravel() #for vectorization below.
+            if j_idx.size == 0:
+                continue # nothing to do in the last row
+            #Dij = matrix[b, j_idx].toarray().ravel() #Extract dense rows temporarily
+            #Dji = matrix[j_idx, b].toarray().ravel() #for vectorization below.
+            
+            Dij = matrix[b, j_idx[0]:j_idx[-1]+1].toarray().ravel() #Extract dense rows temporarily
+            Dji = matrix[j_idx[0]:j_idx[-1]+1, b].toarray().ravel() #for vectorization below.
             
             p1 = self.local_gamcdf(Dij, \
                                    np.tile(A[b], j_len), #(1, j_len)), \
@@ -763,7 +768,7 @@ if __name__ == '__main__':
     # print("Hubness (sequential):", Sn)
     #===========================================================================
     mp2 = MutualProximity(D, isSimilarityMatrix=True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, 0, empspex=False, n_jobs=4)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gammai, None, True, 0, empspex=False, n_jobs=4)
     h = Hubness.Hubness(Dmp2, 5, isSimilarityMatrix=True)
     Sn, _, _ = h.calculate_hubness()
     if do == 'dexter':

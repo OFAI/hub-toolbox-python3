@@ -122,15 +122,14 @@ class Hubness():
         batch_size = n // NUMBER_OF_PROCESSES
         for i in range(NUMBER_OF_PROCESSES-1):
             batches.append( np.arange(i*batch_size, (i+1)*batch_size) )
-        #if batches[-1][-1] < n-1:
         batches.append( np.arange((NUMBER_OF_PROCESSES-1)*batch_size, n) )
         
         for idx, batch in enumerate(batches):
-            submatrix = self.D[batch]
+            submatrix = self.D[batch[0]:batch[-1]+1]
             tasks.append((self._partial_hubness, (batch, submatrix, idx, n, verbose)))   
         
         task_queue = mp.Queue()  # @UndefinedVariable
-        done_queue = mp.Queue()    # @UndefinedVariable
+        done_queue = mp.Queue()  # @UndefinedVariable
         
         for task in tasks:
             task_queue.put(task)
@@ -140,7 +139,7 @@ class Hubness():
         
         for i in range(len(tasks)):  # @UnusedVariable
             rows, Dk_part = done_queue.get()
-            Dk[:, rows] = Dk_part[:, :]
+            Dk[:, rows[0]:rows[-1]+1] = Dk_part#[:, :]
             
         for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
             task_queue.put('STOP')        

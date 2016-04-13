@@ -12,17 +12,17 @@ class ConsoleLogging():
     def _current_time(self):
         return time.strftime('%Y-%m-%d %H:%M:%S')
     
-    def message(self, *objs, flush=False):
+    def message(self, *objs, flush=True):
         print(self._current_time, 'INFO:', *objs)
         if flush:
             sys.stdout.flush()
         
-    def warning(self, *objs, flush=False):
+    def warning(self, *objs, flush=True):
         print(self._current_time, 'WARNING:', *objs, file=sys.stderr)
         if flush:
             sys.stderr.flush()
         
-    def error(self, *objs, flush=False):
+    def error(self, *objs, flush=True):
         print(self._current_time, 'ERROR:', *objs, file=sys.stderr)
         if flush:
             sys.stderr.flush()

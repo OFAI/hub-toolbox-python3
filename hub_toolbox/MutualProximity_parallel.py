@@ -174,7 +174,7 @@ class MutualProximity():
                     dI = self.D[b, :].todense()
                     dJ = self.D[j, :].todense()
                     # non-zeros elements
-                    nz = (dI > 0) & (dJ > 0)
+                    nz = (dI > 0) | (dJ > 0) # logical AND or OR here?!
                     # number of non-zero elements
                     nnz = nz.sum()
                     
@@ -189,11 +189,13 @@ class MutualProximity():
                 else:
                     pass # skip zero entries
         
-        filenamewords = [str(batch[0]), str(batch[-1]), 'triu']
-        f = self.tmp + '_'.join(filenamewords)
-        self.log.message("MP_empiric_sparse: Saving batch {}-{} to {}. On {}."
-                        .format(batch[0], batch[-1], f, mp.current_process().name), flush=True)  # @UndefinedVariable
-        np.save(f, Dmp)
+        #=======================================================================
+        # filenamewords = [str(batch[0]), str(batch[-1]), 'triu']
+        # f = self.tmp + '_'.join(filenamewords)
+        # self.log.message("MP_empiric_sparse: Saving batch {}-{} to {}. On {}."
+        #                 .format(batch[0], batch[-1], f, mp.current_process().name), flush=True)  # @UndefinedVariable
+        # np.save(f, Dmp)
+        #=======================================================================
         return (batch, Dmp)
     
     def mp_empiric_sparse(self, train_set_mask=None, verbose=False, empspex=False, n_jobs=-1):
@@ -739,8 +741,8 @@ class MutualProximity():
 if __name__ == '__main__':
     """Test mp empiric similarity sparse sequential & parallel implementations"""
     from scipy.sparse import rand, csr_matrix
-    do = 'random'
-    #do = 'dexter'
+    #do = 'random'
+    do = 'dexter'
     if do == 'random':
         D = rand(5000, 5000, 0.05, 'csr', np.float32, 42)
         D = np.triu(D.toarray())
@@ -769,7 +771,7 @@ if __name__ == '__main__':
     # print("Hubness (sequential):", Sn)
     #===========================================================================
     mp2 = MutualProximity(D, isSimilarityMatrix=True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gaussi, None, True, 0, empspex=False, n_jobs=4)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, 0, empspex=False, n_jobs=4)
     h = Hubness.Hubness(Dmp2, 5, isSimilarityMatrix=True)
     Sn, _, _ = h.calculate_hubness()
     if do == 'dexter':

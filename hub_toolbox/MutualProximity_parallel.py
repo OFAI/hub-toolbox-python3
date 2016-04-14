@@ -384,7 +384,7 @@ class MutualProximity():
             va = E1 - mu**2
             del E1
         else:
-            self.log.error("MP only supports missing values as zeros. Aborting.")
+            self.log.error("MP only supports missing values as zeros. Aborting.", flush=True)
             return
         sd = np.sqrt(va)
         del va
@@ -475,10 +475,10 @@ class MutualProximity():
         samples. Default sample_size=0: use all points."""
         
         if n_jobs is not None:
-            self.log.error("MP gaussi does not support parallelization so far.")
+            self.log.error("MP gaussi does not support parallelization so far.", flush=True)
             
         if self.isSimilarityMatrix:
-            self.log.warning("Similarity-based I.Gaussian MP support is still experimental.")
+            self.log.warning("Similarity-based I.Gaussian MP support is still experimental.", flush=True)
         
         n = np.size(self.D, 0)
         if not issparse(self.D):
@@ -488,16 +488,16 @@ class MutualProximity():
             return self.mp_gaussi_sparse(train_set_mask, verbose, n_jobs)
         
         self.log.warning("MP gaussi does not support parallel execution for "
-                         "dense matrices atm. Continuing with 1 process.")
+                         "dense matrices atm. Continuing with 1 process.", flush=True)
                 
         # Calculate mean and std
         if verbose:
             self.log.message('Calculating distribution parameters.'
                             'Number of samples for parameter estimation: {}'.
-                            format(sample_size))
+                            format(sample_size), flush=True)
         if self.mv is not None:
             self.log.warning("MP gaussi does not support missing value handling"
-                             " for dense matrices atm.")
+                             " for dense matrices atm.", flush=True)
         if sample_size != 0:
             samples = np.random.shuffle(train_set_mask)[0:sample_size]
             mu = np.mean(self.D[samples], 0)
@@ -551,6 +551,7 @@ class MutualProximity():
             #Dij = matrix[b, j_idx].toarray().ravel() #Extract dense rows temporarily
             #Dji = matrix[j_idx, b].toarray().ravel() #for vectorization below.
             
+            # avoiding fancy indexing for efficiency reasons
             Dij = matrix[b, j_idx[0]:j_idx[-1]+1].toarray().ravel() #Extract dense rows temporarily
             Dji = matrix[j_idx[0]:j_idx[-1]+1, b].toarray().ravel() #for vectorization below.
             
@@ -768,7 +769,7 @@ if __name__ == '__main__':
     # print("Hubness (sequential):", Sn)
     #===========================================================================
     mp2 = MutualProximity(D, isSimilarityMatrix=True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gammai, None, True, 0, empspex=False, n_jobs=4)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gaussi, None, True, 0, empspex=False, n_jobs=4)
     h = Hubness.Hubness(Dmp2, 5, isSimilarityMatrix=True)
     Sn, _, _ = h.calculate_hubness()
     if do == 'dexter':

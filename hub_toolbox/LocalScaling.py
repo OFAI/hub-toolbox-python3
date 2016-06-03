@@ -149,8 +149,9 @@ class LocalScaling():
         r = np.zeros((length_D, 1))
         np.fill_diagonal(self.D, np.inf)
         for i in range(length_D):
-            di = self.D[i, train_set_mask]
+            di = self.D[i, :].copy()
             di[i] = self.exclude
+            di = di[train_set_mask]
             nn = np.argsort(di)[::self.sort_order]
             r[i] = np.mean(di[nn[0:self.k]]) # largest sim. or smallest dist.
         rg = self.local_geomean(r)

@@ -4,9 +4,10 @@
 -------------------------
 
 This is the HUB TOOLBOX for Python3
-(c) 2015, Roman Feldbauer <roman.feldbauer@ofai.at>
-Original matlab code by
+(c) 2016, Roman Feldbauer <roman.feldbauer@ofai.at>
+Based on matlab code by
 (c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+This project is licensed under the terms of the GNU GPLv3.
 
 If you use the functions in your publication, please cite:
 

@@ -1,17 +1,16 @@
-"""
-Performs a quick hubness analysis with some of the functions provided in this 
-toolbox.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+"""
 This file is part of the HUB TOOLBOX available at
 http://ofai.at/research/impml/projects/hubology.html
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-This file was ported from MATLAB(R) code to Python3
-by Roman Feldbauer <roman.feldbauer@ofai.at>
-
-@author: Roman Feldbauer
-@date: 2015-09-15
-
+(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
@@ -31,13 +30,16 @@ class HubnessAnalysis():
     The main hubness analysis class.
     
     Usage:
-        hubness_analysis() - Loads the example data set and performs the
-        analysis
+        hub = HubnessAnalysis()
+        hub.analyse_hubness()
+            - Load the example data set and perform a quick hubness analysis 
+            with some of the functions provided in this toolbox.
 
-    hubness_analysis(D, classes, vectors) - Uses the distance matrix D (NxN)
-        together with an optional class labels vector (classes) and the
-        original (optional) data vectors (vectors) to perform a full hubness
-        analysis
+        hub = HubnessAnalysis(D, classes, vectors)
+        hub.analyse_hubness()
+             - Use the distance matrix D (NxN) together with an optional 
+             class labels vector (classes) and the original (optional) 
+             data vectors (vectors) to perform a full hubness analysis.
     """
     
     def __init__(self, D = None, classes = None, vectors = None):
@@ -200,7 +202,7 @@ class HubnessAnalysis():
                     #TODO end remove
     
     def print_results(self, heading : str, distances, Sn5 : float, Nk5 : float, 
-                      calc_intrinsic_dimensionality : bool = False, Sn10=False):
+                      calc_intrinsic_dimensionality:bool=True, Sn10=False):
         """Print the results of a hubness analysis."""     
         
         if Sn10:
@@ -289,11 +291,11 @@ class HubnessAnalysis():
         D = htd.cosine_distance(vectors)
         return D, classes, vectors
                 
-if __name__=="__main__":
+if __name__ == "__main__":
     hub = HubnessAnalysis()
-    hub.analyse_hubness(origData=False, 
-                        mp=False,mp_gauss=False,mp_gaussi=False,mp_gammai=True,
-                        ls=False, snn=False, 
+    hub.analyse_hubness(origData=True, 
+                        mp=True,mp_gauss=False,mp_gaussi=True,mp_gammai=False,
+                        ls=True, snn=False, 
                         cent=False, wcent=False, lcent=False)
     
     

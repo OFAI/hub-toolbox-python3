@@ -1,84 +1,120 @@
+# -*- coding: utf-8 -*-
+
 """
-Intrinsic dimensionality estimation based on the DR-Toolbox 
+This file is part of the HUB TOOLBOX available at
+http://ofai.at/research/impml/projects/hubology.html
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-This file is based on the Matlab Toolbox for Dimensionality Reduction v0.7.2b.
-The toolbox can be obtained from http://homepage.tudelft.nl/19j49
-You are free to use, change, or redistribute this code in any way you
-want for non-commercial purposes. However, it is appreciated if you 
-maintain the name of the original author.
+(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 
-(C) Laurens van der Maaten, 2010
-University California, San Diego / Delft University of Technology
+This file is based on a Matlab script by Elizaveta Levina, University of 
+Michigan, available at http://dept.stat.lsa.umich.edu/~elevina/mledim.m
 
-This file was ported from MATLAB(R) code to Python3
-by Roman Feldbauer <roman.feldbauer@ofai.at>
-
-@author: Roman Feldbauer
-@date: 2015-09-15
+Reference:  E. Levina and P.J. Bickel (2005).  
+ "Maximum Likelihood Estimation  of Intrinsic Dimension."  
+ In Advances in NIPS 17, Eds. L. K. Saul, Y. Weiss, L. Bottou. 
 """
 import numpy as np
-from hub_toolbox import IO
-from tempfile import mkdtemp
-import os.path as path
+import sys
 
 class IntrinsicDim():
-    """Calculate intrinsic dimensionality based on a MLE.
-    
-    
-    """
+    """Calculate intrinsic dimensionality based on a MLE."""
        
-    def __init__(self, X):
+    def __init__(self, X, data_type='vector'):
+        """ 
+        Estimate intrinsic dimensionality in vector, distance, or similarity
+        data with data_type=['vector', 'distance', 'similarity'], respectively.
+        
+        Please note that the MLE was derived for euclidean distances. Using 
+        other (dis)similarity measures may lead to undefined results.
+        """
         # Deep copy required due to changes in vector data
-        self.X = IO.copy_D_or_load_memmap(X, writeable=True)
-        
-    def calculate_intrinsic_dimensionality(self):
-        """Calculate intrinsic dimensionality based on a MLE."""
-        
-        # disk
-        if isinstance(self.X, np.memmap):
-            filename = path.join(mkdtemp(), 'intrdim.dat')
-            X = np.memmap(filename, dtype='float64', mode='w+', shape=self.X.shape)
-            X[:] = self.X[np.lexsort(np.fliplr(self.X).T)]
-        # memory
+        self.X = X.copy()
+        if data_type in ['vector', 'distance', 'similarity']:
+            self.data_type = data_type
+            if data_type != 'vector':
+                raise NotImplementedError("IntrinsicDim currently only "
+                                          "supports vector data.")
         else:
+            raise ValueError("Parameter data_type must be 'vector', 'distance'"
+                             " , or 'similarity'. Got '{}' instead.".
+                             format(data_type.__str__())) 
+
+    def calculate_intrinsic_dimensionality(self, k1=6, k2=12, 
+                                           estimator='levina'):
+        """Calculate intrinsic dimensionality based on a MLE.
+        
+        Parameters k1 and k2 determine the neighborhood range to search in
+        (default: k1=6, k2=12).
+        
+        Parameter 'estimator' determines the summation strategy: 'levina' 
+        (default) or 'mackay' (see http://www.inference.phy.cam.ac.uk/
+        mackay/dimension/)."""
+        
+        n = self.X.shape[0]
+        
+        if estimator not in ['levina', 'mackay']:
+            raise ValueError("Unknown estimator '{}', please use 'levina' or "
+                             "'mackay' instead.".format(estimator.__str__()))
+        if k1 < 1 or k2 < k1 or k2 >= n:
+            raise ValueError("Invalid neighborhood: Please make sure that "
+                             "0 < k1 <= k2 < n. (Got k1={} and k2={}).".
+                             format(k1, k2))
+        
+        if self.data_type == 'vector':
             # New array with unique rows                
             X = self.X[np.lexsort(np.fliplr(self.X).T)]  
-        # in both cases...
-        self.X = None # free memory
-        X -= np.tile(np.mean(X, 0), (np.size(X, 0), 1))
-        X /= np.tile(np.var(X, 0) + 1e-7, (np.size(X, 0), 1))
-                    
-        # Set neighborhood range to search in 
-        k1 = 6
-        k2 = 12
+            del self.X # allow to free memory
+            
+            # Standardization
+            X -= X.mean(0) # broadcast
+            X /= X.var(0) + 1e-7 # broadcast
         
-        # Compute matrix of log nearest neighbor distances
-        # TODO memmap implementation...
-        X = X.T
-        n = np.shape(X)[1]
-        X2 = np.sum(X**2, 0)
-        knnmatrix = np.zeros((k2, n))
+            # Compute matrix of log nearest neighbor distances
+            X2 = (X**2).sum(1)
         
-        if n < 3000:
-            distance = np.tile(X2, (n, 1)) + \
-                np.tile(X2, (n,1)).T - 2 * np.dot(X.T, X) 
-            distance = np.sort(distance, 0)
-            # Replace invalid values with a small number 
-            distance[distance<0] = 1e-7
-            knnmatrix = .5 * np.log(distance[1:k2+1, :])
-        else:
-            for i in range(n):
-                distance = np.sort(np.tile(X2[i], (1, n)) + X2 - 2 * np.dot(X[:, i], X) )
+            if n <= 5000: # speed-memory trade-off
+                distance = X2.reshape(-1, 1) + X2 - 2*np.dot(X, X.T) #2x br.cast 
+                distance.sort(1)
                 # Replace invalid values with a small number 
                 distance[distance<0] = 1e-7
-                knnmatrix[:, i] = .5 * np.log(distance.ravel()[1:k2+1]).T 
+                knnmatrix = .5 * np.log(distance[:, 1:k2+1])
+            else:
+                knnmatrix = np.zeros((n, k2))
+                for i in range(n):
+                    distance = np.sort(X2[i] + X2 - 2 * np.dot(X, X[i, :]))
+                    # Replace invalid values with a small number 
+                    distance[distance<0] = 1e-7
+                    knnmatrix[i, :] = .5 * np.log(distance[1:k2+1]) 
+        elif self.data_type == 'distance':
+            # TODO calculation WRONG
+            self.X.sort(1)
+            self.X[self.X < 0] = 1e-7
+            knnmatrix = np.log(self.X[:, 1:k2+1])
+        elif self.data_type == 'similarity':
+            # TODO calculation WRONG
+            print("WARNING: using similarity data may return "
+                  "undefined results.", file=sys.stderr)
+            self.X[self.X < 0] = 0
+            distance = 1 - (self.X / self.X.max())
+            knnmatrix = np.log(distance[:, 1:k2+1])
         
         # Compute the ML estimate
-        S = np.cumsum(knnmatrix, 0)
-        k1k2range = np.arange(k1-1, k2)
-        indexk = np.tile(k1k2range+1, (n, 1)).T
-        dhat = -(indexk - 2) / ( S[k1-1:k2, :] - knnmatrix[k1-1:k2, :] * indexk)
-             
-        # Average over estimates and over values of k
-        no_dims = np.mean(dhat)
-        return np.round(no_dims).astype(np.int)
+        S = np.cumsum(knnmatrix, 1)
+        indexk = np.arange(k1, k2+1) # broadcasted afterwards
+        dhat = -(indexk - 2) / (S[:, k1-1:k2] - knnmatrix[:, k1-1:k2] * indexk)
+           
+        if estimator == 'levina':  
+            # Average over estimates and over values of k
+            no_dims = dhat.mean()
+        elif estimator == 'mackay':
+            # Average over inverses
+            dhat **= -1
+            dhat_k = dhat.mean(0)
+            no_dims = (dhat_k ** -1).mean()
+                     
+        return int(no_dims.round())

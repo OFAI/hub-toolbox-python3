@@ -1,27 +1,30 @@
-"""
-Transforms the given distance matrix into new one using a shared nearest
-neighbor transform with the given neighborhood radius k.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+"""
 This file is part of the HUB TOOLBOX available at
 http://ofai.at/research/impml/projects/hubology.html
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-Usage:
-  Dsnn = shared_nn(D, k) - Use SNN with a neighborhood radius of k on the
-     given distance matrix. The new distances are returned in Dsnn.
-
-This file was ported from MATLAB(R) code to Python3
-by Roman Feldbauer <roman.feldbauer@ofai.at>
-
-@author: Roman Feldbauer
-@date: 2015-09-23
+(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
 
 class SharedNN():
-    """Transform a distance matrix with shared nearest neighbor.
+    """
+    Transforms the given distance matrix into new one using a shared nearest
+    neighbor transform with the given neighborhood radius k.
     
+    Usage:
+    snn = SharedNN(D, k)
+    D_snn = snn.perform_snn()
+        - Use SNN with a neighborhood radius of k on the
+        given distance matrix. The new distances are returned in D_snn.
     """
     
     def __init__(self, D, k=10, isSimilarityMatrix=False):
@@ -48,7 +51,7 @@ class SharedNN():
             zi = z[i, :]
             j_idx = np.arange(i+1, n)
             
-            # numpy: automatic broadcasting instead of bsxfun()
+            # using broadcasting
             Dij = np.sum(np.logical_and(zi, z[j_idx, :]), 1)
             
             Dsnn[i, j_idx] = 1 - Dij / self.k

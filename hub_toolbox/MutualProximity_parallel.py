@@ -1,39 +1,21 @@
-"""
-Applies Mutual Proximity (MP) [1] on a distance matrix. The return value is
-converted to a distance matrix again. The resulting distance matrix
-should show lower hubness.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+"""
 This file is part of the HUB TOOLBOX available at
 http://ofai.at/research/impml/projects/hubology.html
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-Usage:
-  Dmp = mutual_proximity(D, type) - Applies MP on the distance matrix 'D'
-     using the selected variant ('type'). The transformed distance matrix
-     is returned.
-
-Possible types:
-  'empiric': Uses the Empirical distribution to perform Mutual Proximity.
-  'gauss': (requires the Statistics Toolbox (the mvncdf() function)
-     Assumes that the distances are Gaussian distributed.
-  'gaussi': Assumes that the distances are independently Gaussian
-     distributed. (fastest Variante)
-  'gammai': Assumes that the distances follow a Gamma distribution and
-     are independently distributed.
-
-[1] Local and global scaling reduce hubs in space, 
-Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012
-
-This file was ported from MATLAB(R) code to Python3
-by Roman Feldbauer <roman.feldbauer@ofai.at>
-
-@author: Roman Feldbauer
-@date: 2015-09-25
+(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
 from scipy.special import gammainc
-from scipy.stats import norm, mvn
+from scipy.stats import norm
 from scipy.sparse import issparse, lil_matrix
 from enum import Enum
 import multiprocessing as mp
@@ -78,8 +60,27 @@ def _worker(work_input, work_output):
         work_output.put(result)
         
 class MutualProximity():
-    """Transform a distance matrix with Mutual Proximity.
+    """
+    Apply Mutual Proximity (MP) [1] on a distance matrix. The return value is
+    converted to a distance matrix again. The resulting distance matrix
+    should show lower hubness.
     
+    Usage:
+      Dmp = mutual_proximity(D, type) - Applies MP on the distance matrix 'D'
+         using the selected variant ('type'). The transformed distance matrix
+         is returned.
+    
+    Possible types:
+      'empiric': Uses the Empirical distribution to perform Mutual Proximity.
+      'gauss': (requires the Statistics Toolbox (the mvncdf() function)
+         Assumes that the distances are Gaussian distributed.
+      'gaussi': Assumes that the distances are independently Gaussian
+         distributed. (fastest Variante)
+      'gammai': Assumes that the distances follow a Gamma distribution and
+         are independently distributed.
+    
+    [1] Local and global scaling reduce hubs in space, 
+    Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012
     """
     
     def __init__(self, D, isSimilarityMatrix=False, missing_values=None, tmp='/tmp/'):
@@ -174,7 +175,7 @@ class MutualProximity():
                     dI = self.D[b, :].todense()
                     dJ = self.D[j, :].todense()
                     # non-zeros elements
-                    nz = (dI > 0) | (dJ > 0) # logical AND or OR here?!
+                    nz = (dI > 0) & (dJ > 0) # logical AND or OR here?!
                     # number of non-zero elements
                     nnz = nz.sum()
                     
@@ -758,20 +759,21 @@ if __name__ == '__main__':
         acc, corr, cmat = k.perform_knn_classification()
         print('\nk-NN accuracy:', acc)
     from hub_toolbox import Hubness 
-    from hub_toolbox import MutualProximity as MutProx
+    #from hub_toolbox import MutualProximity as MutProx
     h = Hubness.Hubness(D, 5, True)
     Sn, _, _ = h.calculate_hubness()
     print("Hubness:", Sn)
     
     #===========================================================================
     # mp1 = MutProx.MutualProximity(D, True)
-    # Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.gammai, None, True, False, 0, None, empspex=True)
+    # Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.gammai, None, True, False, 0, None, empspex=False)
     # h = Hubness.Hubness(Dmp1, 5, True)
     # Sn, _, _ = h.calculate_hubness()
     # print("Hubness (sequential):", Sn)
     #===========================================================================
-    mp2 = MutualProximity(D, isSimilarityMatrix=True)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.empiric, None, True, 0, empspex=False, n_jobs=4)
+    
+    mp2 = MutualProximity(D, isSimilarityMatrix=True, missing_values=0)
+    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gammai, None, True, 0, empspex=False, n_jobs=4)
     h = Hubness.Hubness(Dmp2, 5, isSimilarityMatrix=True)
     Sn, _, _ = h.calculate_hubness()
     if do == 'dexter':

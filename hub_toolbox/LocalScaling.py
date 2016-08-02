@@ -1,33 +1,15 @@
-"""
-Transforms the given distance matrix into new one using local scaling [1]
-with the given neighborhood radius k. There are two types of local
-scaling methods implemented. The original one and NICDM, both reduce
-hubness in distance spaces, similarly to Mutual Proximity.
+# -*- coding: utf-8 -*-
 
+"""
 This file is part of the HUB TOOLBOX available at
 http://ofai.at/research/impml/projects/hubology.html
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-Usage:
-  Dls = local_scaling(D, k, type) - Applies local scaling to the distance
-     matrix D (NxN). The parameter k sets the neighborhood radius. type
-     the scaling type. The scaled distance matrix is returned.
-
-Possible types (type parameter):
-  'original': Original Local Scaling using the distance of the k'th
-     nearest neighbor.
-  'nicdm': Local Scaling using the average distance of the k nearest
-     neighbors.
-
-
-[1] Local and global scaling reduce hubs in space, 
-Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012
-
-This file was ported from MATLAB(R) code to Python3
-by Roman Feldbauer <roman.feldbauer@ofai.at>
-
-@author: Roman Feldbauer
-@date: 2015-09-24
+(c) 2011-2016, Dominik Schnitzer, Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
@@ -39,10 +21,29 @@ from hub_toolbox import Logging
 class LocalScaling():
     """Transform a distance matrix with Local Scaling.
     
+    Transforms the given distance matrix into new one using local scaling [1]
+    with the given neighborhood radius k. There are two types of local
+    scaling methods implemented. The original one and NICDM, both reduce
+    hubness in distance spaces, similarly to Mutual Proximity.
+    
+    [1] Local and global scaling reduce hubs in space, 
+    Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012
     """
     
     def __init__(self, D, k:int=7, scalingType='nicdm', isSimilarityMatrix=False):
-        """ Create an instance for local scaling. 
+        """Usage:
+        ls = local_scaling(D, k, scalingType) 
+            - Applies local scaling to the distance
+             matrix D (NxN). The parameter k sets the neighborhood radius. 
+        ls.perform_local_scaling()
+            - Return the scaled distance matrix.
+        
+        Possible types (scalingType parameter):
+          'original': Original Local Scaling using the distance of the k'th
+             nearest neighbor.
+          'nicdm': Local Scaling using the average distance of the k nearest
+             neighbors.
+        Create an instance for local scaling. 
         Parameters:
         k... neighborhood radius (DEFAULT = 7)
         scalingType... local scaling algorithm ['original', 'nicdm'] (DEFAULT='nicdm')

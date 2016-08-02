@@ -1,7 +1,15 @@
-"""
-Created on Jan 5, 2016
+# -*- coding: utf-8 -*-
 
-@author: Roman Feldbauer
+"""
+This file is part of the HUB TOOLBOX available at
+http://ofai.at/research/impml/projects/hubology.html
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
+
+(c) 2015-2016, Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
@@ -40,13 +48,16 @@ def copy_D_or_load_memmap(D, writeable=False):
     return newD
 
 def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
-    """Determine how to split a matrix that does not fit into memory. \n
-    Input:
+    """Determine how to split a matrix that does not fit into memory. 
+    
+    Parameters:
+    -----------
     rows, cols  ... Shape of matrix that should be split.
     elem_size   ... memory requirement per matrix element in bytes. E.g. 8 bytes for float64
     nr_matrices ... How many times must the split matrix fit into memory?
                     This depends on the subsequent operations. \n
-    Returns: 
+    Returns:
+    --------
     nr_batches ... number of submatrices
     nr_rows    ... number of rows per submatrix. \n
     Notes: 
@@ -140,9 +151,3 @@ class FreeMemLinux(object):
     @property
     def swap_used(self):
         return self._convert * self._swapu
-    
-if __name__ == '__main__':
-    freeMem = FreeMemLinux(unit='GB')
-    print('{:.3}GB free memory.'.format(freeMem.user_free))
-    
-    

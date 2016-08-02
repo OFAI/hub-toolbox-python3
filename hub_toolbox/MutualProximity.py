@@ -1,34 +1,16 @@
-"""
-Applies Mutual Proximity (MP) [1] on a distance matrix. The return value is
-converted to a distance matrix again. The resulting distance matrix
-should show lower hubness.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+"""
 This file is part of the HUB TOOLBOX available at
 http://ofai.at/research/impml/projects/hubology.html
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-Usage:
-  Dmp = mutual_proximity(D, type) - Applies MP on the distance matrix 'D'
-     using the selected variant ('type'). The transformed distance matrix
-     is returned.
-
-Possible types:
-  'empiric': Uses the Empirical distribution to perform Mutual Proximity.
-  'gauss': (requires the Statistics Toolbox (the mvncdf() function)
-     Assumes that the distances are Gaussian distributed.
-  'gaussi': Assumes that the distances are independently Gaussian
-     distributed. (fastest Variante)
-  'gammai': Assumes that the distances follow a Gamma distribution and
-     are independently distributed.
-
-[1] Local and global scaling reduce hubs in space, 
-Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012
-
-This file was ported from MATLAB(R) code to Python3
-by Roman Feldbauer <roman.feldbauer@ofai.at>
-
-@author: Roman Feldbauer
-@date: 2015-09-25
+(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
@@ -45,8 +27,27 @@ class Distribution(Enum):
     gammai = 'gammai'
 
 class MutualProximity():
-    """Transform a distance matrix with Mutual Proximity.
+    """
+    Applies Mutual Proximity (MP) [1] on a distance matrix. The return value is
+    converted to a distance matrix again. The resulting distance matrix
+    should show lower hubness.
     
+    Usage:
+      Dmp = mutual_proximity(D, type) - Applies MP on the distance matrix 'D'
+         using the selected variant ('type'). The transformed distance matrix
+         is returned.
+    
+    Possible types:
+      'empiric': Uses the Empirical distribution to perform Mutual Proximity.
+      'gauss': (requires the Statistics Toolbox (the mvncdf() function)
+         Assumes that the distances are Gaussian distributed.
+      'gaussi': Assumes that the distances are independently Gaussian
+         distributed. (fastest Variante)
+      'gammai': Assumes that the distances follow a Gamma distribution and
+         are independently distributed.
+    
+    [1] Local and global scaling reduce hubs in space, 
+    Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012
     """
     
     def __init__(self, D, isSimilarityMatrix=False):
@@ -60,7 +61,7 @@ class MutualProximity():
         
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, enforce_disk=False,
-                                   sample_size=0, filename=None, empspex=False):
+                                   sample_size=0, filename=None):
         """Apply MP on a distance matrix."""
         
         if test_set_mask is not None:
@@ -72,10 +73,10 @@ class MutualProximity():
             self.log.message("No Mutual Proximity type given. "
                              "Using: Distribution.empiric. "
                              "For fast results use: Distribution.gaussi")
-            Dmp = self.mp_empiric(train_set_mask, verbose, empspex)
+            Dmp = self.mp_empiric(train_set_mask, verbose)
         else:
             if distrType == Distribution.empiric:
-                Dmp = self.mp_empiric(train_set_mask, verbose, empspex)
+                Dmp = self.mp_empiric(train_set_mask, verbose)
             elif distrType == Distribution.gauss:
                 Dmp = self.mp_gauss(train_set_mask, verbose)
             elif distrType == Distribution.gaussi:
@@ -95,87 +96,45 @@ class MutualProximity():
         return Dmp
          
 
-    def mp_empiric_sparse(self, train_set_mask=None, verbose=False, empspex=False):
-        n = np.shape(self.D)[0]
-                
-        if empspex:
-            #===================================================================
-            # Dmp = np.zeros(self.D.shape, dtype=np.float32)
-            # for i in range(n-1):
-            #     if verbose and ((i+1)%1000 == 0 or i==n):
-            #         self.log.message("MP_empiric_sparse_exact: {} of {}.".format(i+1, n-1), flush=True)
-            #     # Select only finite distances for MP
-            #     j_idx = np.arange(i+1, n)
-            #     j_len = np.size(j_idx, 0)
-            #      
-            #     dI = np.tile(self.D[i, :].toarray(), (j_len, 1))
-            #     dJ = self.D[j_idx, :].toarray()
-            #     d = np.tile(self.D[j_idx, i].toarray(), (1, n))
-            #      
-            #     if self.isSimilarityMatrix:
-            #         sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
-            #         sIJ_overlap = sIJ_intersect / n
-            #     else:
-            #         sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
-            #         sIJ_overlap = 1 - (sIJ_intersect / n)
-            #     Dmp[i, i+1:] = sIJ_overlap
-            # Dmp += Dmp.T
-            #===================================================================
-            
-            Dmp = np.zeros(self.D.shape, dtype=np.float32)
-            for i in range(n-1):
-                if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric_sparse_exact: {} of {}."
-                                     .format(i+1, n-1), flush=True)
-                for j in range(i+1, n):
-                    d = self.D[j, i]
+    def mp_empiric_sparse(self, train_set_mask=None, verbose=False):
+        """
+        Compute empiric MP distances/similarities in a sparse matrix.
+        Zero-elements do not contribute to MP calculations.
+        """
+        n = np.shape(self.D)[0]        
+        nnz = self.D.nnz
+        Dmp = dok_matrix(self.D.shape)
+        
+        for i in range(n-1):
+            if verbose and ((i+1)%1000 == 0 or i==n-2):
+                self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
+                                 flush=True)
+            for j in range(i+1, n):
+                d = self.D[j, i]
+                if d>0: 
                     dI = self.D[i, :].todense()
                     dJ = self.D[j, :].todense()
-                     
+                    # non-zeros elements
+                    nz = (dI > 0) & (dJ > 0)
+                    #TODO continue...
                     if self.isSimilarityMatrix:
                         sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
-                        sIJ_overlap = sIJ_intersect / n
+                        sIJ_overlap = sIJ_intersect / nnz
                     else:
                         sIJ_intersect = ((dI > d) & (dJ > d)).sum()
-                        sIJ_overlap = 1 - (sIJ_intersect / n)
+                        sIJ_overlap = 1 - (sIJ_intersect / nnz)
                     Dmp[i, j] = sIJ_overlap
                     Dmp[j, i] = sIJ_overlap
-                    
-            if self.isSimilarityMatrix:
-                np.fill_diagonal(Dmp, self.self_value) #need to set self values
-                
-            return Dmp
-        else:
-            nnz = self.D.nnz
-            Dmp = dok_matrix(self.D.shape)
-            for i in range(n-1):
-                if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
-                                     flush=True)
-                for j in range(i+1, n):
-                    d = self.D[j, i]
-                    if d>0: 
-                        dI = self.D[i, :].todense()
-                        dJ = self.D[j, :].todense()
-                        
-                        if self.isSimilarityMatrix:
-                            sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
-                            sIJ_overlap = sIJ_intersect / nnz
-                        else:
-                            sIJ_intersect = ((dI > d) & (dJ > d)).sum()
-                            sIJ_overlap = 1 - (sIJ_intersect / nnz)
-                        Dmp[i, j] = sIJ_overlap
-                        Dmp[j, i] = sIJ_overlap
-                    else:
-                        pass # skip zero entries
-            
-            if self.isSimilarityMatrix:
-                for i in range(n):
-                    Dmp[i, i] = self.self_value #need to set self values
-            
-                    return Dmp.tocsr()
+                else:
+                    pass # skip zero entries
+        
+        if self.isSimilarityMatrix:
+            for i in range(n):
+                Dmp[i, i] = self.self_value #need to set self values
+        
+                return Dmp.tocsr()
     
-    def mp_empiric(self, train_set_mask=None, verbose=False, empspex=False):
+    def mp_empiric(self, train_set_mask=None, verbose=False):
         """Compute Mutual Proximity distances with empirical data (slow)."""   
         #TODO implement train_set_mask!
         if not np.all(train_set_mask):
@@ -185,71 +144,34 @@ class MutualProximity():
             self.log.warning("Similarity-based empiric MP support is still experimental.")
         if issparse(self.D):
             self.log.warning("Sparse matrix support is still experimental.")
-            return self.mp_empiric_sparse(train_set_mask, verbose, empspex)
+            return self.mp_empiric_sparse(train_set_mask, verbose)
             
-        if isinstance(self.D, np.memmap): # work on disk
-            from tempfile import mkstemp
-            filename = mkstemp(suffix='pytmp')[1] # [0]... fd, [1]... filename
-            self.log.message("Writing rescaled distance matrix to file:", filename)
-            Dmp = np.memmap(filename, dtype='float64', mode='w+', shape=self.D.shape)
-            n = self.D.shape[0]
-            np.fill_diagonal(self.D, self.self_value)
-            
-            for i in range(n-1):
-                if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-                j_idx = np.arange(i+1, n)
-                j_len = np.size(j_idx, 0)
-               
-                dI = np.tile(self.D[i, :], (j_len, 1))
-                dJ = self.D[j_idx, :]
-                d = np.tile(self.D[j_idx, i][:, np.newaxis], (1, n))
-                
-                if self.isSimilarityMatrix:
-                    sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
-                    sIJ_overlap = sIJ_intersect / n
-                    Dmp[i, i] = self.self_value
-                else: 
-                    sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
-                    sIJ_overlap = 1 - (sIJ_intersect / n)
-                Dmp[i, j_idx] = sIJ_overlap 
-            Dmp += Dmp.T   
-              
-        else: # work in memory
-            if not issparse(self.D):
-                # ensure correct self distances (NOT done for sparse matrices!)
-                np.fill_diagonal(self.D, self.self_value)
-            n = np.shape(self.D)[0]
-            Dmp_list = [0 for i in range(n)]
+        # ensure correct self distances (NOT done for sparse matrices!)
+        np.fill_diagonal(self.D, self.self_value)
+        
+        n = np.shape(self.D)[0]
+        Dmp = np.zeros_like(self.D)
+         
+        for i in range(n-1):
+            if verbose and ((i+1)%1000 == 0 or i==n-2):
+                self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+            # Select only finite distances for MP
+            j_idx = i + 1
              
-            for i in range(n-1):
-                if verbose and ((i+1)%1000 == 0 or i==n):
-                    self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-                # Select only finite distances for MP
-                j_idx = np.arange(i+1, n)
-                j_len = np.size(j_idx, 0)
-                 
-                dI = np.tile(self.D[i, :], (j_len, 1))
-                dJ = self.D[j_idx, :]
-                d = np.tile(self.D[j_idx, i][:, np.newaxis], (1, n))
-                 
-                if self.isSimilarityMatrix:
-                    sIJ_intersect = np.sum((dI <= d) & (dJ <= d), 1)
-                    sIJ_overlap = sIJ_intersect / n
-                else:
-                    sIJ_intersect = np.sum((dI > d) & (dJ > d), 1)
-                    sIJ_overlap = 1 - (sIJ_intersect / n)
-                Dmp_list[i] = sIJ_overlap
-                 
-            Dmp = np.zeros(np.shape(self.D), dtype=self.D.dtype)
-            for i in range(n-1):
-                j_idx = np.arange(i+1, n)
-                Dmp[i, j_idx] = Dmp_list[i]
-                Dmp[j_idx, i] = Dmp_list[i]
-                
+            dI = self.D[i, :][np.newaxis, :]
+            dJ = self.D[j_idx:n, :]
+            d = self.D[j_idx:n, i][:, np.newaxis]
+             
             if self.isSimilarityMatrix:
-                for i in range(n):
-                    Dmp[i, i] = self.self_value
+                Dmp[i, j_idx:n] = np.sum((dI <= d) & (dJ <= d), 1) / n
+            else: # distance matrix
+                Dmp[i, j_idx:n] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n)
+             
+        Dmp += Dmp.T
+        
+        if self.isSimilarityMatrix:
+            for i in range(n):
+                Dmp[i, i] = self.self_value
             
         return Dmp
     

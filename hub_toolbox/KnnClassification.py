@@ -1,31 +1,22 @@
-"""
-Performs a k-nearest neighbor classification experiment. If there is a
-tie, the nearest neighbor determines the class
+# -*- coding: utf-8 -*-
 
+"""
 This file is part of the HUB TOOLBOX available at
 http://ofai.at/research/impml/projects/hubology.html
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-Usage:
-  [acc, corr, cmat] = knn_classification(D, classes, k) - Use the distance
-     matrix D (NxN) and the classes and perform a k-NN experiment. The
-     classification accuracy is returned in acc. corr is a raw vector of the
-     correctly classified items. cmat is the confusion matrix. 
-     
-This file was ported from MATLAB(R) code to Python3
-by Roman Feldbauer <roman.feldbauer@ofai.at>
-
-@author: Roman Feldbauer
-@date: 2015-09-15
+(c) 2011-2016, Dominik Schnitzer, Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
 from scipy.sparse.base import issparse
 
 class KnnClassification():
-    """Performs k-nearest neighbor classification.
-    
-    """
+    """Perform k-nearest neighbor classification."""
     
     def __init__(self, D, classes, k, isSimilarityMatrix=False):
         if issparse(D):
@@ -47,7 +38,14 @@ class KnnClassification():
         assert D.shape[0] == len(classes)
         
     def perform_knn_classification(self):
-        """Performs k-nearest neighbor classification."""
+        """Performs k-nearest neighbor classification.
+        
+        Use the distance matrix D (NxN) and the classes and perform a 
+        k-NN experiment. Ties are broken by the nearest neighbor.
+        The classification accuracy is returned in acc. 
+        corr is a raw vector of the correctly classified items. 
+        cmat is the confusion matrix.
+        """
         
         # Why would there be a need for more than one k?
         k_length = np.size(self.k)
@@ -109,8 +107,14 @@ class KnnClassification():
         return acc, corr, cmat
     
     def perform_knn_classification_with_test_set(self, test_set_mask=None):
-        """Performs k-nearest neighbor classification."""
+        """Performs k-nearest neighbor classification.
         
+        Use the distance matrix D (NxN) and the classes and perform a 
+        k-NN experiment. Ties are broken by the nearest neighbor.
+        The classification accuracy is returned in acc. 
+        corr is a raw vector of the correctly classified items. 
+        cmat is the confusion matrix.
+        """        
         # Indices of training examples
         train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
         # Why would there be a need for more than one k?

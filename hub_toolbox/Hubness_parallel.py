@@ -1,27 +1,15 @@
-"""
-Computes the hubness of a distance matrix using its k nearest neighbors.
-Hubness [1] is the skewness of the n-occurrence histogram.
+# -*- coding: utf-8 -*-
 
+"""
 This file is part of the HUB TOOLBOX available at
 http://ofai.at/research/impml/projects/hubology.html
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-Usage:
-  Sn = hubness(D) - Computes the hubness (Sk) of the n=5 occurrence histogram
-     (standard)
-
-  [Sn, Dk, Nk] hubness(D, k) - Computes the hubness of the n-occurrence
-     histogram where n (k) is given. Nk is the n-occurrence histogram, Dk
-     are the k nearest neighbors.
-
-[1] Hubs in Space: Popular Nearest Neighbors in High-Dimensional Data
-Radovanovic, Nanopoulos, Ivanovic, Journal of Machine Learning Research 2010
-
-This file was ported from MATLAB(R) code to Python3
-by Roman Feldbauer <roman.feldbauer@ofai.at>
-
-@author: Roman Feldbauer
-@date: 2015-09-17
+(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
@@ -32,9 +20,12 @@ from scipy.sparse.base import issparse
 import multiprocessing as mp
 
 class Hubness():
-    """Computes the hubness of a distance matrix using its k nearest neighbors.
+    """
+    Computes the hubness of a distance matrix using its k nearest neighbors.
+    Hubness [1] is the skewness of the n-occurrence histogram.
     
-    Hubness is the skewness of the n-occurrence histogram.
+    [1] Hubs in Space: Popular Nearest Neighbors in High-Dimensional Data
+    Radovanovic, Nanopoulos, Ivanovic, Journal of Machine Learning Research 2010
     """
     
     def __init__(self, D, k:int=5, isSimilarityMatrix:bool=False):
@@ -139,7 +130,7 @@ class Hubness():
         
         for i in range(len(tasks)):  # @UnusedVariable
             rows, Dk_part = done_queue.get()
-            Dk[:, rows[0]:rows[-1]+1] = Dk_part#[:, :]
+            Dk[:, rows[0]:rows[-1]+1] = Dk_part
             
         for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
             task_queue.put('STOP')        

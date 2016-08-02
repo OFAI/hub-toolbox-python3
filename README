@@ -3,11 +3,10 @@
  October 16, 2015
 -------------------------
 
-This is the HUB TOOLBOX for Python3
-(c) 2016, Roman Feldbauer <roman.feldbauer@ofai.at>
-Based on matlab code by
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
-This project is licensed under the terms of the GNU GPLv3.
+This is the HUB TOOLBOX for Python3, licensed under the terms of the GNU GPLv3.
+(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 
 If you use the functions in your publication, please cite:
 
@@ -125,6 +124,11 @@ Goodman-Kruskal index (higher=better)    : 0.152
 + NumPy
 + SciPy
 + (scikit-learn for some functions)
+
+-------
+LICENSE
+-------
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
 ----------------
 ACKNOWLEDGEMENTS

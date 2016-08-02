@@ -1,31 +1,15 @@
-"""
-Computes the Goodman-Kruskal clustering index.
+# -*- coding: utf-8 -*-
 
+"""
 This file is part of the HUB TOOLBOX available at
 http://ofai.at/research/impml/projects/hubology.html
-(c) 2013, Dominik Schnitzer <dominik.schnitzer@ofai.at>
-(c) 2016, Roman Feldbauer <roman.feldbauer@ofai.at>
+Source code is available at
+https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-The Goodman-Kruskal index is a
-clustering quality measure that relates the number of concordant ($Q_c$) and
-discordant (Q_d) tuples (d_{i,j}, d_{k,l}) of a distance matrix.
- * A tuple is concordant if its items i, j are from the same class,
-   items k, l are from different classes and d_{i,j} < d_{k,l}.
- * A tuple is discordant if its items i, j are from the same class,
-   items k, l are from different classes and d_{i,j} > d_{k,l}.
- * A tuple is not counted if it is neither concordant nor discordant,
-   that is, if d_{i,j} = d_{k,l}.
-
-The Goodman-Kruskal Index ($I_{GK}$) is defined as:
-I_{GK} = \frac{Q_c - Q_d}{Q_c + Q_d}.
-
-I_{GK} is bounded to the interval [-1, 1], and the higher I_{GK}, the
-more concordant and fewer discordant quadruples are present in the data set.
-Thus a large index value indicates a good clustering (in terms of
-pairwise stability.
-     
-@author: Roman Feldbauer
-@date: 2015-09-18
+(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np

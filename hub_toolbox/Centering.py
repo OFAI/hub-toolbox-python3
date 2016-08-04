@@ -13,23 +13,338 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import sys
 import numpy as np
-from hub_toolbox.Distances import cosine_distance, Distance, euclidean_distance
+from hub_toolbox.Distances import cosine_distance as cos
+from hub_toolbox.Distances import euclidean_distance as l2
+#DEPRECATED
+from hub_toolbox.Distances import Distance
 
+def centering(X:np.ndarray, metric:str, test_set_mask:np.ndarray=None):
+    """Perform  centering, i.e. shift the origin to the data centroid.
+    
+    Centering of vector data X with n objects in an m-dimensional feature space.
+    The mean of each feature is calculated and subtracted from each point [1].
+    In distance based mode, it must be checked upstream, that the distance
+    matrix is a gram matrix as described below!
+    
+    Parameters:
+    -----------
+    X : ndarray
+        - An (m x n) vector data matrix with n objects in an 
+        m-dimensional feature space 
+        - An (n x n) distance matrix of form K = X(X.T), if X is an (n x m) 
+        matrix; and of form K = (X.T)X, if X is an (m x n) matrix, 
+        where X.T denotes the transpose of X.
+        NOTE: The type must be defined via parameter 'metric'!
+        
+    metric : {'vector', 'distance'}
+        Define, whether 'X' is vector data or a distance matrix.
+        
+    test_set_mask : ndarray, optional (default: None)
+        Hold back data as a test set and perform centering on the remaining 
+        data (training set).
+    
+    Returns:
+    -------- 
+    X_cent : ndarray
+        - Centered vectors, when given vector data
+        - Centered gram matrix, when given distance data.
+        
+    See also:
+    ---------
+    [1] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., & Fukumizu, K. (2013). 
+    Centering similarity measures to reduce hubs. In Proceedings of the 2013 
+    Conference on Empirical Methods in Natural Language Processing (pp 613–623). 
+    Retrieved from https://www.aclweb.org/anthology/D/D13/D13-1058.pdf
+    """
+        
+    if metric == 'distance':
+        if test_set_mask is not None:
+                raise NotImplementedError("Distance based centering does not "
+                                          "support train/test splits so far.")
+        n = X.shape[0]
+        H = np.identity(n) - (1.0/n) * np.ones((n, n))
+        K = X # K = X.T.X must be provided upstream
+        X_cent = H.dot(K).dot(H)
+        return X_cent
+    elif metric == 'vector':
+        n = X.shape[0]
+        if test_set_mask is not None:
+            train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
+        else:
+            train_set_mask = slice(0, n) #np.ones(n, np.bool)
+        
+        vectors_mean = np.mean(X[train_set_mask], 0)
+        X_cent = X - vectors_mean
+        return X_cent
+    else:
+        raise ValueError("Parameter 'metric' must be 'distance' or 'vector'.")
+    
+def weighted_centering(X:np.ndarray, metric:str, gamma:float, 
+                       test_set_mask:np.ndarray=None):
+    """Perform  weighted centering: shift origin to the weighted data mean
+    
+    Move the origin more actively towards hub objects in the dataset, 
+    rather than towards the data centroid [2].
+    
+    Parameters:
+    -----------
+    X : ndarray
+        - An (m x n) vector data matrix with n objects in an 
+        m-dimensional feature space 
+        
+    metric : {'cosine', 'euclidean'}
+        Distance measure used to place more weight on objects that are more 
+        likely to become hubs. (Defined for 'cosine' in [2], 'euclidean' does 
+        not make much sense and might be removed in the future).
+        
+    gamma : float
+        Controls how much we emphasize the weighting effect
+        - gamma=0: equivalent to normal centering
+        - gamma>0: move origin closer to objects with larger similarity 
+                   to other objects
+        
+    test_set_mask : ndarray, optional (default: None)
+        Hold back data as a test set and perform centering on the remaining 
+        data (training set).
+    
+    Returns:
+    -------- 
+    X_wcent : ndarray
+        Weighted centered vectors.
+        
+    See also:
+    ---------
+    [2] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., & Fukumizu, K. (2013). 
+    Centering similarity measures to reduce hubs. In Proceedings of the 2013 
+    Conference on Empirical Methods in Natural Language Processing (pp 613–623). 
+    Retrieved from https://www.aclweb.org/anthology/D/D13/D13-1058.pdf
+    """
+    n = X.shape[0]
+                   
+    # Indices of training examples
+    if test_set_mask is not None:
+        train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
+    else:
+        train_set_mask = slice(0, n) 
+    
+    n_train = X[train_set_mask].shape[0]
+    d = np.zeros(n)
+    
+    if metric == 'cosine':
+        vectors_sum = X[train_set_mask].sum(0)
+        for i in np.arange(n):
+            d[i] = n_train * cos(np.array([X[i], vectors_sum/n_train]))[0, 1]
+    # Using euclidean distances does not really make sense
+    elif metric == 'euclidean':
+        for i in range(n):
+            displ_v = X[train_set_mask] - d[i]
+            d[i] = np.sum(np.sqrt(displ_v * displ_v))
+    else:
+        raise ValueError("Weighted centering only supports cosine distances.")
+    d_sum = np.sum(d ** gamma)
+    w = (d ** gamma) / d_sum
+    vectors_mean_weighted = np.sum(w.reshape(n,1) * X, 0)
+    X_wcent = X - vectors_mean_weighted
+    return X_wcent
+    
+def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float, 
+                       test_set_mask:np.ndarray=None):
+    """Perform localized centering.
+    
+    Reduce hubness in datasets according to the method proposed in [3].
+    
+    Parameters:
+    -----------
+    X : ndarray
+        - An (m x n) vector data matrix with n objects in an 
+        m-dimensional feature space 
+        
+    metric : {'cosine', 'euclidean'}
+        Distance measure used to place more weight on objects that are more 
+        likely to become hubs. (Defined for 'cosine' in [2], 'euclidean' does 
+        not make much sense and might be removed in the future).
+        
+    kappa : float
+        Local segment size, determines the size of the local neighborhood for 
+        calculating the local affinity. When kappa=n localized centering 
+        reduces to standard centering.
+        "select κ depending on the dataset, so that the correlation between
+        Nk(x) and the local affinity <x, cκ(x)> is maximized" [3]
+        
+    gamma : float
+        Control the degree of penalty, so that used the similarity score 
+        is smaller depending on how likely a point is to become a hub.
+        "Parameter γ can be tuned so as to maximally reduce the skewness 
+        of the Nk distribution" [3].
+        
+    test_set_mask : ndarray, optional (default: None)
+        Hold back data as a test set and perform centering on the remaining 
+        data (training set).
+    
+    Returns:
+    -------- 
+    D_lcent : ndarray
+        Secondary distance (localized centering) matrix.
+        
+    See also:
+    ---------
+    [3] Hara, K., Suzuki, I., Shimbo, M., Kobayashi, K., Fukumizu, K., & 
+    Radovanović, M. (2015). Localized centering: Reducing hubness in 
+    large-sample data hubness in high-dimensional data. In AAAI ’15: 
+    Proceedings of the 29th AAAI Conference on Artificial Intelligence 
+    (pp. 2645–2651).
+    """
+    if test_set_mask is None:
+        test_set_mask = np.zeros(X.shape[0], np.bool)
+        
+    if metric == 'cosine':
+        # Rescale vectors to unit length
+        v = X / np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
+        # for unit vectors it holds inner() == cosine()
+        sim = 1 - cos(v)
+    # Localized centering meaningful for Euclidean?
+    elif metric == 'euclidean':
+        v = X # no scaling here...
+        sim = 1 / ( 1 + l2(v))
+    else:
+        raise ValueError("Localized centering only supports cosine distances.")
+    
+    n = sim.shape[0]
+    local_affinity = np.zeros(n)
+    for i in range(n):
+        x = v[i]
+        sim_i = sim[i, :].copy()
+        # set similarity of test examples to zero to exclude them from fit
+        sim_i[test_set_mask] = 0
+        # also exclude self 
+        sim_i[i] = 0
+        #TODO randomization?
+        nn = np.argsort(sim_i)[::-1][1 : kappa+1]
+        c_kappa_x = np.mean(v[nn], 0)
+        if metric == 'cosine':
+            # c_kappa_x has no unit length in general
+            local_affinity[i] = np.inner(x, c_kappa_x)       
+            #local_affinity[i] = cosine(x, c_kappa_x) 
+        elif metric == 'euclidean':
+            local_affinity[i] = 1 / (1 + np.linalg.norm(x-c_kappa_x))
+        else:
+            raise ValueError("Localized centering only "
+                             "supports cosine distances.")
+    sim_lcent = sim - (local_affinity ** gamma)
+    return 1 - sim_lcent
+
+
+def disSim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
+    """
+    Calculate dissimilarity based on global 'sample-wise centrality' [4].
+    
+    Parameters:
+    -----------
+    X : ndarray
+        - An (m x n) vector data matrix with n objects in an 
+          m-dimensional feature space
+          
+    test_set_mask : ndarray, optional (default: None)
+        Hold back data as a test set and perform centering on the remaining 
+        data (training set).
+        
+    Returns:
+    --------
+    D_dsg : ndarray
+        Secondary distance (DisSimGlobal) matrix.
+        
+    See also:
+    ---------
+    [4] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., & 
+    Radovanović, M. (2016). Flattening the density gradient for eliminating 
+    spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI 
+    Conference on Artificial Intelligence (AAAI ’16), 1659–1665. Retrieved from 
+    http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12055/11787
+    """
+    
+    n = X.shape[0]
+
+    if test_set_mask is not None:
+        train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
+    else:
+        train_set_mask = slice(0, n)
+        
+    c = X[train_set_mask].mean(0)
+    xq_c = ((X - c) ** 2).sum(1)
+    D_dsg = np.zeros((n, n))
+    for x in range(n):
+        for q in range(n):
+            x_q = ((X[x, :] - X[q, :]) ** 2).sum()
+            D_dsg[x, q] = x_q - xq_c[x] - xq_c[q]
+    return D_dsg
+
+def disSim_local(X:np.ndarray, k:int, test_set_mask:np.ndarray=None):
+    """Calculate dissimilarity based on local 'sample-wise centrality' [5].
+    
+    Parameters:
+    -----------
+    X : ndarray
+        - An (m x n) vector data matrix with n objects in an 
+          m-dimensional feature space
+          
+    k : int
+        Neighborhood size used for determining the local centroids.
+          
+    test_set_mask : ndarray, optional (default: None)
+        Hold back data as a test set and perform centering on the remaining 
+        data (training set).
+        
+    Returns:
+    --------
+    D_dsl : ndarray
+        Secondary distance (DisSimLocal) matrix.
+        
+    See also:
+    ---------
+    [5] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., & 
+    Radovanović, M. (2016). Flattening the density gradient for eliminating 
+    spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI 
+    Conference on Artificial Intelligence (AAAI ’16), 1659–1665. Retrieved from 
+    http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12055/11787
+    """
+    
+    n = X.shape[0]
+    D = l2(X)
+    # Exclude self distances from kNN lists:
+    np.fill_diagonal(D, np.inf) 
+    c_k = np.zeros_like(X)
+    
+    if test_set_mask is not None:
+        train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
+        for i in range(n):
+            knn_idx = np.argsort(D[i, train_set_mask])[0:k]
+            c_k[i] = X[train_set_mask[knn_idx]].mean(0)
+    else: # take all    
+        for i in range(n):
+            knn_idx = np.argsort(D[i, :])[0:k]
+            c_k[i] = X[knn_idx].mean(0)
+    c_k_xy = ((X - c_k) ** 2).sum(1)
+    disSim = np.zeros_like(D)
+    for x in range(n):
+        for y in range(x, n):
+            x_y = ((X[x] - X[y]) ** 2).sum()
+            disSim[x, y] = x_y - c_k_xy[x] - c_k_xy[y]
+    return disSim + disSim.T - np.diag(np.diag(disSim))
+    
+    
+###############################################################################
+#
+# DEPRECATED class
+#
 class Centering(object):
     """Transform data (in vector space) by various 'centering' approaches."""
 
 
     def __init__(self, vectors:np.ndarray=None, dist:np.ndarray=None, 
                  is_distance_matrix=False):
-        """Create an object for subsequent centering of vector data X with 
-        n objects in an m-dimensional feature space.
-        Set is_distance_matrix=True when using distance data.
-        The distance matrix must be of form K = X(X.T), if X is an n x m matrix; 
-        and of form K = (X.T)X, if X is an m x n matrix, where X.T denotes the
-        transpose of X.
-        
-        """
+        """DEPRECATED"""
         if is_distance_matrix:
             self.distance_matrix = np.copy(dist)
             self.vectors = None
@@ -38,187 +353,57 @@ class Centering(object):
             self.vectors = np.copy(vectors)
                 
     def centering(self, distance_based=False, test_set_mask=None):
-        """Perform standard centering, i.e. shift the origin to the data 
-        centroid.
-        
-        The mean of each feature is calculated and subtracted from each point.
-        
-        In distance based mode, it must be checked upstream, that the distance
-        matrix is a gram matrix as described in the constructor! 
-        
-        Returns centered vectors, when given vector data; and
-        return centered gram matrix, when given distance data.
-        """
-            
-        if self.distance_matrix is not None:
-            if test_set_mask is not None:
-                    raise NotImplementedError("Distance based centering does not "
-                                              "support train/test splits so far.")
-            n = self.distance_matrix.shape[0]
-            H = np.identity(n) - (1.0/n) * np.ones((n, n))
-            K = self.distance_matrix # K = X.T.X must be provided upstream
-            K_cent = H.dot(K).dot(H)
-            return K_cent
+        """DEPRECATED"""
+        print("DEPRECATED: Please use Centering.centering() instead.", 
+              file=sys.stderr)
+        if self.vectors is not None:
+            metric = 'vector'
+            X = self.vectors
         else:
-            n = self.vectors.shape[0]
-            if test_set_mask is not None:
-                train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-            else:
-                train_set_mask = slice(0, n) #np.ones(n, np.bool)
-            
-            vectors_mean = np.mean(self.vectors[train_set_mask], 0)
-            vectors_cent = self.vectors - vectors_mean
-            return vectors_cent
+            metric = 'distance'
+            X = self.distance_matrix
+        return centering(X, metric, test_set_mask)
         
     def weighted_centering(self, gamma, 
                            distance_metric=Distance.cosine, test_set_mask=None):
-        """Perform weighted centering.
-        
-        Returns centered vectors (not distance matrix).
-        """
-        
-        n = self.vectors.shape[0]
-                   
-        # Indices of training examples
-        if test_set_mask is not None:
-            train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-        else:
-            train_set_mask = slice(0, n) #np.ones(n, np.bool)
-        
-        n_train = self.vectors[train_set_mask].shape[0]
-        d = np.zeros(n)
-        
+        """DEPRECATED"""
+        print("DEPRECATED: Please use Centering.weighted_centering() instead.", 
+              file=sys.stderr)
         if distance_metric == Distance.cosine:
-            vectors_sum = self.vectors[train_set_mask].sum(0)
-            for i in np.arange(n):
-                #d[i] = n_train * np.inner(self.vectors[i], vectors_sum / n_train)
-                #d[i] = n_train * cosine(self.vectors[i], vectors_sum / n_train)
-                d[i] = n_train * cosine_distance(\
-                        np.array([self.vectors[i], vectors_sum/n_train]))[0, 1]
-        # Using euclidean distances does not really make sense
+            metric = 'cosine'
         elif distance_metric == Distance.euclidean:
-            for i in range(n):
-                displ_v = self.vectors[train_set_mask] - d[i]
-                d[i] = np.sum(np.sqrt(displ_v * displ_v))
+            metric = 'euclidean'
         else:
-            raise ValueError("Weighted centering currently only supports "
-                             "cosine distances.")
-        d_sum = np.sum(d ** gamma)
-        w = (d ** gamma) / d_sum
-        vectors_mean_weighted = np.sum(w.reshape(n,1) * self.vectors, 0)
-        vectors_weighted = self.vectors - vectors_mean_weighted
-        return vectors_weighted
+            raise ValueError("Unknown distance metric {}.".
+                             format(distance_metric.__str__()))
+        return weighted_centering(self.vectors, metric, gamma, test_set_mask)
     
     def localized_centering(self, kappa:int=20, gamma:float=1, 
                         distance_metric=Distance.cosine, test_set_mask=None):
-        """Perform localized centering.
-        
-        Returns a distance matrix (not centered vectors!)
-        Default parameters: kappa=20, gamma=1.0
-        """
-        
-        if test_set_mask is None:
-            test_set_mask = np.zeros(self.vectors.shape[0], np.bool)
-            
-        if distance_metric == Distance.cosine:   
-            # Rescale vectors to unit length
-            v = self.vectors / np.sqrt((self.vectors ** 2).sum(-1))[..., np.newaxis]
-            # for unit vectors it holds inner() == cosine()
-            sim = 1 - cosine_distance(v)
-        # Localized centering meaningful for Euclidean?
+        """DEPRECATED"""
+        print("DEPRECATED: Please use Centering.localized_centering() instead.", 
+              file=sys.stderr)
+        if distance_metric == Distance.cosine:
+            metric = 'cosine'
         elif distance_metric == Distance.euclidean:
-            v = self.vectors # no scaling here...
-            sim = 1 / ( 1 + euclidean_distance(v))
+            metric = 'euclidean'
         else:
-            raise ValueError("Localized centering currently only supports "
-                             "cosine distances.")
-        n = sim.shape[0]
-        local_affinity = np.zeros(n)
-        for i in range(n):
-            x = v[i]
-            sim_i = sim[i, :].copy()
-            # set similarity of test examples to zero to exclude them from fit
-            sim_i[test_set_mask] = 0
-            # also exclude self 
-            sim_i[i] = 0
-            #TODO randomization?
-            nn = np.argsort(sim_i)[::-1][1 : kappa+1]
-            c_kappa_x = np.mean(v[nn], 0)
-            if distance_metric == Distance.cosine:
-                # c_kappa_x has no unit length in general
-                local_affinity[i] = np.inner(x, c_kappa_x)       
-                #local_affinity[i] = cosine(x, c_kappa_x) 
-            elif distance_metric == Distance.euclidean:
-                local_affinity[i] = 1 / (1 + np.linalg.norm(x-c_kappa_x))
-            else:
-                raise ValueError("Localized centering currently only supports "
-                                 "cosine distances.")
-        sim_lcent = sim - (local_affinity ** gamma)
-        return 1 - sim_lcent
-    
+            raise ValueError("Unknown distance metric {}.".
+                             format(distance_metric.__str__()))
+        return localized_centering(self.vectors, metric, 
+                                   kappa, gamma, test_set_mask)
+        
     def disSim_global(self, test_set_mask=None):
-        """
-        Calculate dissimilarity based on the notion of global 'sample-wise
-        centrality'.
-        
-        This hubness reduction technique was proposed in Hara et al. (2016): 
-        'Flattening the Density Gradient for Eliminating Spatial Centrality to 
-        Reduce Hubness' for euclidean distances and isotropic Gaussian data 
-        distributions.
-        """
-        
-        n = self.vectors.shape[0]
-
-        if test_set_mask is not None:
-            train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-        else:
-            train_set_mask = slice(0, n)#np.ones(self.vectors.shape[0], np.bool)
-            
-        c = self.vectors[train_set_mask].mean(0)
-        xq_c = ((self.vectors - c) ** 2).sum(1)
-        disSim = np.zeros((n, n))
-        for x in range(n):
-            for q in range(n):
-                x_q = ((self.vectors[x, :] - self.vectors[q, :]) ** 2).sum()
-                disSim[x, q] = x_q - xq_c[x] - xq_c[q]
-        return disSim
+        """DEPRECATED"""
+        print("DEPRECATED: Please use Centering.disSim_glocal() instead.", 
+              file=sys.stderr)
+        return disSim_global(self.vectors, test_set_mask)
     
     def disSim_local(self, k, test_set_mask=None):
-        """
-        Calculate dissimilarity based on the notion of local 'sample-wise 
-        centrality'.
-        
-        This hubness reduction technique was proposed in Hara et al. (2016): 
-        'Flattening the Density Gradient for Eliminating Spatial Centrality to 
-        Reduce Hubness' for euclidean distances and non-isotropic Gaussian 
-        data distributions.
-        
-        Parameter 'k' defines the neighborhood size used for determining the 
-        local centroids.
-        """
-        
-        n = self.vectors.shape[0]
-        D = euclidean_distance(self.vectors)
-        # Exclude self distances from kNN lists:
-        np.fill_diagonal(D, np.inf) 
-        c_k = np.zeros_like(self.vectors)
-        
-        if test_set_mask is not None:
-            train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-            for i in range(n):
-                knn_idx = np.argsort(D[i, train_set_mask])[0:k]
-                c_k[i] = self.vectors[train_set_mask[knn_idx]].mean(0)
-        else: # take all    
-            for i in range(n):
-                knn_idx = np.argsort(D[i, :])[0:k]
-                c_k[i] = self.vectors[knn_idx].mean(0)
-        c_k_xy = ((self.vectors - c_k) ** 2).sum(1)
-        disSim = np.zeros_like(D)
-        for x in range(n):
-            for y in range(x, n):
-                x_y = ((self.vectors[x] - self.vectors[y]) ** 2).sum()
-                disSim[x, y] = x_y - c_k_xy[x] - c_k_xy[y]
-        return disSim + disSim.T - np.diag(np.diag(disSim))
+        """DEPRECATED"""
+        print("DEPRECATED: Please use Centering.disSim_local() instead.", 
+              file=sys.stderr)
+        return disSim_local(self.vectors, k, test_set_mask)
 
 if __name__ == '__main__':
     vectors = np.arange(12).reshape(3,4)

@@ -24,7 +24,18 @@ To install the package (with administrator rights):
 sudo python setup.py install
 
 """
+import sys
+if sys.version_info < (3, 0):
+    sys.stdout.write("The HUB TOOLBOX requires Python 3.x\n")
+    sys.exit(1)
 
+try:
+    import numpy, scipy, sklearn  # @UnusedImport
+except ImportError:
+    sys.stdout.write("The HUB TOOLBOX requires numpy, scipy and scikit-learn. "
+                     "Please make sure these packages are available locally. "
+                     "Consider using Anaconda for easy package handling.")
+    sys.exit(1)
 try:
     import setuptools
 except ImportError:

@@ -34,7 +34,7 @@ try:
 except ImportError:
     sys.stdout.write("The HUB TOOLBOX requires numpy, scipy and scikit-learn. "
                      "Please make sure these packages are available locally. "
-                     "Consider using Anaconda for easy package handling.")
+                     "Consider using Anaconda for easy package handling.\n")
     sys.exit(1)
 try:
     import setuptools

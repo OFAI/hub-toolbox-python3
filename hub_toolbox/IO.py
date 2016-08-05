@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -15,11 +16,14 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy import sparse
 import os
+import sys
 
 def copy_D_or_load_memmap(D, writeable=False):
-    """Return a deep copy of a numpy array (if D is an ndarray), 
+    """DEPRECATED. Return a deep copy of a numpy array (if D is an ndarray), 
     otherwise return a read-only memmap (if D is a path)."""
     
+    print("DEPRECATED: memmap support will be dropped completely.", 
+          file=sys.stderr)
     if isinstance(D, np.memmap):
         return D
     elif isinstance(D, np.ndarray):
@@ -60,7 +64,9 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
     --------
     nr_batches ... number of submatrices
     nr_rows    ... number of rows per submatrix. \n
-    Notes: 
+    
+    Notes:
+    ------ 
     1) Submatrices always contain all columns per row. 
     2) The last batch will usually have less rows than nr_rows
     """
@@ -71,8 +77,7 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
     return nr_batches, nr_rows
 
 class FreeMemLinux(object):
-    """
-    Non-cross platform way to get free memory on Linux. 
+    """Non-cross platform way to get free memory on Linux. 
     
     Original code by Oz123, 
     http://stackoverflow.com/questions/17718449/determine-free-ram-in-python
@@ -106,7 +111,7 @@ class FreeMemLinux(object):
         if self.unit == 'GB':
             return 1/1024.0/1024.0
         if self.unit == '%':
-            return 1.0/self._tot
+            return 1.0/self._tot * 100
         else:
             raise Exception("Unit not understood")
 
@@ -151,3 +156,9 @@ class FreeMemLinux(object):
     @property
     def swap_used(self):
         return self._convert * self._swapu
+    
+if __name__ == '__main__':
+    fml = FreeMemLinux(unit='MB')
+    fml2 = FreeMemLinux(unit='%')
+    print("Used memory: {:.1f}M ({:.1f}%).".format(fml.used_real, fml2.used_real))
+    print("Free memory: {:.1f}M ({:.1f}%).".format(fml.user_free, fml2.user_free))

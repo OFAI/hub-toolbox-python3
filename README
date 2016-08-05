@@ -1,6 +1,6 @@
 -------------------------
- HUB TOOLBOX VERSION 2.2 
- October 16, 2015
+ HUB TOOLBOX VERSION 2.3 
+ August 05, 2016
 -------------------------
 
 This is the HUB TOOLBOX for Python3, licensed under the terms of the GNU GPLv3.
@@ -123,7 +123,8 @@ Goodman-Kruskal index (higher=better)    : 0.152
 + Python3
 + NumPy
 + SciPy
-+ (scikit-learn for some functions)
++ scikit-learn
+The authors suggest using the Anaconda environment.
 
 -------
 LICENSE
@@ -133,5 +134,6 @@ The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 ----------------
 ACKNOWLEDGEMENTS
 ----------------
-PyVmMonitor is being used to support the development of this free open source software package. For more information go to http://www.pyvmmonitor.com
+PyVmMonitor is being used to support the development of this free open source 
+software package. For more information go to http://www.pyvmmonitor.com
 

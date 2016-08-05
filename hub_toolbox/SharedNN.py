@@ -16,7 +16,7 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 import sys
 
-def shared_nearest_neighbors(D:np.array, k:int=10, metric='distance'):
+def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     """Transform distance matrix using shared nearest neighbors [1].
     
     SNN similarity is based on computing the overlap between the k nearest 
@@ -25,7 +25,7 @@ def shared_nearest_neighbors(D:np.array, k:int=10, metric='distance'):
     
     Parameters:
     -----------
-    D : np.array
+    D : np.ndarray
         The n x n symmetric distance (similarity) matrix.
         
     k : int, optional (default: 10)

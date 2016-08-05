@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 """
@@ -31,6 +32,7 @@ def euclidean_distance(X):
     D = cdist(X, X, 'euclidean')
     return D
 
+# DEPRECATED
 class Distance(Enum):
     """Enum for distance metrics."""
     

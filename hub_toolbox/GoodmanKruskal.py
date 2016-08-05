@@ -15,7 +15,7 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.sparse import csr_matrix, lil_matrix
 
-def goodman_kruskal_index(D:np.array, classes:np.array,
+def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
                           metric='distance') -> float:
     """Calculate the Goodman-Kruskal clustering index.
     
@@ -34,10 +34,10 @@ def goodman_kruskal_index(D:np.array, classes:np.array,
     
     Parameters:
     -----------
-    D : np.array
+    D : ndarray
         The n x n symmetric distance (similarity) matrix.
     
-    classes : np.array
+    classes : ndarray
         The 1 x n vector of class labels for each point.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
@@ -148,7 +148,7 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     S : csr_matrix
         The n x n symmetric similarity matrix.
     
-    classes : np.array
+    classes : ndarray
         The 1 x n vector of class labels for each point.
     
     metric : {'similarity', 'distance'}, optional (default: 'similarity')

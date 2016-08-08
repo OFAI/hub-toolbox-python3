@@ -127,7 +127,8 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     return gamma 
 
 def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray, 
-                                 metric='similarity') -> float:
+                                 metric='similarity', zero_mv:bool=False, 
+                                 heuristic:str=None, verbose:int=0) -> float:
     """Calculate the Goodman-Kruskal clustering index.
     
     This clustering quality measure relates the number of concordant (Q_c) 
@@ -156,6 +157,21 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
         Define, whether the matrix 'D' is a distance or similarity matrix.
         NOTE: 'distance' is used for debugging purposes only. Use standard
               goodman_kruskal_index function for distance matrices.
+              
+    zero_mv : boolean, optional (default: False)
+        Treat zeros as missing values, i.e. tuples with any zero
+        similarities are not counted.
+        
+    heuristic : {None, 'equal_sim'}, optional (default: None)
+        * None - Exact GK
+        * 'equal_sim' - omit expensive search for equal similarities
+                        Useful, when no/few equal similarites are expected.
+                        Do NOT use in case of SharedNN matrices!
+                        NOTE: Equal zero similarities are still considered
+                              when using this heuristic.
+    
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
 
     Returns:
     --------
@@ -172,7 +188,10 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     if metric != 'similarity' and metric != 'distance':
         raise ValueError("Parameter 'metric' must be 'distance' "
                          "or 'similarity'.")
-        
+    if verbose:
+        print("Sparse Goodman-Kruskal")
+        sys.stdout.write("----------------------")
+        print(flush=True)
     # Calculations
     Qc = 0.0
     Qd = 0.0
@@ -182,6 +201,9 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     S_other_list = lil_matrix((n, n))
     other_nnz = 0
     # building the complete mask at once would result in dense N x N matrix
+    if verbose >= 2:
+        print("Finding S_kl pairs with different class labels...", 
+              end=' ', flush=True)
     for i, c in enumerate(classes):
         cur_other = csr_matrix((c != classes)[i+1:])
         other_nnz += cur_other.nnz
@@ -191,84 +213,139 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     # The following might be achieved faster w/o csr intermediate
     S_other = S_other_list.tocsr().data
     del S_other_list, cur_other
+    if verbose >= 2:
+        print("done.", flush=True)
     
     cls = np.unique(classes)
     for c in cls:
+        if verbose == 1:# and c % 10 == 0:
+            # end='\r' does not work with jupyter notebook
+            print("Class: {}/{}".format(c, len(cls)), end='')
         sel = classes == c 
         if np.sum(sel) > 1: 
+            if verbose >= 2:
+                print("Finding S_ij pairs for class {}..."
+                      .format(c), end=' ')
             n = sel.size
             # intra-class distances
             S_self_list = lil_matrix((n, n))
             self_nnz = 0
-            for i, s in enumerate(sel):
-                cur_self = csr_matrix((s * sel)[i+1:])
+            
+            # Only visit points of self class
+            sel_arg = np.where(sel>0)[0]
+            for i in sel_arg:
+                cur_self = csr_matrix(sel[i+1:])
                 self_nnz += cur_self.nnz
                 S_self_list[i, :cur_self.shape[1]] = \
                     S[i, i+1:].multiply(cur_self)
+                    
             n_self_zeros = self_nnz - S_self_list.nnz
             # Same as with S_other
             S_self = S_self_list.tocsr().data
             del S_self_list, cur_self
+            if verbose >= 2:
+                print("done.")
         else:
             # skip if there is only one item per class
+            if verbose == 1: # and c % 10 == 0:
+                sys.stdout.write('\r')
             continue
         
-        # S_kl pairs in different classes (S_other) are computed once for all c
+        # S_kl pairs in different classes are computed once for all c
+        if verbose >= 2:
+            print("Sorting data...", end=' ')
         S_full_data = np.append(S_self, S_other)
 
+    
         self_data_size = S_self.size
         self_size = S_self.size + n_self_zeros
+        other_data_size = S_other.size
         other_size = S_other.size + n_other_zeros
-        full_data_idx = np.argsort(S_full_data, kind='mergesort')[::-1] 
+        full_data_idx = np.argsort(S_full_data, kind='mergesort')[::-1]
         del S_self
-
+        if verbose >= 2:
+            print("done.", flush=True)
+        
         # Calc number of quadruples with equal distance
+        if verbose >= 2:
+            print("Calculating number of quadruples with equal distance...", 
+                  end=' ')
         n_equidistant = 0
-        sdf = np.sort(S_full_data, axis=None)
-        equi_mask = np.zeros(sdf.size, dtype=bool)
-        # Positions with repeated values
-        equi_mask[1:] = sdf[1:] == sdf[:-1]
-        equi_dist = sdf[equi_mask]
-        # How often does each value occur in self/other:
-        for dist in np.unique(equi_dist):
-            equi_arg = np.where(S_full_data == dist)[0]
-            self_equi = (equi_arg < self_data_size).sum()
-            other_equi = len(equi_arg) - self_equi
-            # Number of dc that are actually equal
-            n_equidistant += self_equi * other_equi
-        del S_full_data
-        n_zero = n_self_zeros * n_other_zeros
+        # Number of equal zero similarities
+        if zero_mv:
+            n_zero = 0
+        else:
+            n_zero = n_self_zeros * n_other_zeros
+        if heuristic == 'equal_sim':
+            if verbose >= 2:
+                print("OMITTED (heuristic).")
+            else:
+                pass
+        else:
+            sdf = np.sort(S_full_data, axis=None)
+            equi_mask = np.zeros(sdf.size, dtype=bool)
+            # Positions with repeated values
+            equi_mask[1:] = sdf[1:] == sdf[:-1]
+            equi_dist = sdf[equi_mask]
+            # How often does each value occur in self/other:
+            for dist in np.unique(equi_dist):
+                equi_arg = np.where(S_full_data == dist)[0]
+                self_equi = (equi_arg < self_data_size).sum()
+                other_equi = len(equi_arg) - self_equi
+                # Number of dc that are actually equal
+                n_equidistant += self_equi * other_equi
+            del S_full_data, equi_mask, equi_dist, equi_arg
+            if verbose >= 2:
+                print("done.", flush=True)
         
         # Calc number of concordant quadruples
+        if verbose >= 2:
+            print("Calculating number of concordant quadruples...", end=' ')
         cc = 0
-        ccsize = other_size
-        #ccsize = other_size
+        if zero_mv:
+            ccsize = other_data_size
+        else:
+            ccsize = other_size
         for idx in full_data_idx:
             if idx < self_data_size:
                 cc += ccsize
             else:
                 ccsize -= 1
-        del full_data_idx
+        if verbose >= 2:
+            print("done.", flush=True)
         
         # Calc number of discordant quadruples
-        dc = self_size * other_size - cc - n_equidistant - n_zero
+        if verbose >= 2:
+            print("Calculating number of discordant quadruples...", end=' ')
+        if zero_mv:
+            dc = self_data_size * other_data_size - cc - n_equidistant
+        else:
+            dc = self_size * other_size - cc - n_equidistant - n_zero
         Qc += cc
         Qd += dc
-
+        if verbose >= 2:
+            print("done.", flush=True)
+        if verbose == 1: # and c % 10 == 0:
+            sys.stdout.write('\r')
+    
     # Calc Goodman-Kruskal's gamma
+    if verbose >= 2:
+        print("Calculating Goodman-Kruskal gamma...", end=' ')
     if Qc + Qd == 0:
-        di = 0.0
+        gamma = 0.0
     else:
         if metric == 'similarity':
-            di = (Qc - Qd) / (Qc + Qd)
+            gamma = (Qc - Qd) / (Qc + Qd)
         elif metric == 'distance':
-            di = (Qd - Qc) / (Qc + Qd)
+            gamma = (Qd - Qc) / (Qc + Qd)
         else:
             print("WARNING: Unknown metric type {}. Assuming 'similarity' "
                   "instead. Sign of result might be reversed, if this is "
                   "wrong!".format(metric.__str__[0:32]), file=sys.stderr)
-            di = (Qc - Qd) / (Qc + Qd)
-    return di 
+            gamma = (Qc - Qd) / (Qc + Qd)
+    if verbose >= 2:
+        print("done.", flush=True)
+    return gamma
 
 # DEPRECATED class GoodmanKruskal. Remove for next hub_toolbox release.
 class GoodmanKruskal():

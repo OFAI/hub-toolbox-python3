@@ -23,7 +23,7 @@ from hub_toolbox.LocalScaling import LocalScaling
 from hub_toolbox.SharedNN import shared_nearest_neighbors
 from hub_toolbox.Centering import centering, weighted_centering, \
                                   localized_centering
-from hub_toolbox import Distances as htd
+from hub_toolbox.Distances import cosine_distance
 
 
 class HubnessAnalysis():
@@ -160,7 +160,7 @@ class HubnessAnalysis():
             else:
                 if cent:
                     # Hubness after centering
-                    D_cent = htd.cosine_distance(centering(self.vectors, 'vector'))
+                    D_cent = cosine_distance(centering(self.vectors, 'vector'))
                     Sn5, Nk5 = hubness(D_cent)[::2]
                     self.print_results('CENTERING', D_cent, Sn5, Nk5)                    
                     # TODO remove again
@@ -170,7 +170,7 @@ class HubnessAnalysis():
                     
                 if wcent:        
                     # Hubness after weighted centering
-                    D_wcent = htd.cosine_distance(weighted_centering(
+                    D_wcent = cosine_distance(weighted_centering(
                                 self.vectors, metric='cosine', gamma=wcent_g))
                     Sn5, Nk5 = hubness(D_wcent)[::2]
                     self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
@@ -263,7 +263,7 @@ class HubnessAnalysis():
             row += 1
         
         # Calc distance
-        D = htd.cosine_distance(vectors)
+        D = cosine_distance(vectors)
         return D, classes, vectors
                 
 if __name__ == "__main__":

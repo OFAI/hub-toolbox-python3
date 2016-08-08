@@ -18,8 +18,8 @@ from scipy.sparse.base import issparse
 from hub_toolbox import Logging
 import sys
 
-def score(D:np.ndarray, target:np.ndarray, k:int=5, metric:str='distance',
-          test_set_ind:np.ndarray=None, verbose:int=0):
+def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=[5], 
+          metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
     """Perform k-nearest neighbor classification.
     
     Use the (n x n) symmetric distance matrix (D) and target class 
@@ -35,8 +35,11 @@ def score(D:np.ndarray, target:np.ndarray, k:int=5, metric:str='distance',
     target : ndarray
         The n x 1 target class labels (ground truth).
     
-    k : int, optional (default: 5)
+    k : array_like (of dtype=int), optional (default: [5])
         Neighborhood size for k-NN classification.
+        For each value in k, one k-NN experiment is performed.
+        HINT: Providing more than one value for k is a cheap means to perform 
+              multiple k-NN experiments at once. Try e.g. k=[1, 5, 20]
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix
@@ -52,12 +55,16 @@ def score(D:np.ndarray, target:np.ndarray, k:int=5, metric:str='distance',
     
     Returns:
     --------
-    acc : float
-        Classification accuracy
-    corr : ndarray
-        Raw vector of correctly classified items
-    cmat : ndarray
-        Confusion matrix
+    acc : ndarray (shape=(n_k x 1), dtype=float)
+        Classification accuracy (n_k... number of items in parameter k)
+        HINT: Refering to the above example... 
+              ... acc[0] gives the accuracy of the k=1 exp. 
+    corr : ndarray (shape=(n_k x n),dtype=int
+        Raw vectors of correctly classified items
+        HINT: ... corr[1, :] gives these items for the k=5 experiment.
+    cmat : ndarray (shape=(n_k x n_t x n_t), dtype=int) 
+        Confusion matrix (n_t... number of unique items in parameter target)
+        HINT: ... cmat[2, :, :] gives the cmat of the k=20 experiment.
     """
     
     # Check input sanity
@@ -90,14 +97,14 @@ def score(D:np.ndarray, target:np.ndarray, k:int=5, metric:str='distance',
         n = test_set_ind.size
         # Indices of training examples
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
-    # Why would there be a need for more than one k?
+    # Number of k-NN parameters
     k_length = np.size(k)
         
     acc = np.zeros((k_length, 1))
-    corr = np.zeros((D.shape[0], k_length))
+    corr = np.zeros((k_length, D.shape[0]))
         
     cl = np.sort(np.unique(target))
-    cmat = np.zeros((len(cl), len(cl)))
+    cmat = np.zeros((k_length, len(cl), len(cl)))
     
     classes = target.copy()
     for idx in range(len(cl)):
@@ -125,7 +132,7 @@ def score(D:np.ndarray, target:np.ndarray, k:int=5, metric:str='distance',
         d2idx = np.argsort(d2, axis=0)[::sort_order]
         idx = rp[d2idx]      
         
-        # More than one k?
+        # More than one k is useful for cheap multiple k-NN experiments at once
         for j in range(k_length):
             nn_class = classes[idx[0:k[j]]]
             cs = np.bincount(nn_class.astype(int))
@@ -135,14 +142,14 @@ def score(D:np.ndarray, target:np.ndarray, k:int=5, metric:str='distance',
             if len(max_cs) > 1:
                 if seed_class == nn_class[0]:
                     acc[j] += 1/n 
-                    corr[i, j] = 1
-                cmat[seed_class, nn_class[0]] += 1       
+                    corr[j, i] = 1
+                cmat[j, seed_class, nn_class[0]] += 1       
             # majority vote
             else:
                 if cl[max_cs] == seed_class:
                     acc[j] += 1/n
-                    corr[i, j] = 1
-                cmat[seed_class, cl[max_cs]] += 1
+                    corr[j, i] = 1
+                cmat[j, seed_class, cl[max_cs]] += 1
                        
     if verbose:
         log.message("Finished k-NN experiment.")

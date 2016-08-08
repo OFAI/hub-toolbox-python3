@@ -110,7 +110,6 @@ def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=[5],
     for idx in range(len(cl)):
         # change labels to 0, 1, ..., len(cl)-1
         classes[target == cl[idx]] = idx
-        
     cl = range(len(cl))
     
     # Classify each point in test set

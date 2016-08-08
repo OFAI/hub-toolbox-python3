@@ -12,6 +12,7 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import sys
 import numpy as np
 from scipy.sparse import csr_matrix, lil_matrix
 
@@ -263,7 +264,6 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
         elif metric == 'distance':
             di = (Qd - Qc) / (Qc + Qd)
         else:
-            import sys
             print("WARNING: Unknown metric type {}. Assuming 'similarity' "
                   "instead. Sign of result might be reversed, if this is "
                   "wrong!".format(metric.__str__[0:32]), file=sys.stderr)
@@ -280,7 +280,6 @@ class GoodmanKruskal():
         
     def calculate_goodman_kruskal_index(self) -> float:
         """Calculate the Goodman-Kruskal clustering index."""
-        import sys
         print("DEPRECATED: Please use GoodmanKruskal.goodman_kruskal_index "
               "instead.", file=sys.stderr)
         if self.is_similarity_matrix:

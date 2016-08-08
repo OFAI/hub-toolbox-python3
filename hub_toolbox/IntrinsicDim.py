@@ -78,7 +78,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         raise ValueError("Invalid neighborhood: Please make sure that "
                          "0 < k1 <= k2 < n. (Got k1={} and k2={}).".
                          format(k1, k2))
-    X = X.copy()
+    X = X.copy().astype(float)
         
     if data_type == 'vector':
         # New array with unique rows                
@@ -87,12 +87,12 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         if trafo is None:
             pass
         elif trafo == 'var':
-            X -= X.mean(0) # broadcast
-            X /= X.var(0) + 1e-7 # broadcast
+            X -= X.mean(axis=0) # broadcast
+            X /= X.var(axis=0) + 1e-7 # broadcast
         elif trafo == 'std':
             # Standardization
-            X -= X.mean(0) # broadcast
-            X /= X.std(0) + 1e-7 # broadcast
+            X -= X.mean(axis=0) # broadcast
+            X /= X.std(axis=0) + 1e-7 # broadcast
         else:
             raise ValueError("Transformation must be None, 'std', or 'var'.")
         

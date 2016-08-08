@@ -15,7 +15,7 @@ Contact: <roman.feldbauer@ofai.at>
 
 import numpy as np
 from hub_toolbox.Hubness import hubness
-from hub_toolbox.KnnClassification import KnnClassification
+from hub_toolbox.KnnClassification import score
 from hub_toolbox.GoodmanKruskal import goodman_kruskal_index
 from hub_toolbox.IntrinsicDim import intrinsic_dimension
 from hub_toolbox.MutualProximity import MutualProximity, Distribution
@@ -206,11 +206,11 @@ class HubnessAnalysis():
         print('% of k=5-NN lists the largest hub occurs : {:.4}%'.format(\
             100 * max(Nk5)/self.n))
         if self.haveClasses:
-            for k in [1, 5, 20]:
-                knn = KnnClassification(D, self.classes, k)
-                acc = knn.perform_knn_classification()[0]
+            k_params = [1, 5, 20]
+            acc = score(D, self.classes, k_params, 'distance', None, 0)[0]
+            for i, k in enumerate(k_params):
                 print('k={:2}-NN classification accuracy          : {:.4}%'.format(\
-                        k, 100*float(acc[0])))                
+                        k, 100*float(acc[i])))                
             print('Goodman-Kruskal index (higher=better)    : {:.3}'.format(\
                 goodman_kruskal_index(D, self.classes, 'distance')))
         else:

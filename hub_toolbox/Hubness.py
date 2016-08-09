@@ -142,8 +142,8 @@ class Hubness():
         return hubness(self.D, self.k, metric, debug)
     
 if __name__ == '__main__':
-    from hub_toolbox import HubnessAnalysis as ha
-    h = ha.HubnessAnalysis()
-    hub = Hubness(h.D)
-    Sn, Dk, Nk = hub.calculate_hubness(True)
+    """Simple test case"""
+    from hub_toolbox.HubnessAnalysis import load_dexter
+    D, l, v = load_dexter()
+    Sn, Dk, Nk = hubness(D)
     print("Hubness =", Sn)

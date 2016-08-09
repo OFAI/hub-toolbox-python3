@@ -17,13 +17,14 @@ import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
 from hub_toolbox import Logging
+import sys
     
 def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
                   test_set_ind:np.ndarray=None):
     """Transform a distance matrix with Local Scaling.
     
     Transforms the given distance matrix into new one using local scaling [1]
-    with the given neighborhood radius k. There are two types of local
+    with the given k-th nearest neighbor. There are two types of local
     scaling methods implemented. The original one and NICDM, both reduce
     hubness in distance spaces, similarly to Mutual Proximity.
     
@@ -61,9 +62,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         raise TypeError("Distance/similarity matrix is not quadratic.")
     if metric != 'similarity' and metric != 'distance':
         raise ValueError("Parameter 'metric' must be 'distance' "
-                         "or 'similarity'.")
-    D = np.copy(D)
-    
+                         "or 'similarity'.")    
     if metric == 'similarity':
         sort_order = -1
         exclude = -np.inf
@@ -79,6 +78,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
             raise NotImplementedError(
                       "Sparse distance matrices are not supported.") 
             
+    D = np.copy(D)
     n = D.shape[0]
     if test_set_ind is None:
         train_set_ind = slice(0, n) #take all        
@@ -120,8 +120,8 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     """Transform a distance matrix with local scaling variant NICDM.
     
     Transforms the given distance matrix into new one using NICDM [1]
-    with the given neighborhood radius k. There are two types of local
-    scaling methods implemented. The original one and the non-iterative 
+    with the given neighborhood radius k (average). There are two types of 
+    local scaling methods implemented. The original one and the non-iterative 
     contextual dissimilarity measure, both reduce hubness in distance spaces, 
     similarly to Mutual Proximity.
     
@@ -133,8 +133,8 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     k : int, optional (default: 7)
         Neighborhood radius for local scaling.
     
-    metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix 'D' is a distance or similarity matrix
+    metric : {'distance'}, optional (default: 'distance')
+        Currently, only distance matrices are supported.
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
@@ -152,28 +152,64 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.
     """
-
-class LocalScaling():
+    #log = Logging.ConsoleLogging()
+    # Checking input
+    if D.shape[0] != D.shape[1]:
+        raise TypeError("Distance/similarity matrix is not quadratic.")
+    if metric != 'similarity' and metric != 'distance':
+        raise ValueError("Parameter 'metric' must be 'distance' "
+                         "or 'similarity'.")
+    if metric == 'similarity':
+        raise NotImplementedError("NICDM does not support similarity matrices "
+                                  "at the moment.")
+    D = np.copy(D)
     
+    if metric == 'distance':
+        sort_order = 1
+        exclude = np.inf
+    else: #metric == 'similarity':
+        sort_order = -1
+        exclude = -np.inf
+            
+    n = D.shape[0]
+    
+    if test_set_ind is None:
+        train_set_ind = slice(0, n)
+    else:
+        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+         
+    r = np.zeros(n)
+    np.fill_diagonal(D, np.inf)
+    for i in range(n):
+        di = D[i, :].copy()
+        di[i] = exclude
+        di = di[train_set_ind]
+        nn = np.argsort(di)[::sort_order]
+        r[i] = np.mean(di[nn[0:k]]) # largest sim. or smallest dist.
+    rg = _local_geomean(r)
+     
+    D_nicdm = np.zeros_like(D)
+    for i in range(n):
+        # vectorized inner loop for 100x speed-up (using broadcasting)
+        D_nicdm[i, i+1:] = (rg * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
+    D_nicdm += D_nicdm.T
+     
+    return D_nicdm
+
+def _local_geomean(x):
+    return np.exp(np.sum(np.log(x)) / np.max(np.shape(x)))
+
+##############################################################################
+#
+# DEPRECATED class
+#
+class LocalScaling():
+    """DEPRECATED"""
     
     def __init__(self, D, k:int=7, scalingType='nicdm', isSimilarityMatrix=False):
-        """Usage:
-        ls = local_scaling(D, k, scalingType) 
-            - Applies local scaling to the distance
-             matrix D (NxN). The parameter k sets the neighborhood radius. 
-        ls.perform_local_scaling()
-            - Return the scaled distance matrix.
-        
-        Possible types (scalingType parameter):
-          'original': Original Local Scaling using the distance of the k'th
-             nearest neighbor.
-          'nicdm': Local Scaling using the average distance of the k nearest
-             neighbors.
-        Create an instance for local scaling. 
-        Parameters:
-        k... neighborhood radius (DEFAULT = 7)
-        scalingType... local scaling algorithm ['original', 'nicdm'] (DEFAULT='nicdm')
-        """
+        """DEPRECATED"""
+        print("DEPRECATED: Please use LocalScaling.local_scaling() or "
+              "LocalScaling.nicdm() instead.", file=sys.stderr)
         self.log = Logging.ConsoleLogging()
         self.D = np.copy(D)
         self.k = k
@@ -207,7 +243,7 @@ class LocalScaling():
                                "Sparse distance matrices are not supported.")    
             
     def perform_local_scaling(self, test_set_mask=None):
-        """Transform distance matrix using local scaling."""
+        """DEPRECATED"""
         
         if self.scalingType == 'original':
             Dls = self.ls_k(test_set_mask)
@@ -222,115 +258,18 @@ class LocalScaling():
         return Dls
                 
     def ls_k(self, test_set_mask=None):
-        """Perform local scaling (original), using the k-th nearest neighbor."""
-        if test_set_mask is not None:
-            train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
+        """DEPRECATED"""
+        if self.isSimilarityMatrix:
+            metric = 'similarity'
         else:
-            train_set_mask = np.ones(self.D.shape[0], np.bool)        
-        
-        length_D = np.max(np.shape(self.D))
-        r = np.zeros((length_D, 1))
-        for i in range(length_D):
-            if issparse(self.D):
-                di = self.D[i, train_set_mask].toarray()
-            else:
-                di = self.D[i, train_set_mask]
-            di[i] = self.exclude
-            nn = np.argsort(di)[::self.sort_order]
-            r[i] = di[nn[self.k-1]] #largest similarities or smallest distances
-        
-        n = np.shape(self.D)[0]
-        if issparse(self.D):
-            Dls = dok_matrix(self.D.shape)
-        else:
-            Dls = np.zeros(np.shape(self.D), dtype = self.D.dtype)
-        for i in range(n):
-            for j in range(i+1, n):
-                if self.isSimilarityMatrix:
-                    #Dls[i, j] = np.exp(-self.D[i, j] / np.sqrt( r[i] * r[j] ))
-                    Dls[i, j] = self.D[i, j] / np.sqrt( r[i] * r[j] )
-                else:
-                    Dls[i, j] = self.D[i, j] / np.sqrt( r[i] * r[j] )
-                Dls[j, i] = Dls[i, j]
-        if issparse(self.D):
-            return Dls.tocsr()
-        else:
-            return Dls
+            metric = 'distance'
+        return local_scaling(self.D, self.k, metric, test_set_mask)
         
     def ls_nicdm(self, test_set_mask=None):
-        """Local scaling variant: Non-Iterative Contextual Dissimilarity Measure
-            This uses the mean over the k nearest neighbors.
-        """
-         
-        #=======================================================================
-        # if self.isSimilarityMatrix:
-        #     return self.ls_nicdm_sim(test_set_mask)
-        # 
-        #=======================================================================
-        if test_set_mask is not None:
-            train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
+        """DEPRECATED"""
+        if self.isSimilarityMatrix:
+            metric = 'similarity'
         else:
-            train_set_mask = np.ones(self.D.shape[0], np.bool)
-             
-        length_D = np.max(np.shape(self.D))
-        r = np.zeros((length_D, 1))
-        np.fill_diagonal(self.D, np.inf)
-        for i in range(length_D):
-            di = self.D[i, :].copy()
-            di[i] = self.exclude
-            di = di[train_set_mask]
-            nn = np.argsort(di)[::self.sort_order]
-            r[i] = np.mean(di[nn[0:self.k]]) # largest sim. or smallest dist.
-        rg = self.local_geomean(r)
-         
-        if self.isSimilarityMatrix:
-            self.D = 1 - self.D / self.D.max()
-        Dnicdm = np.zeros(np.shape(self.D), dtype = self.D.dtype)
-        for i in range(length_D):
-            for j in range(i+1, length_D):
-                Dnicdm[i, j] = (rg * self.D[i, j]) / np.sqrt( r[i] * r[j] )
-                Dnicdm[j, i] = Dnicdm[i, j]
-        if self.isSimilarityMatrix:
-            Dnicdm = 1 - Dnicdm / Dnicdm.max() 
-         
-        return Dnicdm
-    
-    #===========================================================================
-    # def ls_nicdm_sim(self, test_set_mask=None):
-    #     """Local scaling variant: Non-Iterative Contextual Dissimilarity Measure
-    #         This uses the mean over the k nearest neighbors.
-    #     """
-    #      
-    #     if test_set_mask is not None:
-    #         train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
-    #     else:
-    #         train_set_mask = np.ones(self.D.shape[0], np.bool)
-    #          
-    #     if self.isSimilarityMatrix:
-    #         self.D /= self.D.max()
-    #         
-    #     length_D = np.max(np.shape(self.D))
-    #     f = np.zeros((length_D, 1))
-    #     np.fill_diagonal(self.D, self.exclude)
-    #     for i in range(length_D):
-    #         si = self.D[i, train_set_mask]
-    #         #di[i] = self.exclude
-    #         nn = np.argsort(si)[::self.sort_order]
-    #         f[i] = np.mean(1-si[nn[0:self.k]]) # largest sim. or smallest dist.
-    # 
-    #     fg = self.local_geomean(f)
-    #      
-    #     Snicdm = np.zeros(np.shape(self.D), dtype = self.D.dtype)
-    #     for i in range(length_D):
-    #         for j in range(i+1, length_D):
-    #             Snicdm[i, j] = 1 - (fg**2 * (1-self.D[i, j])) / ( f[i] * f[j] )
-    #             #Snicdm[i, j] = 1 - ((1-self.D[i, j]) * (f[i] * f[j])) / (fg**2) 
-    #             Snicdm[j, i] = Snicdm[i, j]
-    #     
-    #     np.fill_diagonal(Snicdm, 1)
-    #      
-    #     return Snicdm
-    #===========================================================================
-            
-    
-        
+            metric = 'distance'
+        return nicdm(self.D, self.k, metric, test_set_mask)  
+       

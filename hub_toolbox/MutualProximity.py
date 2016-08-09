@@ -16,14 +16,14 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse import dok_matrix
+from scipy.sparse.dok import dok_matrix
+from scipy.sparse.lil import lil_matrix
 from scipy.sparse.csr import csr_matrix
 from scipy.sparse.base import issparse
 from hub_toolbox import IO, Logging
 import sys
 # DEPRECATED
 from enum import Enum
-from scipy.sparse.lil import lil_matrix
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
                              test_set_ind:np.ndarray=None, verbose:int=0):
@@ -130,7 +130,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     S_mp = lil_matrix(S.shape)
     
     for i in range(n-1):
-        if verbose and ((i+1)%1000 == 0 or i==n-2):
+        if verbose and log and ((i+1)%1000 == 0 or i==n-2):
             log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
         for j in range(i+1, n):
             d = S[j, i]
@@ -404,11 +404,160 @@ def _mutual_proximity_gaussi_sparse(D:np.ndarray, sample_size:int=0,
     
     return D_mp.tocsr()
 
-def mutual_proximity_gammai():
-    pass
+def mutual_proximity_gammai(D:np.ndarray, metric:str='distance', 
+                             test_set_ind:np.ndarray=None, verbose:int=0):
+    """Transform a distance matrix with Mutual Proximity (indep. Gamma distr.).
+    
+    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gammai 
+    variant assumes independent Gamma distributed distances (FAST).
+    The resulting second. distance/similarity matrix should show lower hubness.
+    
+    Parameters:
+    -----------
+    D : ndarray or csr_matrix
+        - ndarray: The n x n symmetric distance or similarity matrix.
+        - csr_matrix: The n x n symmetric similarity matrix.
+    
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix 'D' is a distance or similarity matrix.
+        NOTE: In case of sparse D, only 'similarity' is supported.
+        
+    test_sed_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set. 
+        
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+        
+    Returns:
+    --------
+    D_mp : ndarray
+        Secondary distance MP gammai matrix.
+    
+    See also:
+    ---------
+    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+    Local and global scaling reduce hubs in space. The Journal of Machine 
+    Learning Research, 13(1), 2871–2902.
+    """   
+    n = D.shape[0]
+    log = Logging.ConsoleLogging()
+    if D.shape[0] != D.shape[1]:
+        raise TypeError("Distance/similarity matrix is not quadratic.")
+    if metric != 'similarity' and metric != 'distance':
+        raise ValueError("Parameter 'metric' must be 'distance' "
+                         "or 'similarity'.")  
+    if metric == 'similarity':
+        self_value = 1
+    else: # metric == 'distance':
+        self_value = 0  
+    if test_set_ind is None:
+        train_set_ind = slice(0, n)
+    else:
+        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+    D = D.copy()
+    if verbose:
+        log.message('Mutual proximity Gammai rescaling started.', flush=True)
+    
+    if issparse(D):
+        return _mutual_proximity_gammai_sparse(D, test_set_ind, verbose, log)
+
+    np.fill_diagonal(D, self_value)
+    
+    mu = np.mean(D[train_set_ind], 0)
+    va = np.var(D[train_set_ind], 0, ddof=1)
+    A = (mu**2) / va
+    B = va / mu
+    
+    Dmp = np.zeros_like(D)
+    
+    for i in range(n):
+        if verbose and ((i+1)%1000 == 0 or i+1==n):
+            log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
+        j_idx = np.arange(i+1, n)
+        j_len = np.size(j_idx)
+        
+        if metric == 'similarity':
+            p1 = _local_gamcdf(D[i, j_idx], \
+                               np.tile(A[i], (1, j_len)), \
+                               np.tile(B[i], (1, j_len)))
+            p2 = _local_gamcdf(D[j_idx, i].T, 
+                               A[j_idx], 
+                               B[j_idx])
+            Dmp[i, i] = self_value
+            Dmp[i, j_idx] = (p1 * p2).ravel()
+        else: # distance
+            p1 = 1 - _local_gamcdf(D[i, j_idx], \
+                                  np.tile(A[i], (1, j_len)), \
+                                  np.tile(B[i], (1, j_len)))
+            p2 = 1 - _local_gamcdf(D[j_idx, i].T, 
+                                   A[j_idx], 
+                                   B[j_idx])
+            Dmp[i, j_idx] = (1 - p1 * p2).ravel()
+            
+        Dmp[j_idx, i] = Dmp[i, j_idx]               
+    
+    return Dmp
+
+def _mutual_proximity_gammai_sparse(D:np.ndarray, 
+                                    test_set_ind:np.ndarray=None, 
+                                    verbose:int=0, log=None):
+    """MP gammai for sparse similarity matrices. 
+    
+    Please do not directly use this function, but invoke via 
+    mutual_proximity_gammai()
+    """
+    # mean, variance WITH zero values
+    #=======================================================================
+    # from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  
+    # mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
+    #=======================================================================
+    
+    # mean, variance WITHOUT zero values (missing values)
+    # TODO implement train_test split
+    mu = np.array(D.sum(0) / D.getnnz(0)).ravel()
+    X = D.copy()
+    X.data **= 2
+    E1 = np.array(X.sum(0) / X.getnnz(0)).ravel()
+    del X
+    va = E1 - mu**2
+    del E1
+    
+    A = (mu**2) / va
+    B = va / mu
+    del mu, va
+    A[A<0] = np.nan
+    B[B<=0] = np.nan
+
+    Dmp = dok_matrix(D.shape, dtype=np.float32)
+    n = D.shape[0]
+    self_value = 1.
+    
+    for i in range(n):
+        if verbose and log and ((i+1)%1000 == 0 or i+1==n):
+            log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
+        j_idx = np.arange(i+1, n)
+        j_len = np.size(j_idx)
+         
+        Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
+        Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
+        
+        p1 = _local_gamcdf(Dij, # TODO should be changed to broadcasting
+                           np.tile(A[i], (1, j_len)), np.tile(B[i], (1, j_len)))
+        del Dij
+        p2 = _local_gamcdf(Dji, A[j_idx], B[j_idx])
+        del Dji#, A, B
+        tmp = (p1 * p2).ravel()
+        Dmp[i, i] = self_value
+        Dmp[i, j_idx] = tmp     
+        Dmp[j_idx, i] = tmp[:, np.newaxis]
+        del tmp, j_idx
+           
+    return Dmp.tocsr()
 
 def _local_gamcdf(self, x, a, b):
-    """Gamma CDF"""
+    """Gamma CDF, moment estimator"""
     a[a<0] = np.nan
     b[b<=0] = np.nan
     x[x<0] = 0
@@ -479,7 +628,6 @@ class MutualProximity():
        
         return Dmp
          
-
     def mp_empiric_sparse(self, train_set_mask=None, verbose=False):
         """DEPRECATED"""
         return mutual_proximity_empiric(self.D, 'similarity', None, verbose)
@@ -506,7 +654,6 @@ class MutualProximity():
             test_set_ind = None
         return mutual_proximity_gauss(self.D, metric, test_set_ind, verbose)
         
-        
     def mp_gaussi_sparse(self, train_set_mask, verbose):
         """DEPRECATED"""
         if train_set_mask is not None:
@@ -528,112 +675,23 @@ class MutualProximity():
             test_set_ind = None
         return mutual_proximity_gaussi(self.D, metric, sample_size, test_set_ind, verbose)
     
-
     def mp_gammai_sparse(self, train_set_mask, verbose):
-        # mean, variance WITH zero values
-        #=======================================================================
-        # from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  
-        # mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
-        #=======================================================================
-        
-        # mean, variance WITHOUT zero values (missing values)
-        # TODO implement train_test split
-        mu = np.array(self.D.sum(0) / self.D.getnnz(0)).ravel()
-        X = self.D.copy()
-        X.data **= 2
-        E1 = np.array(X.sum(0) / X.getnnz(0)).ravel()
-        del X
-        va = E1 - mu**2
-        del E1
-        
-        A = (mu**2) / va
-        B = va / mu
-        del mu, va
-        A[A<0] = np.nan
-        B[B<=0] = np.nan
-
-        Dmp = dok_matrix(self.D.shape, dtype=np.float32)
-        n = self.D.shape[0]
-        
-        for i in range(n):
-            if verbose and ((i+1)%1000 == 0 or i+1==n):
-                self.log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
-            j_idx = np.arange(i+1, n)
-            j_len = np.size(j_idx)
-             
-
-            Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
-            Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
-            
-            p1 = self.local_gamcdf(Dij, \
-                                   np.tile(A[i], (1, j_len)), \
-                                   np.tile(B[i], (1, j_len)))
-            del Dij
-            p2 = self.local_gamcdf(Dji, 
-                                   A[j_idx], 
-                                   B[j_idx])
-            del Dji#, A, B
-            tmp = (p1 * p2).ravel()
-            Dmp[i, i] = self.self_value
-            Dmp[i, j_idx] = tmp     
-            Dmp[j_idx, i] = tmp[:, np.newaxis]
-            del tmp, j_idx
-               
-        return Dmp.tocsr()
-    
+        """DEPRECATED"""
+        if train_set_mask is not None:
+            test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
+        else:
+            test_set_ind = None
+        return mutual_proximity_gammai(self.D, 'similarity', test_set_ind, verbose)
     
     def mp_gammai(self, train_set_mask=None, verbose=False):
-        """Compute Mutual Proximity modeled with independent Gamma distributions."""
+        """DEPRECATED"""
         if self.isSimilarityMatrix:
-            self.log.warning("Similarity-based I.Gamma MP support is still experimental.")
-        if verbose:
-            self.log.message('Mutual proximity rescaling started.', flush=True)
-        
-        if not issparse(self.D):
-            np.fill_diagonal(self.D, self.self_value)
+            metric = 'similarity'
         else:
-            #self.log.error("Sparse matrices not supported yet.")
-            return self.mp_gammai_sparse(train_set_mask, verbose)
-        
-        mu = np.mean(self.D[train_set_mask], 0)
-        va = np.var(self.D[train_set_mask], 0, ddof=1)
-        A = (mu**2) / va
-        B = va / mu
-        
-        if isinstance(self.D, np.memmap):
-            from tempfile import mkstemp
-            filename = mkstemp(suffix='pytmp')[1] # [0]... fd, [1]... filename
-            self.log.message("Writing rescaled distance matrix to file:", filename)
-            Dmp = np.memmap(filename, dtype='float64', mode='w+', shape=self.D.shape)
-        else:
-            Dmp = np.zeros_like(self.D)
-        n = np.size(self.D, 0)
-        
-        for i in range(n):
-            if verbose and ((i+1)%1000 == 0 or i+1==n):
-                self.log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
-            j_idx = np.arange(i+1, n)
-            j_len = np.size(j_idx)
-            
-            if self.isSimilarityMatrix:
-                p1 = self.local_gamcdf(self.D[i, j_idx], \
-                                       np.tile(A[i], (1, j_len)), \
-                                       np.tile(B[i], (1, j_len)))
-                p2 = self.local_gamcdf(self.D[j_idx, i].T, 
-                                       A[j_idx], 
-                                       B[j_idx])
-                Dmp[i, i] = self.self_value
-                Dmp[i, j_idx] = (p1 * p2).ravel()
-            else:
-                p1 = 1 - self.local_gamcdf(self.D[i, j_idx], \
-                                           np.tile(A[i], (1, j_len)), \
-                                           np.tile(B[i], (1, j_len)))
-                p2 = 1 - self.local_gamcdf(self.D[j_idx, i].T, 
-                                           A[j_idx], 
-                                           B[j_idx])
-                Dmp[i, j_idx] = (1 - p1 * p2).ravel()
-                
-            Dmp[j_idx, i] = Dmp[i, j_idx]               
-        
-        return Dmp
+            metric = 'distance' 
+        if train_set_mask is not None:
+            test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
+        else:#
+            test_set_ind = None
+        return mutual_proximity_gammai(self.D, metric, test_set_ind, verbose)
     

@@ -78,7 +78,7 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     if test_set_ind is None:
         pass # TODO implement
         #train_set_ind = slice(0, n)
-    else:
+    elif not np.all(~test_set_ind):
         raise NotImplementedError("MP empiric does not yet support train/"
                                   "test splits.")
         #train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
@@ -350,7 +350,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
             p1 = 1 - norm.cdf(D[i, j_idx], \
                               np.tile(mu[i], (1, j_len)), \
                               np.tile(sd[i], (1, j_len)))
-            p2 = 1 - norm.cdf(self.D[j_idx, i].T, \
+            p2 = 1 - norm.cdf(D[j_idx, i].T, \
                               mu[j_idx], \
                               sd[j_idx])
             D_mp[i, j_idx] = (1 - p1 * p2).ravel()
@@ -488,9 +488,9 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
             Dmp[i, i] = self_value
             Dmp[i, j_idx] = (p1 * p2).ravel()
         else: # distance
-            p1 = 1 - _local_gamcdf(D[i, j_idx], \
-                                  np.tile(A[i], (1, j_len)), \
-                                  np.tile(B[i], (1, j_len)))
+            p1 = 1 - _local_gamcdf(D[i, j_idx], 
+                                   np.tile(A[i], (1, j_len)), 
+                                   np.tile(B[i], (1, j_len)))
             p2 = 1 - _local_gamcdf(D[j_idx, i].T, 
                                    A[j_idx], 
                                    B[j_idx])
@@ -556,7 +556,7 @@ def _mutual_proximity_gammai_sparse(D:np.ndarray,
            
     return Dmp.tocsr()
 
-def _local_gamcdf(self, x, a, b):
+def _local_gamcdf(x, a, b):
     """Gamma CDF, moment estimator"""
     a[a<0] = np.nan
     b[b<=0] = np.nan

@@ -36,7 +36,8 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         Neighborhood radius for local scaling.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix 'D' is a distance or similarity matrix
+        Define, whether matrix 'D' is a distance or similarity matrix.
+        NOTE: self similarities in D_ls are set to np.inf
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
@@ -65,12 +66,14 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     
     if metric == 'similarity':
         sort_order = -1
-        exclude = -np.inf 
+        exclude = -np.inf
+        self_value = np.inf
         if issparse(D):
             log.warning("Sparse matrix support for LS is experimental.")
-    else:
+    else: # metric == 'distance':
         sort_order = 1
         exclude = np.inf
+        self_value = 0
         if issparse(D):
             log.error("Sparse distance matrices are not supported.")
             raise NotImplementedError(
@@ -99,8 +102,12 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         
     for i in range(n):
         # vectorized inner loop: calc only triu part
-        D_ls[i, i+1:] = D[i, i+1:] / np.sqrt(r[i] * r[i+1:])
+        tmp = np.empty(n-i)
+        tmp[0] = self_value
+        tmp[1:] = D[i, i+1:] / np.sqrt(r[i] * r[i+1:])
+        D_ls[i, i:] = tmp
     # copy triu to tril -> symmetric matrix (diag=zeros)
+    # NOTE: does not affect self values, since inf+inf=inf and 0+0=0
     D_ls += D_ls.T
     
     if issparse(D):

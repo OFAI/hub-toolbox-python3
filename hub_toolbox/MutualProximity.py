@@ -257,6 +257,14 @@ def mutual_proximity_gaussi():
 def mutual_proximity_gammai():
     pass
 
+def _local_gamcdf(self, x, a, b):
+    """Gamma CDF"""
+    a[a<0] = np.nan
+    b[b<=0] = np.nan
+    x[x<0] = 0
+    z = x / b
+    p = gammainc(a, z)
+    return p
 
 class Distribution(Enum):
     """DEPRECATED"""
@@ -341,10 +349,15 @@ class MutualProximity():
     
     def mp_gauss(self, train_set_mask=None, verbose=False):
         """DEPRECATED"""
-        return mutual_proximity_gauss()
+        if self.isSimilarityMatrix:
+            metric = 'similarity'
+        else:
+            metric = 'distance' 
+        if train_set_mask is not None:
+            test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
+        return mutual_proximity_gauss(self.D, metric, test_set_ind, verbose)
         
-    
-    
+        
     def mp_gaussi_sparse(self, train_set_mask, verbose):
         n = self.D.shape[0]
         from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
@@ -378,25 +391,6 @@ class MutualProximity():
             Dmp[i, j_idx] = tmp            
             Dmp[j_idx, i] = tmp[:, np.newaxis]   
             del tmp, j_idx
-    
-        # non-vectorized code
-        #=======================================================================
-        # for i in range(n):
-        #     if verbose and ((i+1)%1000 == 0 or i+1==n):
-        #         self.log.message("MP_gaussi: {} of {}."
-        #                          .format(i+1, n), flush=True)
-        #     for j in range(i+1, n):
-        #         if self.D[i, j] > 0:       
-        #             if self.isSimilarityMatrix:
-        #                 p1 = norm.cdf(self.D[i, j], mu[i], sd[i])
-        #                 p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
-        #                 Dmp[i, j] = (p1 * p2).ravel()
-        #             else:
-        #                 p1 = 1 - norm.cdf(self.D[i, j], mu[i], sd[i])
-        #                 p2 = 1 - norm.cdf(self.D[j, i], mu[j], sd[j])
-        #                 Dmp[i, j] = (1 - p1 * p2).ravel()
-        #             Dmp[j, i] = Dmp[i, j]
-        #=======================================================================
         
         return Dmp.tocsr()
 
@@ -420,174 +414,43 @@ class MutualProximity():
         if issparse(self.D):
             #self.log.error("Sparse matrices not supported yet.")
             return self.mp_gaussi_sparse(train_set_mask, verbose)
-        
-        # Get memory info
-        free_mem = IO.FreeMemLinux(unit='k').user_free
-        req_mem = self.D.nbytes
-        mem_ratio = int(req_mem / free_mem ) 
-                
+            
         # Calculate mean and std
-        if mem_ratio < 2.0 and not enforce_disk:
-            if verbose:
-                self.log.message('Calculating distribution parameters in memory.'
-                                'Number of samples for parameter estimation: {}'.
-                                format(sample_size))
-            if sample_size != 0:
-                samples = np.random.shuffle(train_set_mask)[0:sample_size]
-                mu = np.mean(self.D[samples], 0)
-                sd = np.std(self.D[samples], 0, ddof=1)
-            else:
-                mu = np.mean(self.D[train_set_mask], 0)
-                sd = np.std(self.D[train_set_mask], 0, ddof=1)
-        # ... using tertiary memory, if necessary
+        if sample_size != 0:
+            samples = np.random.shuffle(train_set_mask)[0:sample_size]
+            mu = np.mean(self.D[samples], 0)
+            sd = np.std(self.D[samples], 0, ddof=1)
         else:
-            if verbose:
-                self.log.message('Calculating Gaussian parameters on disk. '
-                                'Number of samples for parameter estimation: '
-                                '{}'.format(sample_size))
-            if not np.all(train_set_mask) and isinstance(self.D, np.memmap):
-                raise NotImplementedError("Using train/test splits and working "
-                                          "and working on disk at the same time"
-                                          "not supported atm.")
-            mu = np.zeros(self.D.shape[1])
-            sd = np.zeros_like(mu)
-            
-            if sample_size != 0:
-                idx = np.arange(self.D.shape[0])
-                np.random.shuffle(idx)
-                samples = idx[0:sample_size]
-                
-                for i, row in enumerate(self.D[samples].T):
-                    if verbose and ((i+1)%10000 == 0 or i+1 == n):
-                        self.log.message("MP_gaussi mean/std: "
-                                        "{} of {}.".format(i+1, n), flush=True)
-                    mu[i] = row.mean()
-                    sd[i] = row.std(ddof=1)    
-            else:
-                for i, row in enumerate(self.D.T):
-                    if verbose and ((i+1)%10000 == 0 or i+1 == n):
-                        self.log.message("MP_gaussi mean/std: "
-                                        "{} of {}.".format(i+1, n), flush=True)
-                    mu[i] = row.mean()
-                    sd[i] = row.std(ddof=1)                            
+            mu = np.mean(self.D[train_set_mask], 0)
+            sd = np.std(self.D[train_set_mask], 0, ddof=1)
         
-        # work on disk
-        if isinstance(self.D, np.memmap) or enforce_disk:
-            if filename is None:
-                # create distance matrix on disk
-                from tempfile import mkstemp
-                filename = mkstemp(suffix='pytmp')[1] # [0]... fd, [1]... filename
-            #else: 
-            #    filename was provided via function call
-            self.log.message("Writing rescaled distance matrix to file:", filename)
-            Dmp = np.memmap(filename, dtype='float64', mode='w+', shape=self.D.shape)
-            # determine number of rows that fit into free memory
-            #------------- max_rows = int(free_mem / n / 8) # 8 byte per float64
-            # take_rows = int(max_rows / 8) # allow the current matrices to occupy 1/4 of the available memory
-            #-------------------------- nr_batches = int(np.ceil(n / take_rows))
-            nr_batches, take_rows = IO.matrix_split(n, n, 8, 4)
-            if verbose:
-                self.log.message('Divided {}x{} matrix into {} '
-                                'batches of {} rows each.'.
-                                format(n, n, nr_batches, take_rows), flush=True)
-            i = 0
-            # work on submatrices, trying to minimize disk I/O
-            for h in range(nr_batches):
-                idx_start = h*take_rows
-                idx_stop = (h+1)*take_rows
-                if idx_stop > n:
-                    idx_stop = n
-                idx = np.arange(idx_start, idx_stop).astype(np.int)
-                current_rows = np.copy(self.D[idx, :])
-                current_cols = np.copy(self.D[:, idx])
-                # fill diag with 0 (self distance = 0)
-                for r, c in enumerate(idx):
-                    current_rows[r, c] = 0
-                for c, r in enumerate(idx):
-                    current_cols[r, c] = 0 
-                updated_rows = np.zeros_like(current_rows)
-                # calculations on submatrix in memory
-                for inner_row in range(len(idx)):
-                    if verbose and ((i+1)%1000 == 0 or i+1==n):
-                        self.log.message("MP_gaussi: {} of {}.".format(i+1, n), 
-                                        flush=True)
-                    j_idx = np.arange(i+1, n)
-                    j_len = np.size(j_idx)
-                    
-                    if self.isSimilarityMatrix:
-                        p1 = norm.cdf(current_rows[inner_row, j_idx], \
-                                          np.tile(mu[i], (1, j_len)), \
-                                          np.tile(sd[i], (1, j_len)))        
-                        p2 = norm.cdf(current_cols[j_idx, inner_row].T, \
-                                          mu[j_idx], \
-                                          sd[j_idx])
-                        updated_rows[inner_row, j_idx] = (p1 * p2).ravel()
-                    else:
-                        p1 = 1 - norm.cdf(current_rows[inner_row, j_idx], \
-                                          np.tile(mu[i], (1, j_len)), \
-                                          np.tile(sd[i], (1, j_len)))        
-                        p2 = 1 - norm.cdf(current_cols[j_idx, inner_row].T, \
-                                          mu[j_idx], \
-                                          sd[j_idx])
-                        updated_rows[inner_row, j_idx] = (1 - p1 * p2).ravel()
-                    i += 1
-                # writing changes for many rows at once
-                Dmp[idx, :] = updated_rows
+        Dmp = np.zeros_like(self.D)
+        for i in range(n):
+            if verbose and ((i+1)%1000 == 0 or i+1==n):
+                self.log.message("MP_gaussi: {} of {}."
+                                 .format(i+1, n), flush=True)
+            j_idx = np.arange(i+1, n)
+            j_len = np.size(j_idx)
             
-            # make symmetric distance matrix
-            #Dmp += Dmp.T # inefficient
-            # hopefully faster using submatrices:
-            for h in range(nr_batches):
-                if verbose:
-                    self.log.message('MP finalization: batch {}/{}.'.
-                                     format(h, nr_batches-1), flush=True)
-                row_start = h*take_rows
-                row_stop = (h+1)*take_rows
-                if row_stop > n:
-                    row_stop = n
-                row_idx = np.arange(row_start, row_stop).astype(np.int)
-                col_start = row_start
-                col_stop = n
-                col_idx = np.arange(col_start, col_stop).astype(np.int)
-                
-                current_rows = np.copy(Dmp[np.ix_(row_idx, col_idx)])
-                current_cols = np.copy(Dmp[np.ix_(col_idx, row_idx)])
-                # mirroring the matrix
-                current_cols += current_rows.T
-                Dmp[np.ix_(col_idx, row_idx)] = current_cols 
-            
-            # need to set self value in case of similarity matrix
             if self.isSimilarityMatrix:
-                np.fill_diagonal(Dmp, self.self_value)
-    
-        else: # work in memory
-            Dmp = np.zeros_like(self.D)
-            for i in range(n):
-                if verbose and ((i+1)%1000 == 0 or i+1==n):
-                    self.log.message("MP_gaussi: {} of {}."
-                                     .format(i+1, n), flush=True)
-                j_idx = np.arange(i+1, n)
-                j_len = np.size(j_idx)
-                
-                if self.isSimilarityMatrix:
-                    p1 = norm.cdf(self.D[i, j_idx], \
+                p1 = norm.cdf(self.D[i, j_idx], \
+                              np.tile(mu[i], (1, j_len)), \
+                              np.tile(sd[i], (1, j_len)))
+                p2 = norm.cdf(self.D[j_idx, i].T, \
+                              mu[j_idx], \
+                              sd[j_idx])
+                Dmp[i, i] = self.self_value
+                Dmp[i, j_idx] = (p1 * p2).ravel()
+            else:
+                p1 = 1 - norm.cdf(self.D[i, j_idx], \
                                   np.tile(mu[i], (1, j_len)), \
                                   np.tile(sd[i], (1, j_len)))
-                    p2 = norm.cdf(self.D[j_idx, i].T, \
+                p2 = 1 - norm.cdf(self.D[j_idx, i].T, \
                                   mu[j_idx], \
                                   sd[j_idx])
-                    Dmp[i, i] = self.self_value
-                    Dmp[i, j_idx] = (p1 * p2).ravel()
-                else:
-                    p1 = 1 - norm.cdf(self.D[i, j_idx], \
-                                      np.tile(mu[i], (1, j_len)), \
-                                      np.tile(sd[i], (1, j_len)))
-                    p2 = 1 - norm.cdf(self.D[j_idx, i].T, \
-                                      mu[j_idx], \
-                                      sd[j_idx])
-                    Dmp[i, j_idx] = (1 - p1 * p2).ravel()
-                    
-                Dmp[j_idx, i] = Dmp[i, j_idx]
+                Dmp[i, j_idx] = (1 - p1 * p2).ravel()
+                
+            Dmp[j_idx, i] = Dmp[i, j_idx]
     
         return Dmp
     
@@ -595,7 +458,7 @@ class MutualProximity():
     def mp_gammai_sparse(self, train_set_mask, verbose):
         # mean, variance WITH zero values
         #=======================================================================
-        # from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
+        # from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  
         # mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
         #=======================================================================
         
@@ -614,9 +477,7 @@ class MutualProximity():
         del mu, va
         A[A<0] = np.nan
         B[B<=0] = np.nan
-        #print("A: ", A.shape, A.__class__, A.nbytes/1024/1024)
-        #print("B: ", B.shape, B.__class__, B.nbytes/1024/1024)
-        
+
         Dmp = dok_matrix(self.D.shape, dtype=np.float32)
         n = self.D.shape[0]
         
@@ -626,71 +487,24 @@ class MutualProximity():
             j_idx = np.arange(i+1, n)
             j_len = np.size(j_idx)
              
-            #===================================================================
-            # Dij = self.D[i].toarray()[:, j_idx] #Extract dense rows temporarily
-            # Dji = self.D[j_idx].toarray()[:, i] #for vectorization below.
-            #===================================================================
+
             Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
             Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
             
-            #print("Dij: ", Dij.shape, Dij.__class__, Dij.nbytes/1024/1024)
-            #print("Dji: ", Dji.shape, Dji.__class__, Dji.nbytes/1024/1024)
-             
             p1 = self.local_gamcdf(Dij, \
                                    np.tile(A[i], (1, j_len)), \
                                    np.tile(B[i], (1, j_len)))
             del Dij
-            #x = np.tile(A[i], (1, j_len))
-            #print("tileA: ", x.shape, x.__class__, x.nbytes/1024/1024)
-            #print("p1: ", p1.shape, p1.__class__, p1.nbytes/1024/1024)
             p2 = self.local_gamcdf(Dji, 
                                    A[j_idx], 
                                    B[j_idx])
             del Dji#, A, B
-            #print("p2: ", p2.shape, p2.__class__, p2.nbytes/1024/1024)
             tmp = (p1 * p2).ravel()
-            #print("tmp: ", tmp.shape, tmp.__class__, tmp.nbytes/1024/1024)
             Dmp[i, i] = self.self_value
             Dmp[i, j_idx] = tmp     
             Dmp[j_idx, i] = tmp[:, np.newaxis]
             del tmp, j_idx
-            
-            #===================================================================
-            # Dij = self.D[i, j_idx] # extract sparse rows
-            # Dji = self.D[j_idx, i]
-            #  
-            # p1 = self.local_gamcdf_sparse1(Dij, A[i], B[i])
-            # p2 = self.local_gamcdf_sparse2(Dji, 
-            #                        A[j_idx, np.newaxis], 
-            #                        B[j_idx, np.newaxis])
-            # tmp = (p1 * np.asarray(p2.T)).ravel()
-            # Dmp[i, j_idx] = tmp        
-            # Dmp[j_idx, i] = tmp[:, np.newaxis]   
-            #===================================================================
                
-        # non-vectorized code      
-        #=======================================================================
-        # for i in range(n):
-        #     if verbose and ((i+1)%1000 == 0 or i+1==n):
-        #         self.log.message("MP_gammai: {} of {}".format(i+1, n))
-        #     for j in range(n):
-        #         Dij = self.D[i, j]
-        #         Dji = self.D[j, i]
-        #         if Dij>0 and Dji>0:          
-        #             if self.isSimilarityMatrix:
-        #                 p1 = gammainc(A[i], Dij / B[i]) # self.local_gamcdf(self.D[i, j], A[i], B[i])
-        #                 p2 = gammainc(A[j], Dji / B[j]) # self.local_gamcdf(self.D[j, i], A[j], B[j])
-        #                 tmp = (p1 * p2).ravel()
-        #                 Dmp[i, j] = tmp
-        #                 Dmp[j, i] = tmp
-        #             else:
-        #                 p1 = 1 - gammainc(A[i], Dij / B[i]) # self.local_gamcdf(self.D[i, j], A[i], B[i])
-        #                 p2 = 1 - gammainc(A[j], Dji / B[j]) # self.local_gamcdf(self.D[j, i], A[j], B[j])
-        #                 tmp = (1 - p1 * p2).ravel()
-        #                 Dmp[i, j] = tmp
-        #                 Dmp[j, i] = tmp
-        #=======================================================================
-          
         return Dmp.tocsr()
     
     
@@ -748,32 +562,4 @@ class MutualProximity():
             Dmp[j_idx, i] = Dmp[i, j_idx]               
         
         return Dmp
-    
-    def local_gamcdf(self, x, a, b):
-        a[a<0] = np.nan
-        b[b<=0] = np.nan
-        x[x<0] = 0
-        z = x / b
-        p = gammainc(a, z)
-        return p
-    
-    #===========================================================================
-    # def local_gamcdf_sparse1(self, x, a, b):
-    #     if a<0:
-    #         a = np.nan
-    #     if b<=0:
-    #         b = np.nan
-    #     #x[x<0] = 0
-    #     z = x / b
-    #     p = gammainc(a, z.toarray())
-    #     return p
-    # 
-    # def local_gamcdf_sparse2(self, x, a, b):
-    #     a[a<0] = np.nan
-    #     b[b<=0] = np.nan
-    #     x[x<0] = 0
-    #     z = x / b
-    #     p = gammainc(a, z)
-    #     return p
-    #===========================================================================
     

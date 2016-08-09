@@ -29,8 +29,9 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
                              test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
-    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. The 
-    resulting secondary distance/similarity matrix should show lower hubness.
+    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix using 
+    the empiric data distribution (EXACT, rather SLOW). The resulting 
+    secondary distance/similarity matrix should show lower hubness.
     
     Parameters:
     -----------
@@ -137,7 +138,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
                 dI = S[i, :].todense()
                 dJ = S[j, :].todense()
                 # non-zeros elements
-                nz = (dI > 0) & (dJ > 0)
+                nz = (dI > 0) & (dJ > 0)  # @UnusedVariable
                 #TODO continue...
                 sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
                 sIJ_overlap = sIJ_intersect / nnz
@@ -157,7 +158,7 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     """Transform a distance matrix with Mutual Proximity (normal distribution).
     
     Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gauss 
-    variant assumes dependent normal distributions.
+    variant assumes dependent normal distributions (VERY SLOW).
     The resulting second. distance/similarity matrix should show lower hubness.
     
     Parameters:
@@ -251,8 +252,157 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     
     return D_mp
 
-def mutual_proximity_gaussi():
-    pass
+def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance', 
+                            sample_size:int=0, test_set_ind:np.ndarray=None, 
+                            verbose:int=0):
+    """Transform a distance matrix with Mutual Proximity (indep. normal distr.).
+    
+    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gaussi 
+    variant assumes independent normal distributions (FAST).
+    The resulting second. distance/similarity matrix should show lower hubness.
+    
+    Parameters:
+    -----------
+    D : ndarray or csr_matrix
+        - ndarray: The n x n symmetric distance or similarity matrix.
+        - csr_matrix: The n x n symmetric similarity matrix.
+    
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix 'D' is a distance or similarity matrix.
+        NOTE: In case of sparse D, only 'similarity' is supported.
+        
+    sample_size : int, optional (default: 0)
+        Define sample size from which Gauss parameters are estimated.
+        Use all data when set to 0.
+        
+    test_sed_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set. 
+        
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+        
+    Returns:
+    --------
+    D_mp : ndarray
+        Secondary distance MP gaussi matrix.
+    
+    See also:
+    ---------
+    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+    Local and global scaling reduce hubs in space. The Journal of Machine 
+    Learning Research, 13(1), 2871–2902.
+    """       
+    n = D.shape[0]
+    log = Logging.ConsoleLogging()
+    if D.shape[0] != D.shape[1]:
+        raise TypeError("Distance/similarity matrix is not quadratic.")
+    if metric != 'similarity' and metric != 'distance':
+        raise ValueError("Parameter 'metric' must be 'distance' "
+                         "or 'similarity'.")  
+    if metric == 'similarity':
+        self_value = 1
+    else: # metric == 'distance':
+        self_value = 0  
+    if test_set_ind is None:
+        train_set_ind = slice(0, n)
+    else:
+        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+    D = D.copy()
+    
+    if verbose:
+        log.message('Mutual Proximity Gaussi rescaling started.', flush=True)
+
+    if issparse(D):
+        return _mutual_proximity_gaussi_sparse(D, sample_size, test_set_ind, 
+                                               verbose, log)
+
+    np.fill_diagonal(D, self_value)
+        
+    # Calculate mean and std
+    if sample_size != 0:
+        samples = np.random.shuffle(train_set_ind)[0:sample_size]
+        mu = np.mean(D[samples], 0)
+        sd = np.std(D[samples], 0, ddof=1)
+    else:
+        mu = np.mean(D[train_set_ind], 0)
+        sd = np.std(D[train_set_ind], 0, ddof=1)
+    
+    D_mp = np.zeros_like(D)
+    for i in range(n):
+        if verbose and ((i+1)%1000 == 0 or i+1==n):
+            log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
+        j_idx = np.arange(i+1, n)
+        j_len = np.size(j_idx)
+        
+        if metric == 'similarity':
+            # TODO change np.tile to broadcasting
+            p1 = norm.cdf(D[i, j_idx], \
+                          np.tile(mu[i], (1, j_len)), \
+                          np.tile(sd[i], (1, j_len)))
+            p2 = norm.cdf(self.D[j_idx, i].T, \
+                          mu[j_idx], \
+                          sd[j_idx])
+            D_mp[i, i] = self_value
+            D_mp[i, j_idx] = (p1 * p2).ravel()
+        else:
+            p1 = 1 - norm.cdf(D[i, j_idx], \
+                              np.tile(mu[i], (1, j_len)), \
+                              np.tile(sd[i], (1, j_len)))
+            p2 = 1 - norm.cdf(self.D[j_idx, i].T, \
+                              mu[j_idx], \
+                              sd[j_idx])
+            D_mp[i, j_idx] = (1 - p1 * p2).ravel()
+            
+        D_mp[j_idx, i] = D_mp[i, j_idx]
+
+    return D_mp
+
+def _mutual_proximity_gaussi_sparse(D:np.ndarray, sample_size:int=0, 
+                                    test_set_ind:np.ndarray=None, 
+                                    verbose:int=0, log=None):
+    """MP gaussi for sparse similarity matrices. 
+    
+    Please do not directly use this function, but invoke via 
+    mutual_proximity_gaussi()
+    """
+    n = D.shape[0]
+    self_value = 1 # similarity matrix
+    if test_set_ind is None:
+        train_set_ind = slice(0, n)
+    else:
+        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+    from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
+    mu, var = csr_mean_variance_axis0(D[train_set_ind])
+    sd = np.sqrt(var)
+    del var
+    
+    D_mp = dok_matrix(D.shape)
+
+    for i in range(n):
+        if verbose and log and ((i+1)%1000 == 0 or i+1==n):
+            log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
+        j_idx = np.arange(i+1, n)
+        #j_len = np.size(j_idx)
+        
+        Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
+        Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
+        
+        p1 = norm.cdf(Dij, mu[i], sd[i]) # mu, sd broadcasted
+        p1[Dij==0] = 0
+        del Dij
+        p2 = norm.cdf(Dji, mu[j_idx], sd[j_idx])
+        p2[Dji==0] = 0
+        del Dji
+        #del mu, sd # with del mu, sd, error in line with mu broadcasting
+        tmp = (p1 * p2).ravel()
+        D_mp[i, i] = self_value
+        D_mp[i, j_idx] = tmp            
+        D_mp[j_idx, i] = tmp[:, np.newaxis]   
+        del tmp, j_idx
+    
+    return D_mp.tocsr()
 
 def mutual_proximity_gammai():
     pass
@@ -266,6 +416,10 @@ def _local_gamcdf(self, x, a, b):
     p = gammainc(a, z)
     return p
 
+##############################################################################
+#
+# DEPRECATED classes
+#
 class Distribution(Enum):
     """DEPRECATED"""
     empiric = 'empiric'
@@ -274,14 +428,7 @@ class Distribution(Enum):
     gammai = 'gammai'
 
 class MutualProximity():
-    """DEPRECATED
-      'gauss': (requires the Statistics Toolbox (the mvncdf() function)
-         Assumes that the distances are Gaussian distributed.
-      'gaussi': Assumes that the distances are independently Gaussian
-         distributed. (fastest Variante)
-      'gammai': Assumes that the distances follow a Gamma distribution and
-         are independently distributed.
-    """
+    """DEPRECATED"""
     
     def __init__(self, D, isSimilarityMatrix=False):
         """DEPRECATED"""
@@ -355,104 +502,31 @@ class MutualProximity():
             metric = 'distance' 
         if train_set_mask is not None:
             test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
+        else:#
+            test_set_ind = None
         return mutual_proximity_gauss(self.D, metric, test_set_ind, verbose)
         
         
     def mp_gaussi_sparse(self, train_set_mask, verbose):
-        n = self.D.shape[0]
-        from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
-        mu, var = csr_mean_variance_axis0(self.D[train_set_mask])
-        sd = np.sqrt(var)
-        del var
-        
-        Dmp = dok_matrix(self.D.shape)
-
-        for i in range(n):
-            if verbose and ((i+1)%1000 == 0 or i+1==n):
-                self.log.message("MP_gaussi: {} of {}."
-                                 .format(i+1, n), flush=True)
-            j_idx = np.arange(i+1, n)
-            #j_len = np.size(j_idx)
-            
-            Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
-            Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
-            
-            p1 = norm.cdf(Dij, mu[i], sd[i]) # mu, sd broadcasted
-            p1[Dij==0] = 0
-            del Dij
-            p2 = norm.cdf(Dji, 
-                          mu[j_idx], 
-                          sd[j_idx])
-            p2[Dji==0] = 0
-            del Dji
-            #del mu, sd # with del mu, sd, error in line with mu broadcasting
-            tmp = (p1 * p2).ravel()
-            Dmp[i, i] = self.self_value
-            Dmp[i, j_idx] = tmp            
-            Dmp[j_idx, i] = tmp[:, np.newaxis]   
-            del tmp, j_idx
-        
-        return Dmp.tocsr()
+        """DEPRECATED"""
+        if train_set_mask is not None:
+            test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
+        else:
+            test_set_ind = None
+        return mutual_proximity_gaussi(self.D, 0, test_set_ind, verbose)
 
     def mp_gaussi(self, train_set_mask=None, verbose=False, enforce_disk=False,
                   sample_size=0, filename=None):
-        """Compute Mutual Proximity modeled with independent Gaussians (fast). 
-        Use enforce_disk=True to use memory maps for matrices that do not fit 
-        into main memory.
-        Set sample_size=SIZE to estimate Gaussian distribution from SIZE 
-        samples. Default sample_size=0: use all points."""
-        
+        """DEPRECATED"""
         if self.isSimilarityMatrix:
-            self.log.warning("Similarity-based I.Gaussian MP support is still experimental.")
-        
-        if verbose:
-            self.log.message('Mutual proximity rescaling started.', flush=True)
-        n = np.size(self.D, 0)
-        if not isinstance(self.D, np.memmap) and not issparse(self.D):
-            np.fill_diagonal(self.D, self.self_value)
-        # else: do this later on the fly
-        if issparse(self.D):
-            #self.log.error("Sparse matrices not supported yet.")
-            return self.mp_gaussi_sparse(train_set_mask, verbose)
-            
-        # Calculate mean and std
-        if sample_size != 0:
-            samples = np.random.shuffle(train_set_mask)[0:sample_size]
-            mu = np.mean(self.D[samples], 0)
-            sd = np.std(self.D[samples], 0, ddof=1)
+            metric = 'similarity'
         else:
-            mu = np.mean(self.D[train_set_mask], 0)
-            sd = np.std(self.D[train_set_mask], 0, ddof=1)
-        
-        Dmp = np.zeros_like(self.D)
-        for i in range(n):
-            if verbose and ((i+1)%1000 == 0 or i+1==n):
-                self.log.message("MP_gaussi: {} of {}."
-                                 .format(i+1, n), flush=True)
-            j_idx = np.arange(i+1, n)
-            j_len = np.size(j_idx)
-            
-            if self.isSimilarityMatrix:
-                p1 = norm.cdf(self.D[i, j_idx], \
-                              np.tile(mu[i], (1, j_len)), \
-                              np.tile(sd[i], (1, j_len)))
-                p2 = norm.cdf(self.D[j_idx, i].T, \
-                              mu[j_idx], \
-                              sd[j_idx])
-                Dmp[i, i] = self.self_value
-                Dmp[i, j_idx] = (p1 * p2).ravel()
-            else:
-                p1 = 1 - norm.cdf(self.D[i, j_idx], \
-                                  np.tile(mu[i], (1, j_len)), \
-                                  np.tile(sd[i], (1, j_len)))
-                p2 = 1 - norm.cdf(self.D[j_idx, i].T, \
-                                  mu[j_idx], \
-                                  sd[j_idx])
-                Dmp[i, j_idx] = (1 - p1 * p2).ravel()
-                
-            Dmp[j_idx, i] = Dmp[i, j_idx]
-    
-        return Dmp
+            metric = 'distance' 
+        if train_set_mask is not None:
+            test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
+        else:#
+            test_set_ind = None
+        return mutual_proximity_gaussi(self.D, metric, sample_size, test_set_ind, verbose)
     
 
     def mp_gammai_sparse(self, train_set_mask, verbose):

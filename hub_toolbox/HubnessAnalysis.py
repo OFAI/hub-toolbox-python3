@@ -13,6 +13,7 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import os
 import numpy as np
 from hub_toolbox.Hubness import hubness
 from hub_toolbox.KnnClassification import score
@@ -62,7 +63,16 @@ class HubnessAnalysis():
         
         self.haveClasses, self.haveVectors = False, False
         if D is None:
-            self.D, self.classes, self.vectors = self.load_dexter()
+            print('\n'
+                  'NO PARAMETERS GIVEN! Loading & evaluating DEXTER data set.'
+                  '\n'
+                  'DEXTER is a text classification problem in a bag-of-word \n'
+                  'representation. This is a two-class classification problem\n'
+                  'with sparse continuous input variables. \n'
+                  'This dataset is one of five datasets of the NIPS 2003\n'
+                  'feature selection challenge.\n'
+                  'http://archive.ics.uci.edu/ml/datasets/Dexter\n')
+            self.D, self.classes, self.vectors = load_dexter()
             self.haveClasses, self.haveVectors = True, True
         else:
             # copy data and ensure correct type (not int16 etc.)
@@ -226,44 +236,44 @@ class HubnessAnalysis():
                 print('original dimensionality                  : No vectors given')
                 print('intrinsic dimensionality estimate        : No vectors given')
         
-    def load_dexter(self):
-        """Load the example data set (dexter)."""
-        
-        print('\nNO PARAMETERS GIVEN! Loading & evaluating DEXTER data set.\n');
-        print('DEXTER is a text classification problem in a bag-of-word');
-        print('representation. This is a two-class classification problem');
-        print('with sparse continuous input variables.');
-        print('This dataset is one of five datasets of the NIPS 2003 feature');
-        print('selection challenge.\n');
-        print('http://archive.ics.uci.edu/ml/datasets/Dexter\n');
-        
-        import os
+def load_dexter():
+    """Load the example data set (dexter).
     
-        n = 300
-        dim = 20000
+    Returns:
+    --------
+    D : ndarray
+        Distance matrix
+    classes : ndarray
+        Class label vector
+    vectors : ndarray
+        Vector data matrix
+    """
         
-        # Read class labels
-        classes_file = os.path.dirname(os.path.realpath(__file__)) +\
-            '/example_datasets/dexter_train.labels'
-        classes = np.loadtxt(classes_file)  
+    n = 300
+    dim = 20000
+    
+    # Read class labels
+    classes_file = os.path.dirname(os.path.realpath(__file__)) +\
+        '/example_datasets/dexter_train.labels'
+    classes = np.loadtxt(classes_file)  
 
-        # Read data
-        vectors = np.zeros((n, dim))
-        data_file = os.path.dirname(os.path.realpath(__file__)) + \
-            '/example_datasets/dexter_train.data'
-        with open(data_file, mode='r') as fid:
-            data = fid.readlines()       
-        row = 0
-        for line in data:
-            line = line.strip().split() # line now contains pairs of dim:val
-            for word in line:
-                    col, val = word.split(':')
-                    vectors[row][int(col)-1] = int(val)
-            row += 1
-        
-        # Calc distance
-        D = cosine_distance(vectors)
-        return D, classes, vectors
+    # Read data
+    vectors = np.zeros((n, dim))
+    data_file = os.path.dirname(os.path.realpath(__file__)) + \
+        '/example_datasets/dexter_train.data'
+    with open(data_file, mode='r') as fid:
+        data = fid.readlines()       
+    row = 0
+    for line in data:
+        line = line.strip().split() # line now contains pairs of dim:val
+        for word in line:
+                col, val = word.split(':')
+                vectors[row][int(col)-1] = int(val)
+        row += 1
+    
+    # Calc distance
+    D = cosine_distance(vectors)
+    return D, classes, vectors
                 
 if __name__ == "__main__":
     hub = HubnessAnalysis()

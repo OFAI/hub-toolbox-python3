@@ -19,7 +19,7 @@ from hub_toolbox.KnnClassification import score
 from hub_toolbox.GoodmanKruskal import goodman_kruskal_index
 from hub_toolbox.IntrinsicDim import intrinsic_dimension
 from hub_toolbox.MutualProximity import MutualProximity, Distribution
-from hub_toolbox.LocalScaling import LocalScaling
+from hub_toolbox.LocalScaling import nicdm
 from hub_toolbox.SharedNN import shared_nearest_neighbors
 from hub_toolbox.Centering import centering, weighted_centering, \
                                   localized_centering
@@ -143,8 +143,7 @@ class HubnessAnalysis():
             # Hubness in local scaling distance space
             radius = 10
             scalingType = 'nicdm' # 'original'
-            ls = LocalScaling(self.D, radius, scalingType)
-            Dn = ls.perform_local_scaling()
+            Dn = nicdm(self.D, radius)
             Sn5, Nk5 = hubness(Dn)[::2]
             self.print_results('LOCAL SCALING ({}, k={})'.format(\
                 scalingType, radius), Dn, Sn5, Nk5)

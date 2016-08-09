@@ -14,43 +14,272 @@ Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
-from scipy.special import gammainc
+from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse import issparse, dok_matrix
-from enum import Enum
+from scipy.sparse import dok_matrix
+from scipy.sparse.csr import csr_matrix
+from scipy.sparse.base import issparse
 from hub_toolbox import IO, Logging
+import sys
+# DEPRECATED
+from enum import Enum
+from scipy.sparse.lil import lil_matrix
+
+def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
+                             test_set_ind:np.ndarray=None, verbose:int=0):
+    """Transform a distance matrix with Mutual Proximity (empiric distribution).
+    
+    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. The 
+    resulting secondary distance/similarity matrix should show lower hubness.
+    
+    Parameters:
+    -----------
+    D : ndarray or csr_matrix
+        - ndarray: The n x n symmetric distance or similarity matrix.
+        - csr_matrix: The n x n symmetric similarity matrix.
+    
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix 'D' is a distance or similarity matrix.
+        NOTE: In case of sparse D, only 'similarity' is supported.
+        
+    test_sed_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set. 
+        
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+        
+    Returns:
+    --------
+    D_mp : ndarray
+        Secondary distance MP empiric matrix.
+    
+    See also:
+    ---------
+    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+    Local and global scaling reduce hubs in space. The Journal of Machine 
+    Learning Research, 13(1), 2871–2902.
+    """
+    n = D.shape[0]
+    log = Logging.ConsoleLogging()
+    if D.shape[0] != D.shape[1]:
+        raise TypeError("Distance/similarity matrix is not quadratic.")
+    if metric != 'similarity' and metric != 'distance':
+        raise ValueError("Parameter 'metric' must be 'distance' "
+                         "or 'similarity'.")  
+    if metric == 'similarity':
+        self_value = 1
+    else:
+        self_value = 0
+        if issparse(D):
+            raise ValueError("MP sparse only supports similarity matrices.")
+    if test_set_ind is None:
+        pass # TODO implement
+        #train_set_ind = slice(0, n)
+    else:
+        raise NotImplementedError("MP empiric does not yet support train/"
+                                  "test splits.")
+        #train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+
+    D = D.copy()
+    
+    if issparse(D):
+        log.warning("Please use MutualProximity_parallel for sparse MP.")
+        return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log)
+        
+    # ensure correct self distances (NOT done for sparse matrices!)
+    np.fill_diagonal(D, self_value)
+    
+    D_mp = np.zeros_like(D)
+     
+    for i in range(n-1):
+        if verbose and ((i+1)%1000 == 0 or i==n-2):
+            log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+        # Select only finite distances for MP
+        j_idx = i + 1
+         
+        dI = D[i, :][np.newaxis, :]
+        dJ = D[j_idx:n, :]
+        d = D[j_idx:n, i][:, np.newaxis]
+         
+        if metric == 'similarity':
+            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / n
+        else: # metric == 'distance':
+            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n)
+         
+    D_mp += D_mp.T
+    np.fill_diagonal(D_mp, self_value)
+
+    return D_mp
+
+
+def _mutual_proximity_empiric_sparse(S:csr_matrix, 
+                                     test_set_ind:np.ndarray=None, 
+                                     verbose:int=0,
+                                     log=None):
+    """MP empiric for sparse similarity matrices. 
+    
+    Please do not directly use this function, but invoke via 
+    mutual_proximity_empiric()
+    """
+    self_value = 1. # similarity matrix
+    n = S.shape[0]        
+    nnz = S.nnz
+    S_mp = lil_matrix(S.shape)
+    
+    for i in range(n-1):
+        if verbose and ((i+1)%1000 == 0 or i==n-2):
+            log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+        for j in range(i+1, n):
+            d = S[j, i]
+            if d>0: 
+                dI = S[i, :].todense()
+                dJ = S[j, :].todense()
+                # non-zeros elements
+                nz = (dI > 0) & (dJ > 0)
+                #TODO continue...
+                sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
+                sIJ_overlap = sIJ_intersect / nnz
+                
+                S_mp[i, j] = sIJ_overlap
+                S_mp[j, i] = sIJ_overlap
+            else:
+                pass # skip zero entries
+    
+    for i in range(n):
+        S_mp[i, i] = self_value #need to set self values
+    
+    return S_mp.tocsr()
+
+def mutual_proximity_gauss(D:np.ndarray, metric:str='distance', 
+                           test_set_ind:np.ndarray=None, verbose:int=0):
+    """Transform a distance matrix with Mutual Proximity (normal distribution).
+    
+    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gauss 
+    variant assumes dependent normal distributions.
+    The resulting second. distance/similarity matrix should show lower hubness.
+    
+    Parameters:
+    -----------
+    D : ndarray
+        - ndarray: The n x n symmetric distance or similarity matrix.
+    
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix 'D' is a distance or similarity matrix.
+        
+    test_sed_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set. 
+        
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+        
+    Returns:
+    --------
+    D_mp : ndarray
+        Secondary distance MP gauss matrix.
+    
+    See also:
+    ---------
+    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+    Local and global scaling reduce hubs in space. The Journal of Machine 
+    Learning Research, 13(1), 2871–2902.
+    """
+    n = D.shape[0]
+    log = Logging.ConsoleLogging()
+    if D.shape[0] != D.shape[1]:
+        raise TypeError("Distance/similarity matrix is not quadratic.")
+    if metric != 'similarity' and metric != 'distance':
+        raise ValueError("Parameter 'metric' must be 'distance' "
+                         "or 'similarity'.")  
+    if metric == 'similarity':
+        log.warning("MP Gauss is untested for similarity matrices. "
+                    "Use with caution!")
+        self_value = 1
+    else: # metric == 'distance':
+        self_value = 0  
+    if issparse(D):
+        log.error("Sparse matrices not supported by MP Gauss.")
+        raise TypeError("Sparse matrices not supported by MP Gauss.")
+    if test_set_ind is None:
+        train_set_ind = slice(0, n)
+    else:
+        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+    D = D.copy()
+    
+    np.fill_diagonal(D, self_value)
+    
+    mu = np.mean(D[train_set_ind], 0)
+    sd = np.std(D[train_set_ind], 0, ddof=1)
+            
+    #Code for the BadMatrixSigma error [derived from matlab]
+    eps = np.spacing(1)
+    epsmat = np.array([[1e5 * eps, 0], [0, 1e5 * eps]])
+            
+    D_mp = np.zeros_like(D)
+    
+    for i in range(n):
+        if verbose and ((i+1)%1000 == 0 or i+1==n):
+            log.message("MP_gauss: {} of {}.".format(i+1, n))
+        for j in range(i+1, n):
+            c = np.cov(D[[i,j], :])
+            x = np.array([D[i, j], D[j, i]])
+            m = np.array([mu[i], mu[j]])
+            
+            low = np.tile(np.finfo(np.float32).min, 2)
+            p12 = mvn.mvnun(low, x, m, c)[0] # [0]...p, [1]...inform
+            if np.isnan(p12):
+                power = 7
+                while np.isnan(p12):
+                    c += epsmat * (10**power) 
+                    p12 = mvn.mvnun(low, x, m, c)[0]
+                    power += 1
+                log.warning("p12 is NaN: i={}, j={}. Increased cov matrix by "
+                            "O({}).".format(i, j, epsmat[0,0]*(10**power)))
+            
+            if metric == 'similarity':
+                D_mp[j, i] = p12
+            else: # distance
+                p1 = norm.cdf(D[j, i], mu[i], sd[i])
+                p2 = norm.cdf(D[j, i], mu[j], sd[j])
+                D_mp[j, i] = p1 + p2 - p12
+            D_mp[i, j] = D_mp[j, i]
+        if metric == 'similarity':
+            D_mp[i, i] = self_value
+    
+    return D_mp
+
+def mutual_proximity_gaussi():
+    pass
+
+def mutual_proximity_gammai():
+    pass
+
 
 class Distribution(Enum):
+    """DEPRECATED"""
     empiric = 'empiric'
     gauss = 'gauss'
     gaussi = 'gaussi'
     gammai = 'gammai'
 
 class MutualProximity():
-    """
-    Applies Mutual Proximity (MP) [1] on a distance matrix. The return value is
-    converted to a distance matrix again. The resulting distance matrix
-    should show lower hubness.
-    
-    Usage:
-      Dmp = mutual_proximity(D, type) - Applies MP on the distance matrix 'D'
-         using the selected variant ('type'). The transformed distance matrix
-         is returned.
-    
-    Possible types:
-      'empiric': Uses the Empirical distribution to perform Mutual Proximity.
+    """DEPRECATED
       'gauss': (requires the Statistics Toolbox (the mvncdf() function)
          Assumes that the distances are Gaussian distributed.
       'gaussi': Assumes that the distances are independently Gaussian
          distributed. (fastest Variante)
       'gammai': Assumes that the distances follow a Gamma distribution and
          are independently distributed.
-    
-    [1] Local and global scaling reduce hubs in space, 
-    Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012
     """
     
     def __init__(self, D, isSimilarityMatrix=False):
+        """DEPRECATED"""
+        print("DEPRECATED: Please use the appropriate MutualProximity."
+              "mutual_proximity_DISTRIBUTIONTYPE() function instead.", 
+              file=sys.stderr)
         self.D = IO.copy_D_or_load_memmap(D, writeable=True)
         self.log = Logging.ConsoleLogging()
         if isSimilarityMatrix:
@@ -62,7 +291,7 @@ class MutualProximity():
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, enforce_disk=False,
                                    sample_size=0, filename=None):
-        """Apply MP on a distance matrix."""
+        """DEPRECATED"""
         
         if test_set_mask is not None:
             train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
@@ -97,144 +326,23 @@ class MutualProximity():
          
 
     def mp_empiric_sparse(self, train_set_mask=None, verbose=False):
-        """
-        Compute empiric MP distances/similarities in a sparse matrix.
-        Zero-elements do not contribute to MP calculations.
-        """
-        n = np.shape(self.D)[0]        
-        nnz = self.D.nnz
-        Dmp = dok_matrix(self.D.shape)
-        
-        for i in range(n-1):
-            if verbose and ((i+1)%1000 == 0 or i==n-2):
-                self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), 
-                                 flush=True)
-            for j in range(i+1, n):
-                d = self.D[j, i]
-                if d>0: 
-                    dI = self.D[i, :].todense()
-                    dJ = self.D[j, :].todense()
-                    # non-zeros elements
-                    nz = (dI > 0) & (dJ > 0)
-                    #TODO continue...
-                    if self.isSimilarityMatrix:
-                        sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
-                        sIJ_overlap = sIJ_intersect / nnz
-                    else:
-                        sIJ_intersect = ((dI > d) & (dJ > d)).sum()
-                        sIJ_overlap = 1 - (sIJ_intersect / nnz)
-                    Dmp[i, j] = sIJ_overlap
-                    Dmp[j, i] = sIJ_overlap
-                else:
-                    pass # skip zero entries
-        
-        if self.isSimilarityMatrix:
-            for i in range(n):
-                Dmp[i, i] = self.self_value #need to set self values
-        
-                return Dmp.tocsr()
+        """DEPRECATED"""
+        return mutual_proximity_empiric(self.D, 'similarity', None, verbose)
     
     def mp_empiric(self, train_set_mask=None, verbose=False):
-        """Compute Mutual Proximity distances with empirical data (slow)."""   
-        #TODO implement train_set_mask!
-        if not np.all(train_set_mask):
-            self.log.error("MP empiric does not support train/test splits yet.")
-            return
+        """DEPRECATED"""  
         if self.isSimilarityMatrix:
-            self.log.warning("Similarity-based empiric MP support is still experimental.")
-        if issparse(self.D):
-            self.log.warning("Sparse matrix support is still experimental.")
-            return self.mp_empiric_sparse(train_set_mask, verbose)
-            
-        # ensure correct self distances (NOT done for sparse matrices!)
-        np.fill_diagonal(self.D, self.self_value)
-        
-        n = np.shape(self.D)[0]
-        Dmp = np.zeros_like(self.D)
-         
-        for i in range(n-1):
-            if verbose and ((i+1)%1000 == 0 or i==n-2):
-                self.log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-            # Select only finite distances for MP
-            j_idx = i + 1
-             
-            dI = self.D[i, :][np.newaxis, :]
-            dJ = self.D[j_idx:n, :]
-            d = self.D[j_idx:n, i][:, np.newaxis]
-             
-            if self.isSimilarityMatrix:
-                Dmp[i, j_idx:n] = np.sum((dI <= d) & (dJ <= d), 1) / n
-            else: # distance matrix
-                Dmp[i, j_idx:n] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n)
-             
-        Dmp += Dmp.T
-        
-        if self.isSimilarityMatrix:
-            for i in range(n):
-                Dmp[i, i] = self.self_value
-            
-        return Dmp
+            metric = 'similarity'
+        else:
+            metric = 'distance' 
+        if train_set_mask is not None:
+            test_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
+        return mutual_proximity_empiric(self.D, metric, test_set_mask, verbose)
     
     def mp_gauss(self, train_set_mask=None, verbose=False):
-        """Compute Mutual Proximity distances with Gaussian model (very slow)."""
+        """DEPRECATED"""
+        return mutual_proximity_gauss()
         
-        if self.isSimilarityMatrix:
-            self.log.warning("Similarity-based Gaussian MP support is still experimental.")
-        
-        if not issparse(self.D):
-            np.fill_diagonal(self.D, self.self_value)
-        else:
-            self.log.error("Sparse matrices not supported yet.")
-            return
-        
-        mu = np.mean(self.D[train_set_mask], 0)
-        sd = np.std(self.D[train_set_mask], 0, ddof=1)
-                
-        #Code for the BadMatrixSigma error
-        eps = np.spacing(1)
-        epsmat = np.array([[1e5 * eps, 0], [0, 1e5 * eps]])
-                
-        if isinstance(self.D, np.memmap):
-            from tempfile import mkstemp
-            filename = mkstemp(suffix='pytmp')[1] # [0]... fd, [1]... filename
-            self.log.message("Writing rescaled distance matrix to file:", filename)
-            Dmp = np.memmap(filename, dtype='float64', mode='w+', shape=self.D.shape)
-        else:
-            Dmp = np.zeros(np.shape(self.D), dtype=self.D.dtype)
-        n = np.size(self.D, 0)
-        
-        for i in range(n):
-            if verbose and ((i+1)%1000 == 0 or i+1==n):
-                self.log.message("MP_gauss: {} of {}.".format(i+1, n))
-            for j in range(i+1, n):
-                c = np.cov(self.D[[i,j], :])
-                x = np.array([self.D[i, j], self.D[j, i]])
-                m = np.array([mu[i], mu[j]])
-                
-                low = np.tile(np.finfo(np.float32).min, 2)
-                p12 = mvn.mvnun(low, x, m, c)[0] # [0]...p, [1]...inform
-                if np.isnan(p12):
-                    power = 7
-                    while np.isnan(p12):
-                        c += epsmat * (10**power) 
-                        p12 = mvn.mvnun(low, x, m, c)[0]
-                        power += 1
-                    self.log.warning("p12 is NaN: i={}, j={}. "
-                                     "Increased cov matrix by O({}).".format(
-                                     i, j, epsmat[0,0]*(10**power)))
-                
-                if self.isSimilarityMatrix:
-                    Dmp[j, i] = p12
-                else:
-                    p1 = norm.cdf(self.D[j, i], mu[i], sd[i])
-                    p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
-                    Dmp[j, i] = p1 + p2 - p12
-                
-                Dmp[i, j] = Dmp[j, i]
-            if self.isSimilarityMatrix:
-                Dmp[i, i] = self.self_value
-
-        return Dmp
     
     
     def mp_gaussi_sparse(self, train_set_mask, verbose):

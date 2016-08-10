@@ -16,11 +16,12 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm
-from scipy.sparse import issparse, lil_matrix
+from scipy.sparse import issparse, lil_matrix, csr_matrix
 from enum import Enum
 import multiprocessing as mp
 from hub_toolbox import IO, Logging
-from hub_toolbox.Logging import FileLogging
+from hub_toolbox.Logging import ConsoleLogging
+import sys
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
                              test_set_ind:np.ndarray=None, verbose:int=0,
@@ -129,7 +130,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     batches = _get_weighted_batches(n, NUMBER_OF_PROCESSES)
     
     for idx, batch in enumerate(batches):
-        matrix = D
+        matrix = S
         tasks.append((_partial_mp_emp_sparse, (batch, matrix, idx, n, verbose)))
     
     task_queue = mp.Queue()
@@ -174,7 +175,7 @@ def _partial_mp_emp_sparse(batch, matrix, idx, n, verbose):
     Please do not directly use this function, but invoke via 
     mutual_proximity_empiric()
     """
-    log = FileLogging()
+    log = ConsoleLogging()
     S_mp = lil_matrix((len(batch), n), dtype=np.float32)
     
     # TODO implement faster version from serial MP emp sparse
@@ -186,8 +187,8 @@ def _partial_mp_emp_sparse(batch, matrix, idx, n, verbose):
         for j in range(b+1, n):
             d = matrix[b, j]
             if d>0: 
-                dI = D[b, :].toarray()
-                dJ = D[j, :].toarray()
+                dI = matrix.getrow(b).toarray()
+                dJ = matrix.getrow(j).toarray()
                 # non-zeros elements
                 nz = (dI > 0) & (dJ > 0) 
                 S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / nz.sum()
@@ -369,7 +370,7 @@ def _partial_mp_gaussi_sparse(batch, matrix, idx, n, mu, sd, verbose):
     Please do not directly use this function, but invoke via 
     mutual_proximity_gaussi()
     """
-    log = FileLogging()
+    log = ConsoleLogging()
     Dmp = lil_matrix((len(batch), n), dtype=np.float32)
     
     #non-vectorized code
@@ -430,12 +431,13 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     """
     n = D.shape[0]
     log = Logging.ConsoleLogging()
+    sample_size = 0 # not implemented
     if test_set_ind is None:
         train_set_ind = slice(0, n)
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)    
     if issparse(D):
-        return _mutual_proximity_gammai_sparse(D, train_set_ind, 
+        return _mutual_proximity_gammai_sparse(D, sample_size, train_set_ind, 
                                                verbose, log, mv, n_jobs)
     else:
         log.warning("MP gammai does not support parallel execution for dense "
@@ -443,8 +445,8 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
         from hub_toolbox.MutualProximity import mutual_proximity_gammai
         return mutual_proximity_gammai(D, metric, test_set_ind, verbose)
 
-def _mutual_proximity_gammai_sparse(S, sample_size, train_set_ind, 
-                                    verbose, log, mv, n_jobs):
+def _mutual_proximity_gammai_sparse(S, sample_size=0, train_set_ind=None, 
+                                    verbose=0, log=None, mv=None, n_jobs=-1):
     """MP gaussi for sparse similarity matrices. 
     
     Please do not directly use this function, but invoke via 
@@ -535,7 +537,7 @@ def _partial_mp_gammai_sparse(batch, matrix, idx, n, A, B, verbose):
     Please do not directly use this function, but invoke via 
     mutual_proximity_gammai()
     """
-    log = FileLogging()
+    log = ConsoleLogging()
     S_mp = lil_matrix((len(batch), n), dtype=np.float32)
     
     for i, b in enumerate(batch):
@@ -544,9 +546,11 @@ def _partial_mp_gammai_sparse(batch, matrix, idx, n, A, B, verbose):
             log.message("MP_gammai_sparse: {} of {}. On {}.".format(
                         batch[i]+1, n, mp.current_process().name, flush=True))
         j_idx = slice(b+1, n)
-         
-        if j_idx.size == 0:
+        
+        if b+1 >= n:
             continue # nothing to do in the last row
+        #if j_idx.size == 0:
+        #    continue 
         
         # avoiding fancy indexing for efficiency reasons
         S_ij = matrix[b, j_idx].toarray().ravel() #Extract dense rows temporarily        
@@ -632,6 +636,9 @@ class MutualProximity():
     
     def __init__(self, D, isSimilarityMatrix=False, missing_values=None, tmp='/tmp/'):
         """DEPRECATED"""
+        print("DEPRECATED: Please use the appropriate MutualProximity_parallel."
+              "mutual_proximity_DISTRIBUTIONTYPE() function instead.", 
+              file=sys.stderr)
         self.D = IO.copy_D_or_load_memmap(D, writeable=True)
         self.log = Logging.ConsoleLogging()
         if isSimilarityMatrix:
@@ -730,50 +737,67 @@ class Distribution(Enum):
     
 if __name__ == '__main__':
     """Test mp emp similarity sparse sequential & parallel implementations"""
-    from scipy.sparse import rand, csr_matrix
+    from scipy.sparse import rand, triu
+    from hub_toolbox.Hubness import hubness
+    from hub_toolbox.HubnessAnalysis import load_dexter
+    from hub_toolbox.KnnClassification import score
     #do = 'random'
     do = 'dexter'
     if do == 'random':
-        D = rand(5000, 5000, 0.05, 'csr', np.float32, 42)
-        D = np.triu(D.toarray())
-        D = D + D.T
-        np.fill_diagonal(D, 1)
-        D = csr_matrix(D)
+        print("RANDOM DATA:")
+        print("------------")
+        S = triu(rand(1000, 1000, 0.05, 'csr', np.float32, 43), 1)
+        S += S.T
+        D = 1. - S.toarray()
     elif do == 'dexter':
-        from hub_toolbox import HubnessAnalysis, KnnClassification
-        D, c, v = HubnessAnalysis.HubnessAnalysis().load_dexter()
-        D = 1 - D
-        D = csr_matrix(D)
-        k = KnnClassification.KnnClassification(D, c, 5, True)
-        acc, corr, cmat = k.perform_knn_classification()
-        print('\nk-NN accuracy:', acc)
-    from hub_toolbox import Hubness 
-    #from hub_toolbox import MutualProximity as MutProx
-    h = Hubness.Hubness(D, 5, True)
-    Sn, _, _ = h.calculate_hubness()
-    print("Hubness:", Sn)
-    
-    #===========================================================================
-    # mp1 = MutProx.MutualProximity(D, True)
-    # Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.gammai, None, True, False, 0, None, empspex=False)
-    # h = Hubness.Hubness(Dmp1, 5, True)
-    # Sn, _, _ = h.calculate_hubness()
-    # print("Hubness (sequential):", Sn)
-    #===========================================================================
-    
-    mp2 = MutualProximity(D, isSimilarityMatrix=True, missing_values=0)
-    Dmp2 = mp2.calculate_mutual_proximity(Distribution.gammai, None, True, 0, empspex=False, n_jobs=4)
-    h = Hubness.Hubness(Dmp2, 5, isSimilarityMatrix=True)
-    Sn, _, _ = h.calculate_hubness()
+        print("DEXTER:")
+        print("-------")
+        D, c, v = load_dexter()
+        acc_d, _, _ = score(D, c, [5], 'distance')
+        S = csr_matrix(1 - D)
+        acc_s, _, _ = score(S, c, [5], 'similarity')
+   
+    Sn_d, _, _ = hubness(D, 5, 'distance')
+    Sn_s, _, _ = hubness(S, 5, 'similarity')
+    print("Orig. dist. hubness:", Sn_d)
+    print("Orig. sim.  hubness:", Sn_s)
     if do == 'dexter':
-        k = KnnClassification.KnnClassification(Dmp2, c, 5, True)
-        acc, corr, cmat = k.perform_knn_classification()
-        print('\nk-NN accuracy:', acc)
-    print("Hubness (parallel):", Sn)
-    print(Dmp2.max(), Dmp2.min(), Dmp2.mean())
+        print("Orig. dist. k-NN accuracy:", acc_d)
+        print('Orig. sim.  k-NN accuracy:', acc_s)
+        
+    D_mp_emp_d = mutual_proximity_empiric(D)
+    D_mp_emp_s = mutual_proximity_empiric(S, 'similarity')
+    Sn_mp_emp_d, _, _ = hubness(D_mp_emp_d, 5)
+    Sn_mp_emp_s, _, _ = hubness(D_mp_emp_s, 5, 'similarity')
+    print("MP emp dist. hubness:", Sn_mp_emp_d)
+    print("MP emp sim.  hubness:", Sn_mp_emp_s)
+    if do == 'dexter':
+        acc_mp_emp_d, _, _ = score(D_mp_emp_d, c, [5], 'distance')
+        acc_mp_emp_s, _, _ = score(D_mp_emp_s, c, [5], 'similarity')
+        print("MP emp dist. k-NN accuracy:", acc_mp_emp_d)
+        print("MP emp sim.  k-NN accuracy:", acc_mp_emp_s)
+        
+    D_mp_gaussi_d = mutual_proximity_gaussi(D)
+    D_mp_gaussi_s = mutual_proximity_gaussi(S, 'similarity')
+    Sn_mp_gaussi_d, _, _ = hubness(D_mp_gaussi_d, 5)
+    Sn_mp_gaussi_s, _, _ = hubness(D_mp_gaussi_s, 5, 'similarity')
+    print("MP gaussi dist. hubness:", Sn_mp_gaussi_d)
+    print("MP gaussi sim.  hubness:", Sn_mp_gaussi_s)
+    if do == 'dexter':
+        acc_mp_gaussi_d, _, _ = score(D_mp_gaussi_d, c, [5], 'distance')
+        acc_mp_gaussi_s, _, _ = score(D_mp_gaussi_s, c, [5], 'similarity')
+        print("MP gammai dist. k-NN accuracy:", acc_mp_gaussi_d)
+        print("MP gammai sim.  k-NN accuracy:", acc_mp_gaussi_s)
     
-    #print("Summed differences in the scaled matrices:", (Dmp1-Dmp2).sum())
-    #print("D", D)
-    #print("Dmp1", Dmp1)
-    #print("Dmp2", Dmp2)
+    D_mp_gammai_d = mutual_proximity_gammai(D, 'distance')
+    D_mp_gammai_s = mutual_proximity_gammai(S, 'similarity')
+    Sn_mp_gammai_d, _, _ = hubness(D_mp_gammai_d, 5, 'distance')
+    Sn_mp_gammai_s, _, _ = hubness(D_mp_gammai_s, 5, 'similarity')
+    print("MP gammai dist. hubness:", Sn_mp_gammai_d)
+    print("MP gammai sim.  hubness:", Sn_mp_gammai_s)
+    if do == 'dexter':
+        acc_mp_gammai_d, _, _ = score(D_mp_gammai_d, c, [5], 'distance')
+        acc_mp_gammai_s, _, _ = score(D_mp_gammai_s, c, [5], 'similarity')
+        print("MP gammai dist. k-NN accuracy:", acc_mp_gammai_d)
+        print("MP gammai sim.  k-NN accuracy:", acc_mp_gammai_s)
     

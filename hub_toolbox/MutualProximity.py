@@ -242,14 +242,13 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
                             "O({}).".format(i, j, epsmat[0,0]*(10**power)))
             
             if metric == 'similarity':
-                D_mp[j, i] = p12
+                D_mp[i, j] = p12
             else: # distance
-                p1 = norm.cdf(D[j, i], mu[i], sd[i])
-                p2 = norm.cdf(D[j, i], mu[j], sd[j])
-                D_mp[j, i] = p1 + p2 - p12
-            D_mp[i, j] = D_mp[j, i]
-        if metric == 'similarity':
-            D_mp[i, i] = self_value
+                p1 = norm.cdf(D[i, j], mu[i], sd[i])
+                p2 = norm.cdf(D[i, j], mu[j], sd[j])
+                D_mp[i, j] = p1 + p2 - p12
+    D_mp += D_mp.T
+    np.fill_diagonal(D_mp, self_value)
     
     return D_mp
 

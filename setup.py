@@ -36,22 +36,16 @@ except ImportError:
                      "Please make sure these packages are available locally. "
                      "Consider using Anaconda for easy package handling.\n")
     sys.exit(1)
-try:
-    import setuptools
-except ImportError:
-    import warnings
-    warnings.warn("setuptools not found, resorting to distutils"
-                  #": unit test suite can not be simplenn_main from setup.py"
-                  )
-    setuptools = None
 
 setup_options = {}
 
-if setuptools is None:
-    from distutils.core import setup  # @UnusedImport
-else:
-    from setuptools import setup  # @Reimport
+try:
+    from setuptools import setup
     setup_options['test_suite'] = 'tests'
+except ImportError:
+    from distutils.core import setup
+    import warnings
+    warnings.warn("setuptools not found, resorting to distutils")
     
 setup(
     name = "hub_toolbox",
@@ -70,7 +64,8 @@ setup(
         "Development Status :: 3 - Alpha",
         "Environment :: Console",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+        "License :: OSI Approved :: GNU General Public License v3 "
+        "or later (GPLv3+)",
         "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering"
     ],

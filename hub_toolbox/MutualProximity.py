@@ -434,8 +434,11 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.
     """   
+    # Initialization
     n = D.shape[0]
     log = Logging.ConsoleLogging()
+    
+    # Checking input
     if D.shape[0] != D.shape[1]:
         raise TypeError("Distance/similarity matrix is not quadratic.")
     if metric != 'similarity' and metric != 'distance':
@@ -449,9 +452,11 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
         train_set_ind = slice(0, n)
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
-    D = D.copy()
+    
+    # Start MP 
     if verbose:
         log.message('Mutual proximity Gammai rescaling started.', flush=True)
+    D = D.copy()
     
     if issparse(D):
         return _mutual_proximity_gammai_sparse(D, test_set_ind, verbose, log)
@@ -463,35 +468,29 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     A = (mu**2) / va
     B = va / mu
     
-    Dmp = np.zeros_like(D)
+    D_mp = np.zeros_like(D)
     
+    # MP gammai
     for i in range(n):
         if verbose and ((i+1)%1000 == 0 or i+1==n):
             log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
-        j_idx = np.arange(i+1, n)
-        j_len = np.size(j_idx)
+        j_idx = slice(i+1, n)
         
         if metric == 'similarity':
-            p1 = _local_gamcdf(D[i, j_idx], \
-                               np.tile(A[i], (1, j_len)), \
-                               np.tile(B[i], (1, j_len)))
-            p2 = _local_gamcdf(D[j_idx, i].T, 
-                               A[j_idx], 
-                               B[j_idx])
-            Dmp[i, i] = self_value
-            Dmp[i, j_idx] = (p1 * p2).ravel()
+            p1 = _local_gamcdf(D[i, j_idx], A[i], B[i])
+            p2 = _local_gamcdf(D[j_idx, i], A[j_idx], B[j_idx])
+            D_mp[i, j_idx] = (p1 * p2).ravel()
         else: # distance
-            p1 = 1 - _local_gamcdf(D[i, j_idx], 
-                                   np.tile(A[i], (1, j_len)), 
-                                   np.tile(B[i], (1, j_len)))
-            p2 = 1 - _local_gamcdf(D[j_idx, i].T, 
-                                   A[j_idx], 
-                                   B[j_idx])
-            Dmp[i, j_idx] = (1 - p1 * p2).ravel()
+            p1 = 1 - _local_gamcdf(D[i, j_idx], A[i], B[i])
+            p2 = 1 - _local_gamcdf(D[j_idx, i], A[j_idx], B[j_idx])
+            D_mp[i, j_idx] = (1 - p1 * p2).ravel()
             
-        Dmp[j_idx, i] = Dmp[i, j_idx]               
+    # Mirroring the matrix
+    D_mp += D_mp.T
+    # set correct self dist/sim
+    np.fill_diagonal(D_mp, self_value)
     
-    return Dmp
+    return D_mp
 
 def _mutual_proximity_gammai_sparse(D:np.ndarray, 
                                     test_set_ind:np.ndarray=None, 
@@ -551,8 +550,16 @@ def _mutual_proximity_gammai_sparse(D:np.ndarray,
 
 def _local_gamcdf(x, a, b):
     """Gamma CDF, moment estimator"""
-    a[a<0] = np.nan
-    b[b<=0] = np.nan
+    try:
+        a[a<0] = np.nan
+    except TypeError:
+        if a < 0:
+            a = np.nan
+    try:
+        b[b<=0] = np.nan
+    except TypeError:
+        if b <= 0:
+            b = np.nan
     x[x<0] = 0
     z = x / b
     p = gammainc(a, z)

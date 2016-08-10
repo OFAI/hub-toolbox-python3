@@ -14,7 +14,7 @@ Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
-from scipy.special import gammainc
+from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm
 from scipy.sparse import issparse, lil_matrix
 from enum import Enum
@@ -30,8 +30,8 @@ def _get_weighted_batches(n, jobs):
     """Define batches with increasing size to average the runtime for each
     batch.
     
-    Observation: MP gets faster while processing the distance matrix. This 
-    approximately follows a linear function.
+    Observation: MP gets faster while processing the distance matrix, since it 
+    processes half the matrix. This approximately follows a linear function.
     Idea: Give each row a weight w according to w(r) = 1 - r/n, where 
     r... row number, n... number of rows. Now each batch should get the same
     weight bw := n/jobs, where jobs... number of processes. The equation to 
@@ -44,7 +44,9 @@ def _get_weighted_batches(n, jobs):
     a = 0
     b = 0
     for i in range(jobs-1):  # @UnusedVariable
-        b = int((np.sqrt(jobs)*(2*n-1)-np.sqrt(jobs*(-2*a+2*n+1)**2-4*n**2))/(2*np.sqrt(jobs)))
+        b = int((np.sqrt(jobs) * (2*n - 1) 
+                 - np.sqrt(jobs * (-2*a + 2*n + 1)**2 - 4*n**2)) 
+                 / (2*np.sqrt(jobs)))
         if b < 1:
             b = 1 # Each batch must contain at least 1 row
         batches.append( np.arange(a, b) )
@@ -190,13 +192,6 @@ class MutualProximity():
                 else:
                     pass # skip zero entries
         
-        #=======================================================================
-        # filenamewords = [str(batch[0]), str(batch[-1]), 'triu']
-        # f = self.tmp + '_'.join(filenamewords)
-        # self.log.message("MP_empiric_sparse: Saving batch {}-{} to {}. On {}."
-        #                 .format(batch[0], batch[-1], f, mp.current_process().name), flush=True)  # @UndefinedVariable
-        # np.save(f, Dmp)
-        #=======================================================================
         return (batch, Dmp)
     
     def mp_empiric_sparse(self, train_set_mask=None, verbose=False, empspex=False, n_jobs=-1):
@@ -246,20 +241,6 @@ class MutualProximity():
         for p in processes:
             p.join()
 
-        #=======================================================================
-        # import os, datetime
-        # time = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d-%H-%M-%S')
-        # folder = self.tmp + 'feldbauer/hubPDBs2/'
-        # if empspex:
-        #     filename = 'D_mpempspex_triu_'+time
-        # else:
-        #     filename = 'D_mpemp_triu_'+time
-        # os.makedirs(folder, exist_ok=True)
-        # if verbose:
-        #     self.log.message("Saving Dmp upper to {} as {}.npy".format(folder, filename), flush=True)
-        # np.save(folder + filename, Dmp)
-        #=======================================================================
-        
         if verbose:
             self.log.message("Mirroring distance matrix", flush=True)
         Dmp += Dmp.T
@@ -348,25 +329,6 @@ class MutualProximity():
                         p2 = 1 - norm.cdf(matrix[j, b], mu[j], sd[j])
                         Dmp[i, j] = (1 - p1 * p2).ravel()
                                         
-        #=======================================================================
-        # #non-vectorized code
-        # for i in range(n):
-        #     if verbose and ((i+1)%1000 == 0 or i+1==n):
-        #         self.log.message("MP_gaussi: {} of {}."
-        #                          .format(i+1, n), flush=True)
-        #     for j in range(i+1, n):
-        #         if self.D[i, j] > 0:       
-        #             if self.isSimilarityMatrix:
-        #                 p1 = norm.cdf(self.D[i, j], mu[i], sd[i])
-        #                 p2 = norm.cdf(self.D[j, i], mu[j], sd[j])
-        #                 Dmp[i, j] = (p1 * p2).ravel()
-        #             else:
-        #                 p1 = 1 - norm.cdf(self.D[i, j], mu[i], sd[i])
-        #                 p2 = 1 - norm.cdf(self.D[j, i], mu[j], sd[j])
-        #                 Dmp[i, j] = (1 - p1 * p2).ravel()
-        #             Dmp[j, i] = Dmp[i, j]
-        #=======================================================================
-        
         return batch, Dmp
         
         
@@ -551,8 +513,6 @@ class MutualProximity():
              
             if j_idx.size == 0:
                 continue # nothing to do in the last row
-            #Dij = matrix[b, j_idx].toarray().ravel() #Extract dense rows temporarily
-            #Dji = matrix[j_idx, b].toarray().ravel() #for vectorization below.
             
             # avoiding fancy indexing for efficiency reasons
             Dij = matrix[b, j_idx[0]:j_idx[-1]+1].toarray().ravel() #Extract dense rows temporarily
@@ -633,27 +593,9 @@ class MutualProximity():
             if verbose:
                 self.log.message("Merging submatrix {} (rows {}..{})".format(i, rows[0], rows[-1]), flush=True)
             Dmp[rows, :] = Dmp_part
-            
-        #=======================================================================
-        # for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable
-        #     if verbose:
-        #         self.log.message("Finalizing MP process {}".format(i), flush=True)
-        #     task_queue.put('STOP')
-        #=======================================================================
          
         for p in processes:
             p.join()
-        
-        #=======================================================================
-        # import os
-        # folder = '/tmp/feldbauer/hubPDBs2/'
-        # filename = 'D_mpgammai_triu'
-        # os.makedirs(folder, exist_ok=True)
-        # from scipy import io
-        # if verbose:
-        #     self.log.message("Saving Dmp upper to {} as {}".format(folder, filename), flush=True)
-        # io.mmwrite(folder + filename, Dmp)
-        #=======================================================================
         
         Dmp = Dmp.tolil()
         if verbose:

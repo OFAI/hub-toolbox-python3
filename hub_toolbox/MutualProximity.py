@@ -353,7 +353,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     
     return D_mp
 
-def _mutual_proximity_gaussi_sparse(D:np.ndarray, sample_size:int=0, 
+def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0, 
                                     test_set_ind:np.ndarray=None, 
                                     verbose:int=0, log=None):
     """MP gaussi for sparse similarity matrices. 
@@ -361,42 +361,41 @@ def _mutual_proximity_gaussi_sparse(D:np.ndarray, sample_size:int=0,
     Please do not directly use this function, but invoke via 
     mutual_proximity_gaussi()
     """
-    n = D.shape[0]
+    n = S.shape[0]
     self_value = 1 # similarity matrix
     if test_set_ind is None:
         train_set_ind = slice(0, n)
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
     from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
-    mu, var = csr_mean_variance_axis0(D[train_set_ind])
+    mu, var = csr_mean_variance_axis0(S[train_set_ind])
     sd = np.sqrt(var)
     del var
     
-    D_mp = dok_matrix(D.shape)
+    S_mp = lil_matrix(S.shape)
 
     for i in range(n):
         if verbose and log and ((i+1)%1000 == 0 or i+1==n):
             log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
-        j_idx = np.arange(i+1, n)
-        #j_len = np.size(j_idx)
+        j_idx = slice(i+1, n)
         
-        Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
-        Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
+        S_ij = S[i, j_idx].toarray().ravel() #Extract dense rows temporarily
+        S_ji = S[j_idx, i].toarray().ravel() #for vectorization below.
         
-        p1 = norm.cdf(Dij, mu[i], sd[i]) # mu, sd broadcasted
-        p1[Dij==0] = 0
-        del Dij
-        p2 = norm.cdf(Dji, mu[j_idx], sd[j_idx])
-        p2[Dji==0] = 0
-        del Dji
-        #del mu, sd # with del mu, sd, error in line with mu broadcasting
-        tmp = (p1 * p2).ravel()
-        D_mp[i, i] = self_value
-        D_mp[i, j_idx] = tmp            
-        D_mp[j_idx, i] = tmp[:, np.newaxis]   
+        p1 = norm.cdf(S_ij, mu[i], sd[i]) # mu, sd broadcasted
+        p1[S_ij==0] = 0
+        del S_ij
+        p2 = norm.cdf(S_ji, mu[j_idx], sd[j_idx])
+        p2[S_ji==0] = 0
+        del S_ji
+        tmp = np.empty(n-i)
+        tmp[0] = self_value / 2. 
+        tmp[1:] = (p1 * p2).ravel()
+        S_mp[i, i:] = tmp            
         del tmp, j_idx
     
-    return D_mp.tocsr()
+    S_mp += S_mp.T
+    return S_mp.tocsr()
 
 def mutual_proximity_gammai(D:np.ndarray, metric:str='distance', 
                              test_set_ind:np.ndarray=None, verbose:int=0):

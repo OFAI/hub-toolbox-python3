@@ -277,16 +277,15 @@ def load_dexter():
                 
 if __name__ == "__main__":
     hub = HubnessAnalysis()
-    #hub.analyse_hubness()
-    hub.analyse_hubness(origData=True, 
-                           mp=True,
-                           mp_gauss=True,
-                           mp_gaussi=True,
-                           mp_gammai=True,
-                           ls=False, 
-                           snn=False, 
-                           cent=False, 
-                           wcent=False, 
-                           lcent=False
-                          )
+    hub.analyse_hubness()
+    """hub.analyse_hubness(origData=True, 
+                        mp=False,
+                        mp_gauss=False,
+                        mp_gaussi=False,
+                        mp_gammai=False,
+                        ls=False, 
+                        snn=False, 
+                        cent=False, 
+                        wcent=False, 
+                        lcent=False)
     #"""    

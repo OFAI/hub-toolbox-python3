@@ -21,10 +21,6 @@ from enum import Enum
 import multiprocessing as mp
 from hub_toolbox import IO, Logging
 
-class Distribution(Enum):
-    empiric = 'empiric'
-    gaussi = 'gaussi'
-    gammai = 'gammai'
 
 def _get_weighted_batches(n, jobs):
     """Define batches with increasing size to average the runtime for each
@@ -61,6 +57,31 @@ def _worker(work_input, work_output):
         result = func(*args)
         work_output.put(result)
         
+def _local_gamcdf(x, a, b, mv=np.nan):
+    """Gamma CDF, moment estimator"""
+    try:
+        a[a<0] = np.nan
+    except TypeError:
+        if a < 0:
+            a = np.nan
+    try:
+        b[b<=0] = np.nan
+    except TypeError:
+        if b <= 0:
+            b = np.nan
+    x[x<0] = 0
+    
+    # don't calculate gamcdf for missing values
+    if mv == 0:
+        nz = x>0
+        z = x[nz] / b[nz]
+        p = np.zeros_like(x)
+        p[nz] = gammainc(a[nz], z)
+    else:
+        z = x / b
+        p = gammainc(a, z)
+    return p
+    
 class MutualProximity():
     """
     Apply Mutual Proximity (MP) [1] on a distance matrix. The return value is
@@ -663,23 +684,13 @@ class MutualProximity():
                 
             Dmp[j_idx, i] = Dmp[i, j_idx]               
         
-        return Dmp
+        return Dmp   
     
-    def local_gamcdf(self, x, a, b):
-        a[a<0] = np.nan
-        b[b<=0] = np.nan
-        x[x<0] = 0
-        
-        # don't calculate gamcdf for missing values
-        if self.mv == 0:
-            nz = x>0
-            z = x[nz] / b[nz]
-            p = np.zeros_like(x)
-            p[nz] = gammainc(a[nz], z)
-        else:
-            z = x / b
-            p = gammainc(a, z)
-        return p
+class Distribution(Enum):
+    """DEPRECATED"""
+    empiric = 'empiric'
+    gaussi = 'gaussi'
+    gammai = 'gammai'
     
 if __name__ == '__main__':
     """Test mp empiric similarity sparse sequential & parallel implementations"""

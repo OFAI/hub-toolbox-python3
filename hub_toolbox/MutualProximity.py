@@ -120,7 +120,6 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
 
     return D_mp
 
-
 def _mutual_proximity_empiric_sparse(S:csr_matrix, 
                                      test_set_ind:np.ndarray=None, 
                                      verbose:int=0,
@@ -184,8 +183,11 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.
     """
+    # Initialization
     n = D.shape[0]
     log = Logging.ConsoleLogging()
+    
+    # Checking input
     if D.shape[0] != D.shape[1]:
         raise TypeError("Distance/similarity matrix is not quadratic.")
     if metric != 'similarity' and metric != 'distance':
@@ -204,6 +206,8 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
         train_set_ind = slice(0, n)
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+        
+    # Start MP
     D = D.copy()
     
     np.fill_diagonal(D, self_value)
@@ -217,6 +221,7 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
             
     D_mp = np.zeros_like(D)
     
+    # MP Gauss
     for i in range(n):
         if verbose and ((i+1)%1000 == 0 or i+1==n):
             log.message("MP_gauss: {} of {}.".format(i+1, n))
@@ -289,9 +294,12 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.
-    """       
+    """    
+    # Initialization   
     n = D.shape[0]
     log = Logging.ConsoleLogging()
+    
+    # Checking input
     if D.shape[0] != D.shape[1]:
         raise TypeError("Distance/similarity matrix is not quadratic.")
     if metric != 'similarity' and metric != 'distance':
@@ -305,10 +313,11 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
         train_set_ind = slice(0, n)
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
-    D = D.copy()
     
+    # Start MP Gaussi    
     if verbose:
         log.message('Mutual Proximity Gaussi rescaling started.', flush=True)
+    D = D.copy()
 
     if issparse(D):
         return _mutual_proximity_gaussi_sparse(D, sample_size, test_set_ind, 
@@ -325,34 +334,24 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
         mu = np.mean(D[train_set_ind], 0)
         sd = np.std(D[train_set_ind], 0, ddof=1)
     
+    # MP Gaussi
     D_mp = np.zeros_like(D)
     for i in range(n):
         if verbose and ((i+1)%1000 == 0 or i+1==n):
             log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
-        j_idx = np.arange(i+1, n)
-        j_len = np.size(j_idx)
+        j_idx = slice(i+1, n)
         
         if metric == 'similarity':
-            # TODO change np.tile to broadcasting
-            p1 = norm.cdf(D[i, j_idx], \
-                          np.tile(mu[i], (1, j_len)), \
-                          np.tile(sd[i], (1, j_len)))
-            p2 = norm.cdf(self.D[j_idx, i].T, \
-                          mu[j_idx], \
-                          sd[j_idx])
-            D_mp[i, i] = self_value
+            p1 = norm.cdf(D[i, j_idx], mu[i], sd[i])
+            p2 = norm.cdf(D[j_idx, i], mu[j_idx], sd[j_idx])
             D_mp[i, j_idx] = (p1 * p2).ravel()
         else:
-            p1 = 1 - norm.cdf(D[i, j_idx], \
-                              np.tile(mu[i], (1, j_len)), \
-                              np.tile(sd[i], (1, j_len)))
-            p2 = 1 - norm.cdf(D[j_idx, i].T, \
-                              mu[j_idx], \
-                              sd[j_idx])
+            p1 = 1 - norm.cdf(D[i, j_idx], mu[i], sd[i])
+            p2 = 1 - norm.cdf(D[j_idx, i], mu[j_idx], sd[j_idx])
             D_mp[i, j_idx] = (1 - p1 * p2).ravel()
-            
-        D_mp[j_idx, i] = D_mp[i, j_idx]
-
+    D_mp += D_mp.T        
+    np.fill_diagonal(D_mp, self_value)
+    
     return D_mp
 
 def _mutual_proximity_gaussi_sparse(D:np.ndarray, sample_size:int=0, 

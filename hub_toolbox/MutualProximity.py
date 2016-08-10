@@ -16,11 +16,7 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse.dok import dok_matrix
-from scipy.sparse.lil import lil_matrix
-from scipy.sparse.csr import csr_matrix
-from scipy.sparse.base import issparse
-from scipy.sparse import triu
+from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
 from hub_toolbox import IO, Logging
 import sys
 # DEPRECATED
@@ -492,7 +488,7 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     
     return D_mp
 
-def _mutual_proximity_gammai_sparse(D:np.ndarray, 
+def _mutual_proximity_gammai_sparse(S:np.ndarray, 
                                     test_set_ind:np.ndarray=None, 
                                     verbose:int=0, log=None):
     """MP gammai for sparse similarity matrices. 
@@ -500,16 +496,20 @@ def _mutual_proximity_gammai_sparse(D:np.ndarray,
     Please do not directly use this function, but invoke via 
     mutual_proximity_gammai()
     """
+    # TODO implement train_test split
+    if test_set_ind is not None:
+        raise NotImplementedError("MP gammai sparse does not support "
+                                  "train/test split atm.")
+    
     # mean, variance WITH zero values
     #=======================================================================
     # from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  
-    # mu, va = csr_mean_variance_axis0(self.D[train_set_mask])
+    # mu, va = csr_mean_variance_axis0(self.S[train_set_mask])
     #=======================================================================
     
     # mean, variance WITHOUT zero values (missing values)
-    # TODO implement train_test split
-    mu = np.array(D.sum(0) / D.getnnz(0)).ravel()
-    X = D.copy()
+    mu = np.array(S.sum(0) / S.getnnz(0)).ravel()
+    X = S.copy()
     X.data **= 2
     E1 = np.array(X.sum(0) / X.getnnz(0)).ravel()
     del X
@@ -522,31 +522,29 @@ def _mutual_proximity_gammai_sparse(D:np.ndarray,
     A[A<0] = np.nan
     B[B<=0] = np.nan
 
-    Dmp = dok_matrix(D.shape, dtype=np.float32)
-    n = D.shape[0]
+    S_mp = lil_matrix(S.shape, dtype=np.float32)
+    n = S.shape[0]
     self_value = 1.
     
     for i in range(n):
         if verbose and log and ((i+1)%1000 == 0 or i+1==n):
             log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
-        j_idx = np.arange(i+1, n)
-        j_len = np.size(j_idx)
+        j_idx = slice(i+1, n)
          
-        Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily
-        Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.
-        
-        p1 = _local_gamcdf(Dij, # TODO should be changed to broadcasting
-                           np.tile(A[i], (1, j_len)), np.tile(B[i], (1, j_len)))
+        Dij = S[i, j_idx].toarray().ravel() #Extract dense rows temporarily        
+        p1 = _local_gamcdf(Dij, A[i], B[i])
         del Dij
+        Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
         p2 = _local_gamcdf(Dji, A[j_idx], B[j_idx])
-        del Dji#, A, B
-        tmp = (p1 * p2).ravel()
-        Dmp[i, i] = self_value
-        Dmp[i, j_idx] = tmp     
-        Dmp[j_idx, i] = tmp[:, np.newaxis]
+        del Dji
+        tmp = np.empty(n-i)
+        tmp[0] = self_value / 2. 
+        tmp[1:] = (p1 * p2).ravel()
+        S_mp[i, i:] = tmp     
         del tmp, j_idx
-           
-    return Dmp.tocsr()
+    S_mp += S_mp.T
+    
+    return S_mp.tocsr()
 
 def _local_gamcdf(x, a, b):
     """Gamma CDF, moment estimator"""

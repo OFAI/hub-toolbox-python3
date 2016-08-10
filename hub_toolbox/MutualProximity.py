@@ -20,6 +20,7 @@ from scipy.sparse.dok import dok_matrix
 from scipy.sparse.lil import lil_matrix
 from scipy.sparse.csr import csr_matrix
 from scipy.sparse.base import issparse
+from scipy.sparse import triu
 from hub_toolbox import IO, Logging
 import sys
 # DEPRECATED
@@ -62,8 +63,11 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.
     """
+    # Initialization
     n = D.shape[0]
     log = Logging.ConsoleLogging()
+    
+    # Check input
     if D.shape[0] != D.shape[1]:
         raise TypeError("Distance/similarity matrix is not quadratic.")
     if metric != 'similarity' and metric != 'distance':
@@ -83,10 +87,10 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
                                   "test splits.")
         #train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
 
+    # Start MP
     D = D.copy()
     
     if issparse(D):
-        log.warning("Please use MutualProximity_parallel for sparse MP.")
         return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log)
         
     # ensure correct self distances (NOT done for sparse matrices!)
@@ -94,10 +98,11 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     
     D_mp = np.zeros_like(D)
      
+    # Calculate MP empiric
     for i in range(n-1):
         if verbose and ((i+1)%1000 == 0 or i==n-2):
             log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-        # Select only finite distances for MP
+        # Calculate only triu part of matrix
         j_idx = i + 1
          
         dI = D[i, :][np.newaxis, :]
@@ -109,6 +114,7 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
         else: # metric == 'distance':
             D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n)
          
+    # Mirror, so that matrix is symmetric
     D_mp += D_mp.T
     np.fill_diagonal(D_mp, self_value)
 
@@ -126,28 +132,18 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     """
     self_value = 1. # similarity matrix
     n = S.shape[0]        
-    nnz = S.nnz
     S_mp = lil_matrix(S.shape)
     
-    for i in range(n-1):
+    for i, j in zip(*triu(S).nonzero()):
         if verbose and log and ((i+1)%1000 == 0 or i==n-2):
             log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-        for j in range(i+1, n):
-            d = S[j, i]
-            if d>0: 
-                dI = S[i, :].todense()
-                dJ = S[j, :].todense()
-                # non-zeros elements
-                nz = (dI > 0) & (dJ > 0)  # @UnusedVariable
-                #TODO continue...
-                sIJ_intersect = ((dI <= d) & (dJ <= d)).sum()
-                sIJ_overlap = sIJ_intersect / nnz
-                
-                S_mp[i, j] = sIJ_overlap
-                S_mp[j, i] = sIJ_overlap
-            else:
-                pass # skip zero entries
+        d = S[j, i]
+        dI = S.getrow(i).toarray()
+        dJ = S.getrow(j).toarray()
+        nz = (dI > 0) & (dJ > 0)
+        S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / nz.sum()
     
+    S_mp += S_mp.T
     for i in range(n):
         S_mp[i, i] = self_value #need to set self values
     

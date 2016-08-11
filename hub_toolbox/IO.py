@@ -13,15 +13,14 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-import numpy as np
-from scipy import sparse
 import os
 import sys
+import numpy as np
+from scipy import sparse
 
 def copy_D_or_load_memmap(D, writeable=False):
     """DEPRECATED. Return a deep copy of a numpy array (if D is an ndarray), 
     otherwise return a read-only memmap (if D is a path)."""
-    
     print("DEPRECATED: memmap support will be dropped completely.", 
           file=sys.stderr)
     if isinstance(D, np.memmap):
@@ -29,11 +28,6 @@ def copy_D_or_load_memmap(D, writeable=False):
     elif isinstance(D, np.ndarray):
         newD = np.copy(D.astype(np.float32))
     elif sparse.issparse(D):
-        #=======================================================================
-        # log = Logging.ConsoleLogging()
-        # log.warning("Not all classes of the hub toolbox support sparse matrices"
-        #             " as of now. This is work-in-progress.")
-        #=======================================================================
         newD = D.copy()
     elif isinstance(D, str):
         if os.path.isfile(D):
@@ -70,9 +64,9 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
     1) Submatrices always contain all columns per row. 
     2) The last batch will usually have less rows than nr_rows
     """
-    free_mem = FreeMemLinux(unit='k').user_free        
-    max_rows = int(free_mem / cols / elem_size) 
-    nr_rows = int(max_rows / nr_matrices) 
+    free_mem = FreeMemLinux(unit='k').user_free
+    max_rows = int(free_mem / cols / elem_size)
+    nr_rows = int(max_rows / nr_matrices)
     nr_batches = int(np.ceil(rows / nr_rows))
     return nr_batches, nr_rows
 

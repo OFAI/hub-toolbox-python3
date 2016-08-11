@@ -58,11 +58,11 @@ def centering(X:np.ndarray, metric:str, test_set_mask:np.ndarray=None):
     Conference on Empirical Methods in Natural Language Processing (pp 613–623). 
     Retrieved from https://www.aclweb.org/anthology/D/D13/D13-1058.pdf
     """
-        
+    
     if metric == 'distance':
         if test_set_mask is not None:
-                raise NotImplementedError("Distance based centering does not "
-                                          "support train/test splits so far.")
+            raise NotImplementedError("Distance based centering does not "
+                                      "support train/test splits so far.")
         n = X.shape[0]
         H = np.identity(n) - (1.0/n) * np.ones((n, n))
         K = X # K = X.T.X must be provided upstream
@@ -127,7 +127,7 @@ def weighted_centering(X:np.ndarray, metric:str, gamma:float,
     if test_set_mask is not None:
         train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
     else:
-        train_set_mask = slice(0, n) 
+        train_set_mask = slice(0, n)
     
     n_train = X[train_set_mask].shape[0]
     d = np.zeros(n)
@@ -198,7 +198,7 @@ def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float,
     """
     if test_set_mask is None:
         test_set_mask = np.zeros(X.shape[0], np.bool)
-        
+    
     if metric == 'cosine':
         # Rescale vectors to unit length
         v = X / np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
@@ -218,15 +218,14 @@ def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float,
         sim_i = sim[i, :].copy()
         # set similarity of test examples to zero to exclude them from fit
         sim_i[test_set_mask] = 0
-        # also exclude self 
+        # also exclude self
         sim_i[i] = 0
-        #TODO randomization?
         nn = np.argsort(sim_i)[::-1][1 : kappa+1]
         c_kappa_x = np.mean(v[nn], 0)
         if metric == 'cosine':
             # c_kappa_x has no unit length in general
-            local_affinity[i] = np.inner(x, c_kappa_x)       
-            #local_affinity[i] = cosine(x, c_kappa_x) 
+            local_affinity[i] = np.inner(x, c_kappa_x)
+            #local_affinity[i] = cosine(x, c_kappa_x)
         elif metric == 'euclidean':
             local_affinity[i] = 1 / (1 + np.linalg.norm(x-c_kappa_x))
         else:
@@ -234,7 +233,6 @@ def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float,
                              "supports cosine distances.")
     sim_lcent = sim - (local_affinity ** gamma)
     return 1 - sim_lcent
-
 
 def disSim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
     """
@@ -313,7 +311,7 @@ def disSim_local(X:np.ndarray, k:int, test_set_mask:np.ndarray=None):
     n = X.shape[0]
     D = l2(X)
     # Exclude self distances from kNN lists:
-    np.fill_diagonal(D, np.inf) 
+    np.fill_diagonal(D, np.inf)
     c_k = np.zeros_like(X)
     
     if test_set_mask is not None:
@@ -321,7 +319,7 @@ def disSim_local(X:np.ndarray, k:int, test_set_mask:np.ndarray=None):
         for i in range(n):
             knn_idx = np.argsort(D[i, train_set_mask])[0:k]
             c_k[i] = X[train_set_mask[knn_idx]].mean(0)
-    else: # take all    
+    else: # take all
         for i in range(n):
             knn_idx = np.argsort(D[i, :])[0:k]
             c_k[i] = X[knn_idx].mean(0)
@@ -359,9 +357,11 @@ class Centering(object):
         if self.vectors is not None:
             metric = 'vector'
             X = self.vectors
-        else:
+        elif distance_based:
             metric = 'distance'
             X = self.distance_matrix
+        else:
+            raise ValueError("No vectors given and distance_based not set.")
         return centering(X, metric, test_set_mask)
         
     def weighted_centering(self, gamma, 
@@ -406,13 +406,15 @@ class Centering(object):
         return disSim_local(self.vectors, k, test_set_mask)
 
 if __name__ == '__main__':
-    vectors = np.arange(12).reshape(3,4)
+    #vectors = np.arange(12).reshape(3,4)
     np.random.seed(47)
-    vectors = np.random.rand(3, 4)
-    c = Centering(vectors)
-    print("Vectors: ............... \n{}".format(vectors))
-    print("Centering: ............. \n{}".format(c.centering()))
-    print("Weighted centering: .... \n{}".format(c.weighted_centering(0.4)))
-    print("Localized centering: ... \n{}".format(c.localized_centering(2)))
-    print("DisSim (global): ....... \n{}".format(c.disSim_global()))
-    print("DisSim (local): ........ \n{}".format(c.disSim_local(2)))
+    vect_data = np.random.rand(3, 4)
+    print("Vectors: ............... \n{}".format(vect_data))
+    print("Centering: ............. \n{}".format(centering(
+                                                 vect_data, 'vector')))
+    print("Weighted centering: .... \n{}".format(weighted_centering(
+                                                 vect_data, 'cosine', 0.4)))
+    print("Localized centering: ... \n{}".format(localized_centering(
+                                                 vect_data, 'cosine', 2, 1)))
+    print("DisSim (global): ....... \n{}".format(disSim_global(vect_data)))
+    print("DisSim (local): ........ \n{}".format(disSim_local(vect_data, k=2)))

@@ -80,7 +80,7 @@ def centering(X:np.ndarray, metric:str, test_set_mask:np.ndarray=None):
         return X_cent
     else:
         raise ValueError("Parameter 'metric' must be 'distance' or 'vector'.")
-    
+
 def weighted_centering(X:np.ndarray, metric:str, gamma:float, 
                        test_set_mask:np.ndarray=None):
     """Perform  weighted centering: shift origin to the weighted data mean
@@ -145,12 +145,12 @@ def weighted_centering(X:np.ndarray, metric:str, gamma:float,
         raise ValueError("Weighted centering only supports cosine distances.")
     d_sum = np.sum(d ** gamma)
     w = (d ** gamma) / d_sum
-    vectors_mean_weighted = np.sum(w.reshape(n,1) * X, 0)
+    vectors_mean_weighted = np.sum(w.reshape(n, 1) * X, 0)
     X_wcent = X - vectors_mean_weighted
     return X_wcent
-    
+
 def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float, 
-                       test_set_mask:np.ndarray=None):
+                        test_set_mask:np.ndarray=None):
     """Perform localized centering.
     
     Reduce hubness in datasets according to the method proposed in [3].
@@ -207,7 +207,7 @@ def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float,
     # Localized centering meaningful for Euclidean?
     elif metric == 'euclidean':
         v = X # no scaling here...
-        sim = 1 / ( 1 + l2(v))
+        sim = 1 / (1 + l2(v))
     else:
         raise ValueError("Localized centering only supports cosine distances.")
     
@@ -234,7 +234,7 @@ def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float,
     sim_lcent = sim - (local_affinity ** gamma)
     return 1 - sim_lcent
 
-def disSim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
+def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
     """
     Calculate dissimilarity based on global 'sample-wise centrality' [4].
     
@@ -268,7 +268,7 @@ def disSim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
         train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
     else:
         train_set_mask = slice(0, n)
-        
+    
     c = X[train_set_mask].mean(0)
     xq_c = ((X - c) ** 2).sum(1)
     D_dsg = np.zeros((n, n))
@@ -278,7 +278,7 @@ def disSim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
             D_dsg[x, q] = x_q - xq_c[x] - xq_c[q]
     return D_dsg
 
-def disSim_local(X:np.ndarray, k:int, test_set_mask:np.ndarray=None):
+def dis_sim_local(X:np.ndarray, k:int, test_set_mask:np.ndarray=None):
     """Calculate dissimilarity based on local 'sample-wise centrality' [5].
     
     Parameters:
@@ -330,8 +330,7 @@ def disSim_local(X:np.ndarray, k:int, test_set_mask:np.ndarray=None):
             x_y = ((X[x] - X[y]) ** 2).sum()
             disSim[x, y] = x_y - c_k_xy[x] - c_k_xy[y]
     return disSim + disSim.T - np.diag(np.diag(disSim))
-    
-    
+
 ###############################################################################
 #
 # DEPRECATED class
@@ -379,7 +378,7 @@ class Centering(object):
         return weighted_centering(self.vectors, metric, gamma, test_set_mask)
     
     def localized_centering(self, kappa:int=20, gamma:float=1, 
-                        distance_metric=Distance.cosine, test_set_mask=None):
+        distance_metric=Distance.cosine, test_set_mask=None):
         """DEPRECATED"""
         print("DEPRECATED: Please use Centering.localized_centering() instead.", 
               file=sys.stderr)
@@ -393,28 +392,31 @@ class Centering(object):
         return localized_centering(self.vectors, metric, 
                                    kappa, gamma, test_set_mask)
         
-    def disSim_global(self, test_set_mask=None):
+    def dis_sim_global(self, test_set_mask=None):
         """DEPRECATED"""
         print("DEPRECATED: Please use Centering.disSim_glocal() instead.", 
               file=sys.stderr)
-        return disSim_global(self.vectors, test_set_mask)
+        return dis_sim_global(self.vectors, test_set_mask)
     
-    def disSim_local(self, k, test_set_mask=None):
+    def dis_sim_local(self, k, test_set_mask=None):
         """DEPRECATED"""
-        print("DEPRECATED: Please use Centering.disSim_local() instead.", 
+        print("DEPRECATED: Please use Centering.dis_sim_local() instead.", 
               file=sys.stderr)
-        return disSim_local(self.vectors, k, test_set_mask)
+        return dis_sim_local(self.vectors, k, test_set_mask)
 
 if __name__ == '__main__':
     #vectors = np.arange(12).reshape(3,4)
     np.random.seed(47)
-    vect_data = np.random.rand(3, 4)
-    print("Vectors: ............... \n{}".format(vect_data))
-    print("Centering: ............. \n{}".format(centering(
-                                                 vect_data, 'vector')))
-    print("Weighted centering: .... \n{}".format(weighted_centering(
-                                                 vect_data, 'cosine', 0.4)))
-    print("Localized centering: ... \n{}".format(localized_centering(
-                                                 vect_data, 'cosine', 2, 1)))
-    print("DisSim (global): ....... \n{}".format(disSim_global(vect_data)))
-    print("DisSim (local): ........ \n{}".format(disSim_local(vect_data, k=2)))
+    VECT_DATA = np.random.rand(3, 4)
+    print("Vectors: ............... \n{}".
+          format(VECT_DATA))
+    print("Centering: ............. \n{}".
+          format(centering(VECT_DATA, 'vector')))
+    print("Weighted centering: .... \n{}".
+          format(weighted_centering(VECT_DATA, 'cosine', 0.4)))
+    print("Localized centering: ... \n{}".
+          format(localized_centering(VECT_DATA, 'cosine', 2, 1)))
+    print("DisSim (global): ....... \n{}".
+          format(dis_sim_global(VECT_DATA)))
+    print("DisSim (local): ........ \n{}".
+          format(dis_sim_local(VECT_DATA, k=2)))

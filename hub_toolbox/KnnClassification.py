@@ -13,12 +13,12 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import sys
 import numpy as np
 from scipy.sparse.base import issparse
 from hub_toolbox import Logging
-import sys
 
-def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=[5], 
+def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=5, 
           metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
     """Perform k-nearest neighbor classification.
     
@@ -35,7 +35,7 @@ def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=[5],
     target : ndarray
         The n x 1 target class labels (ground truth).
     
-    k : array_like (of dtype=int), optional (default: [5])
+    k : int or array_like (of dtype=int), optional (default: [5])
         Neighborhood size for k-NN classification.
         For each value in k, one k-NN experiment is performed.
         HINT: Providing more than one value for k is a cheap means to perform 
@@ -98,7 +98,11 @@ def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=[5],
         # Indices of training examples
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
     # Number of k-NN parameters
-    k_length = np.size(k)
+    try:
+        k_length = np.array(k).size
+    except AttributeError:
+        k = np.array(k)
+        k_length = k.size
         
     acc = np.zeros((k_length, 1))
     corr = np.zeros((k_length, D.shape[0]))
@@ -107,9 +111,10 @@ def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=[5],
     cmat = np.zeros((k_length, len(cl), len(cl)))
     
     classes = target.copy()
-    for idx in range(len(cl)):
+    for idx, cur_class in enumerate(cl):
         # change labels to 0, 1, ..., len(cl)-1
-        classes[target == cl[idx]] = idx
+        classes[target == cur_class] = idx
+    
     cl = range(len(cl))
     
     # Classify each point in test set

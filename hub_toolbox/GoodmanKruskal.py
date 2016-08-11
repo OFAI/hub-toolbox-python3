@@ -17,7 +17,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, lil_matrix
 
 def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
-                          metric='distance') -> float:
+                          metric:str='distance') -> float:
     """Calculate the Goodman-Kruskal clustering index.
     
     This clustering quality measure relates the number of concordant (Q_c) 
@@ -221,8 +221,8 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
         if verbose == 1:# and c % 10 == 0:
             # end='\r' does not work with jupyter notebook
             print("Class: {}/{}".format(c, len(cls)), end='')
-        sel = classes == c 
-        if np.sum(sel) > 1: 
+        sel = classes == c
+        if np.sum(sel) > 1:
             if verbose >= 2:
                 print("Finding S_ij pairs for class {}..."
                       .format(c), end=' ')
@@ -232,13 +232,13 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
             self_nnz = 0
             
             # Only visit points of self class
-            sel_arg = np.where(sel>0)[0]
+            sel_arg = np.where(sel > 0)[0]
             for i in sel_arg:
                 cur_self = csr_matrix(sel[i+1:])
                 self_nnz += cur_self.nnz
                 S_self_list[i, :cur_self.shape[1]] = \
                     S[i, i+1:].multiply(cur_self)
-                    
+            
             n_self_zeros = self_nnz - S_self_list.nnz
             # Same as with S_other
             S_self = S_self_list.tocsr().data
@@ -255,8 +255,7 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
         if verbose >= 2:
             print("Sorting data...", end=' ')
         S_full_data = np.append(S_self, S_other)
-
-    
+        
         self_data_size = S_self.size
         self_size = S_self.size + n_self_zeros
         other_data_size = S_other.size

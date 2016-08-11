@@ -13,14 +13,14 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import sys
+# DEPRECATED
+from enum import Enum
 import numpy as np
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
 from hub_toolbox import IO, Logging
-import sys
-# DEPRECATED
-from enum import Enum
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
                              test_set_ind:np.ndarray=None, verbose:int=0):
@@ -96,7 +96,7 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
      
     # Calculate MP empiric
     for i in range(n-1):
-        if verbose and ((i+1)%1000 == 0 or i==n-2):
+        if verbose and ((i+1)%1000 == 0 or i == n-2):
             log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
         # Calculate only triu part of matrix
         j_idx = i + 1
@@ -130,7 +130,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     S_mp = lil_matrix(S.shape)
     
     for i, j in zip(*triu(S).nonzero()):
-        if verbose and log and ((i+1)%1000 == 0 or i==n-2):
+        if verbose and log and ((i+1)%1000 == 0 or i == n-2):
             log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
         d = S[j, i]
         dI = S.getrow(i).toarray()
@@ -219,10 +219,10 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     
     # MP Gauss
     for i in range(n):
-        if verbose and ((i+1)%1000 == 0 or i+1==n):
+        if verbose and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gauss: {} of {}.".format(i+1, n))
         for j in range(i+1, n):
-            c = np.cov(D[[i,j], :])
+            c = np.cov(D[[i, j], :])
             x = np.array([D[i, j], D[j, i]])
             m = np.array([mu[i], mu[j]])
             
@@ -235,7 +235,7 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
                     p12 = mvn.mvnun(low, x, m, c)[0]
                     power += 1
                 log.warning("p12 is NaN: i={}, j={}. Increased cov matrix by "
-                            "O({}).".format(i, j, epsmat[0,0]*(10**power)))
+                            "O({}).".format(i, j, epsmat[0, 0]*(10**power)))
             
             if metric == 'similarity':
                 D_mp[i, j] = p12
@@ -332,7 +332,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     # MP Gaussi
     D_mp = np.zeros_like(D)
     for i in range(n):
-        if verbose and ((i+1)%1000 == 0 or i+1==n):
+        if verbose and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
         j_idx = slice(i+1, n)
         
@@ -371,7 +371,7 @@ def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0,
     S_mp = lil_matrix(S.shape)
 
     for i in range(n):
-        if verbose and log and ((i+1)%1000 == 0 or i+1==n):
+        if verbose and log and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
         j_idx = slice(i+1, n)
         
@@ -379,10 +379,10 @@ def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0,
         S_ji = S[j_idx, i].toarray().ravel() #for vectorization below.
         
         p1 = norm.cdf(S_ij, mu[i], sd[i]) # mu, sd broadcasted
-        p1[S_ij==0] = 0
+        p1[S_ij == 0] = 0
         del S_ij
         p2 = norm.cdf(S_ji, mu[j_idx], sd[j_idx])
-        p2[S_ji==0] = 0
+        p2[S_ji == 0] = 0
         del S_ji
         tmp = np.empty(n-i)
         tmp[0] = self_value / 2. 
@@ -394,7 +394,7 @@ def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0,
     return S_mp.tocsr()
 
 def mutual_proximity_gammai(D:np.ndarray, metric:str='distance', 
-                             test_set_ind:np.ndarray=None, verbose:int=0):
+                            test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (indep. Gamma distr.).
     
     Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gammai 
@@ -468,7 +468,7 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     
     # MP gammai
     for i in range(n):
-        if verbose and ((i+1)%1000 == 0 or i+1==n):
+        if verbose and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
         j_idx = slice(i+1, n)
         
@@ -519,15 +519,15 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     A = (mu**2) / va
     B = va / mu
     del mu, va
-    A[A<0] = np.nan
-    B[B<=0] = np.nan
+    A[A < 0] = np.nan
+    B[B <= 0] = np.nan
 
     S_mp = lil_matrix(S.shape, dtype=np.float32)
     n = S.shape[0]
     self_value = 1.
     
     for i in range(n):
-        if verbose and log and ((i+1)%1000 == 0 or i+1==n):
+        if verbose and log and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gammai: {} of {}".format(i+1, n), flush=True)
         j_idx = slice(i+1, n)
          
@@ -549,12 +549,12 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
 def _local_gamcdf(x, a, b):
     """Gamma CDF, moment estimator"""
     try:
-        a[a<0] = np.nan
+        a[a < 0] = np.nan
     except TypeError:
         if a < 0:
             a = np.nan
     try:
-        b[b<=0] = np.nan
+        b[b <= 0] = np.nan
     except TypeError:
         if b <= 0:
             b = np.nan

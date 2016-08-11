@@ -13,8 +13,8 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-import numpy as np
 import sys
+import numpy as np
 
 def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     """Transform distance matrix using shared nearest neighbors [1].
@@ -69,7 +69,7 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
         di[i] = np.inf
         nn = np.argsort(di)[::sort_order]
         z[i, nn[0:k]] = 1
-        
+    
     D_snn = np.zeros_like(self_D)
     for i in range(n):
         zi = z[i, :]
@@ -85,8 +85,10 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
 
 class SharedNN():
     """ DEPRECATED class."""
-    
     def __init__(self, D, k=10, isSimilarityMatrix=False):
+        """DEPRECATED"""
+        print("DEPRECATED: Please use SharedNN.shared_nearest_neighbors() "
+              "instead.", file=sys.stderr)
         self.D = np.copy(D)
         self.k = k
         if isSimilarityMatrix:
@@ -96,9 +98,6 @@ class SharedNN():
         
     def perform_snn(self):
         """Transform distance matrix using shared nearest neighbor."""
-        
-        print("DEPRECATED: Please use SharedNN.shared_nearest_neighbors() "
-              "instead.", file=sys.stderr)
         if self.sort_order == -1:
             metric = 'similarity'
         else:

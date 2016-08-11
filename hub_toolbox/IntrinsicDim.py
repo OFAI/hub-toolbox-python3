@@ -19,8 +19,8 @@ Reference:  E. Levina and P.J. Bickel (2005).
  "Maximum Likelihood Estimation  of Intrinsic Dimension."  
  In Advances in NIPS 17, Eds. L. K. Saul, Y. Weiss, L. Bottou. 
 """
-import numpy as np
 import sys
+import numpy as np
 
 def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12, 
                         estimator:str='levina', metric:str='vector', 
@@ -81,8 +81,8 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
     X = X.copy().astype(float)
         
     if data_type == 'vector':
-        # New array with unique rows                
-        X = X[np.lexsort(np.fliplr(X).T)]  
+        # New array with unique rows   
+        X = X[np.lexsort(np.fliplr(X).T)]
         
         if trafo is None:
             pass
@@ -98,20 +98,20 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         
         # Compute matrix of log nearest neighbor distances
         X2 = (X**2).sum(1)
-    
+        
         if n <= 5000: # speed-memory trade-off
-            distance = X2.reshape(-1, 1) + X2 - 2*np.dot(X, X.T) #2x br.cast 
+            distance = X2.reshape(-1, 1) + X2 - 2*np.dot(X, X.T) #2x br.cast
             distance.sort(1)
-            # Replace invalid values with a small number 
+            # Replace invalid values with a small number
             distance[distance<0] = 1e-7
             knnmatrix = .5 * np.log(distance[:, 1:k2+1])
         else:
             knnmatrix = np.zeros((n, k2))
             for i in range(n):
                 distance = np.sort(X2[i] + X2 - 2 * np.dot(X, X[i, :]))
-                # Replace invalid values with a small number 
-                distance[distance<0] = 1e-7
-                knnmatrix[i, :] = .5 * np.log(distance[1:k2+1]) 
+                # Replace invalid values with a small number
+                distance[distance < 0] = 1e-7
+                knnmatrix[i, :] = .5 * np.log(distance[1:k2+1])
     elif data_type == 'distance':
         # TODO calculation WRONG
         X.sort(1)
@@ -171,8 +171,8 @@ class IntrinsicDim():
         return intrinsic_dimension(self.X, k1, k2, estimator, self.data_type)
     
 if __name__ == '__main__':
-    m = 100
-    n = 2000
-    X = np.random.rand(n, m)
-    id_ = intrinsic_dimension(X)
-    print("Random {}x{} matrix: ID_MLE = {}".format(n, m, id_))
+    m_dim = 100
+    n_dim = 2000
+    VECT_DATA = np.random.rand(n_dim, m_dim)
+    id_ = intrinsic_dimension(VECT_DATA)
+    print("Random {}x{} matrix: ID_MLE = {}".format(n_dim, m_dim, id_))

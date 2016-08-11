@@ -13,11 +13,11 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import sys
 import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
 from hub_toolbox import Logging
-import sys
     
 def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
                   test_set_ind:np.ndarray=None):
@@ -76,7 +76,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         if issparse(D):
             log.error("Sparse distance matrices are not supported.")
             raise NotImplementedError(
-                      "Sparse distance matrices are not supported.") 
+                "Sparse distance matrices are not supported.") 
             
     D = np.copy(D)
     n = D.shape[0]
@@ -219,7 +219,7 @@ class LocalScaling():
                 if issparse(D):
                     self.log.error("NICDM does not support sparse matrices.")
                     raise NotImplementedError(
-                                   "NICDM does not support sparse matrices.")
+                        "NICDM does not support sparse matrices.")
                 else:
                     self.log.warning("NICDM does not support similarities. "
                         "Distances will be calculated as D=1-S/S.max and used "
@@ -244,19 +244,18 @@ class LocalScaling():
             
     def perform_local_scaling(self, test_set_mask=None):
         """DEPRECATED"""
-        
         if self.scalingType == 'original':
             Dls = self.ls_k(test_set_mask)
         elif self.scalingType == 'nicdm':
             Dls = self.ls_nicdm(test_set_mask)
         else:
-            self.warning("Invalid local scaling type!\n"+\
-                         "Use: \nls = LocalScaling(D, 'original'|'nicdm')\n"+\
-                         "Dls = ls.perform_local_scaling()")
+            self.log.warning("Invalid local scaling type!\n"+\
+                             "Use: \nls = LocalScaling(D, 'original'|'nicdm')\n"+\
+                             "Dls = ls.perform_local_scaling()")
             Dls = np.array([])
-                
+        
         return Dls
-                
+    
     def ls_k(self, test_set_mask=None):
         """DEPRECATED"""
         if self.isSimilarityMatrix:
@@ -264,12 +263,11 @@ class LocalScaling():
         else:
             metric = 'distance'
         return local_scaling(self.D, self.k, metric, test_set_mask)
-        
+    
     def ls_nicdm(self, test_set_mask=None):
         """DEPRECATED"""
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
             metric = 'distance'
-        return nicdm(self.D, self.k, metric, test_set_mask)  
-       
+        return nicdm(self.D, self.k, metric, test_set_mask)

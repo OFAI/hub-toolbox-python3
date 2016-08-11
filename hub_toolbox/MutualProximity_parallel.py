@@ -13,15 +13,15 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import sys
+from enum import Enum
+import multiprocessing as mp
 import numpy as np
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm
 from scipy.sparse import issparse, lil_matrix, csr_matrix
-from enum import Enum
-import multiprocessing as mp
 from hub_toolbox import IO, Logging
 from hub_toolbox.Logging import ConsoleLogging
-import sys
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
                              test_set_ind:np.ndarray=None, verbose:int=0,
@@ -180,13 +180,13 @@ def _partial_mp_emp_sparse(batch, matrix, idx, n, verbose):
     
     # TODO implement faster version from serial MP emp sparse
     for i, b in enumerate(batch):
-        if verbose and ((batch[i]+1)%1000 == 0 or batch[i]==n-1 
-                        or i==len(batch)-1 or i==0):
+        if verbose and ((batch[i]+1)%1000 == 0 or batch[i] == n-1 
+                        or i == len(batch)-1 or i == 0):
             log.message("MP_empiric_sparse: {} of {}. On {}.".format(
-                        batch[i]+1, n, mp.current_process().name), flush=True)
+                batch[i]+1, n, mp.current_process().name), flush=True)
         for j in range(b+1, n):
             d = matrix[b, j]
-            if d>0: 
+            if d > 0: 
                 dI = matrix.getrow(b).toarray()
                 dJ = matrix.getrow(j).toarray()
                 # non-zeros elements
@@ -378,7 +378,7 @@ def _partial_mp_gaussi_sparse(batch, matrix, idx, n, mu, sd, verbose):
         if verbose and ((batch[i]+1)%1000 == 0 or batch[i]+1==n 
                         or i==len(batch)-1 or i==0):
             log.message("MP_gaussi_sparse: {} of {}. On {}.".format(
-                        batch[i]+1, n, mp.current_process().name, flush=True))
+                batch[i]+1, n, mp.current_process().name, flush=True))
         for j in range(b+1, n):
             if matrix[b, j] > 0:       
                 p1 = norm.cdf(matrix[b, j], mu[b], sd[b])
@@ -388,8 +388,8 @@ def _partial_mp_gaussi_sparse(batch, matrix, idx, n, mu, sd, verbose):
     return batch, Dmp
 
 def mutual_proximity_gammai(D:np.ndarray, metric:str='distance', 
-                             test_set_ind:np.ndarray=None, verbose:int=0, 
-                             n_jobs:int=-1, mv=None):
+                            test_set_ind:np.ndarray=None, verbose:int=0, 
+                            n_jobs:int=-1, mv=None):
     """Transform a distance matrix with Mutual Proximity (indep. Gamma distr.).
     
     Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gammai 
@@ -474,8 +474,8 @@ def _mutual_proximity_gammai_sparse(S, sample_size=0, train_set_ind=None,
     A = (mu**2) / va
     B = va / mu
     del mu, va
-    A[A<0] = np.nan
-    B[B<=0] = np.nan
+    A[A < 0] = np.nan
+    B[B <= 0] = np.nan
 
     S_mp = lil_matrix(S.shape, dtype=np.float32)
     n = S.shape[0]
@@ -541,10 +541,10 @@ def _partial_mp_gammai_sparse(batch, matrix, idx, n, A, B, verbose):
     S_mp = lil_matrix((len(batch), n), dtype=np.float32)
     
     for i, b in enumerate(batch):
-        if verbose and ((batch[i]+1)%1000 == 0 or batch[i]+1==n 
-                        or i==len(batch)-1 or i==0):
+        if verbose and ((batch[i]+1)%1000 == 0 or batch[i]+1 == n 
+                        or i == len(batch)-1 or i == 0):
             log.message("MP_gammai_sparse: {} of {}. On {}.".format(
-                        batch[i]+1, n, mp.current_process().name, flush=True))
+                batch[i]+1, n, mp.current_process().name, flush=True))
         j_idx = slice(b+1, n)
         
         if b+1 >= n:
@@ -585,15 +585,15 @@ def _get_weighted_batches(n, jobs):
     a = 0
     b = 0
     for i in range(jobs-1):  # @UnusedVariable
-        b = int((np.sqrt(jobs) * (2*n - 1) 
-                 - np.sqrt(jobs * (-2*a + 2*n + 1)**2 - 4*n**2)) 
-                 / (2*np.sqrt(jobs)))
+        b = int((np.sqrt(jobs) * (2*n - 1)
+                 - np.sqrt(jobs * (-2*a + 2*n + 1)**2 - 4*n**2))
+                / (2*np.sqrt(jobs)))
         if b < 1:
             b = 1 # Each batch must contain at least 1 row
-        batches.append( np.arange(a, b) )
+        batches.append(np.arange(a, b))
         a = b 
     if b < n-1:
-        batches.append( np.arange(a, n) )
+        batches.append(np.arange(a, n))
     return batches
 
 def _worker(work_input, work_output):
@@ -601,24 +601,24 @@ def _worker(work_input, work_output):
     for func, args in iter(work_input.get, 'STOP'):
         result = func(*args)
         work_output.put(result)
-        
+
 def _local_gamcdf(x, a, b, mv=np.nan):
     """Gamma CDF, moment estimator"""
     try:
-        a[a<0] = np.nan
+        a[a < 0] = np.nan
     except TypeError:
         if a < 0:
             a = np.nan
     try:
-        b[b<=0] = np.nan
+        b[ b<= 0] = np.nan
     except TypeError:
         if b <= 0:
             b = np.nan
-    x[x<0] = 0
+    x[x < 0] = 0
     
     # don't calculate gamcdf for missing values
     if mv == 0:
-        nz = x>0
+        nz = x > 0
         z = x[nz] / b[nz]
         p = np.zeros_like(x)
         p[nz] = gammainc(a[nz], z)

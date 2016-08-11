@@ -62,7 +62,7 @@ class HubnessAnalysis():
             The m x n vector data. Required for IntrDim estimation.
         """        
         
-        self.haveClasses, self.haveVectors = False, False
+        self.has_class_data, self.has_vector_data = False, False
         if D is None:
             print('\n'
                   'NO PARAMETERS GIVEN! Loading & evaluating DEXTER data set.'
@@ -74,7 +74,7 @@ class HubnessAnalysis():
                   'feature selection challenge.\n'
                   'http://archive.ics.uci.edu/ml/datasets/Dexter\n')
             self.D, self.classes, self.vectors = load_dexter()
-            self.haveClasses, self.haveVectors = True, True
+            self.has_class_data, self.has_vector_data = True, True
         else:
             # copy data and ensure correct type (not int16 etc.)
             self.D = np.copy(D).astype(np.float64)
@@ -82,21 +82,21 @@ class HubnessAnalysis():
             self.classes = np.copy(classes).astype(np.float64)
             self.vectors = np.copy(vectors).astype(np.float64)
             if classes is not None:
-                self.haveClasses = True
+                self.has_class_data = True
             if vectors is not None:
-                self.haveVectors = True
+                self.has_vector_data = True
         self.n = len(self.D)
-                
-    def analyse_hubness(self, origData=True, mp=True, mp_gauss=False, 
+    
+    def analyse_hubness(self, orig_data=True, mp=True, mp_gauss=False, 
                         mp_gaussi=True, mp_gammai=False, ls=True, snn=True, 
                         cent=True, wcent=False, wcent_g=0.4, 
-                        lcent=True, lcent_k=40, lcent_g=1.4, Sk10=False):
+                        lcent=True, lcent_k=40, lcent_g=1.4):
         """Analyse hubness in original data and rescaled distances.
         
         Parameters:
         -----------
         args : bool
-            - origData ... original data
+            - orig_data ... original data
             - mp ... Mutual Proximity (empiric)
             - mp_gauss ... Mutual Proximity (Gaussian)
             - mp_gaussi ... Mutual Proximity (independent Gaussian)
@@ -119,10 +119,10 @@ class HubnessAnalysis():
         print()
         print("Hubness Analysis")
             
-        if not (origData or mp or mp_gauss or mp_gaussi or mp_gammai or \
+        if not (orig_data or mp or mp_gauss or mp_gaussi or mp_gammai or \
                 ls or snn or cent or wcent or lcent):
             print("---Nothing to do. Please specify tasks to be performed.---")
-        if origData:
+        if orig_data:
             Sn5, Nk5 = hubness(self.D)[::2]
             self.print_results('ORIGINAL DATA', self.D, Sn5, Nk5, True)
         if mp or mp_gaussi or mp_gammai or mp_gauss:
@@ -164,32 +164,23 @@ class HubnessAnalysis():
             self.print_results('SHARED NEAREST NEIGHBORS (k={})'.format(\
                 radius), Dn, Sn5, Nk5)
         if cent or wcent or lcent:
-            if not self.haveVectors:
+            if not self.has_vector_data:
                 print("Centering is currently only supported for vector data.")
             else:
                 if cent:
                     # Hubness after centering
                     D_cent = cosine_distance(centering(self.vectors, 'vector'))
                     Sn5, Nk5 = hubness(D_cent)[::2]
-                    self.print_results('CENTERING', D_cent, Sn5, Nk5)                    
-                    # TODO remove again
-                    if Sk10:
-                        Sn10, Nk10 = hubness(D_cent, k=10)[::2]
-                        self.print_results('CENTERING', D_cent, Sn10, Nk10, Sn10=True)
-                    
-                if wcent:        
+                    self.print_results('CENTERING', D_cent, Sn5, Nk5)
+                
+                if wcent:
                     # Hubness after weighted centering
                     D_wcent = cosine_distance(weighted_centering(
-                                self.vectors, metric='cosine', gamma=wcent_g))
+                        self.vectors, metric='cosine', gamma=wcent_g))
                     Sn5, Nk5 = hubness(D_wcent)[::2]
                     self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
                                         wcent_g), D_wcent, Sn5, Nk5)
-
-                    # TODO remove again
-                    if Sk10:
-                        Sn10, Nk10 = hubness(D_wcent, k=10)[::2]
-                        self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
-                                        wcent_g), D_wcent, Sn10, Nk10, Sn10=True)
+                
                 if lcent:
                     # Hubness after localized centering
                     D_lcent = localized_centering(self.vectors, metric='cosine',
@@ -211,10 +202,10 @@ class HubnessAnalysis():
         print(heading + ':')
         print('data set hubness (S^n=5)                 : {:.3}'.format(Sn5))
         print('% of anti-hubs at k=5                    : {:.4}%'.format(\
-            100 * sum(Nk5==0)/self.n))
+            100 * sum(Nk5 == 0) / self.n))
         print('% of k=5-NN lists the largest hub occurs : {:.4}%'.format(\
-            100 * max(Nk5)/self.n))
-        if self.haveClasses:
+            100 * max(Nk5) / self.n))
+        if self.has_class_data:
             k_params = [1, 5, 20]
             acc = score(D, self.classes, k_params, 'distance', None, 0)[0]
             for i, k in enumerate(k_params):
@@ -227,7 +218,7 @@ class HubnessAnalysis():
             print('Goodman-Kruskal index (higher=better)    : No classes given')
         
         if calc_intrinsic_dimensionality:
-            if self.haveVectors:
+            if self.has_vector_data:
                 print('original dimensionality                  : {}'.format(\
                     np.size(self.vectors, 1)))
                 print('intrinsic dimensionality estimate        : {}'.format(\
@@ -267,18 +258,20 @@ def load_dexter():
     for line in data:
         line = line.strip().split() # line now contains pairs of dim:val
         for word in line:
-                col, val = word.split(':')
-                vectors[row][int(col)-1] = int(val)
+            col, val = word.split(':')
+            vectors[row][int(col)-1] = int(val)
         row += 1
     
     # Calc distance
     D = cosine_distance(vectors)
     return D, classes, vectors
-                
+
 if __name__ == "__main__":
     hub = HubnessAnalysis()
+    #"""
     hub.analyse_hubness()
-    """hub.analyse_hubness(origData=True, 
+    """
+    hub.analyse_hubness(origData=True, 
                         mp=False,
                         mp_gauss=False,
                         mp_gaussi=False,
@@ -288,4 +281,5 @@ if __name__ == "__main__":
                         cent=False, 
                         wcent=False, 
                         lcent=False)
-    #"""    
+    #"""
+    

@@ -66,12 +66,12 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     # D_kl pairs in different classes
     other = classes[:, np.newaxis] != classes[np.newaxis, :]
     D_other = D[np.triu(other, 1)]
-        
+    
     for c in cls:
-        sel = classes == c 
-        if np.sum(sel) > 1: 
+        sel = classes == c
+        if np.sum(sel) > 1:
             sel = sel[:, np.newaxis].astype(bool)
-            selD = np.logical_and(sel, sel.T)  
+            selD = np.logical_and(sel, sel.T)
             # D_ij pairs within same class
             D_self = D[np.triu(selD, 1).astype(bool).T].T
         else:
@@ -348,16 +348,18 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
 
 # DEPRECATED class GoodmanKruskal. Remove for next hub_toolbox release.
 class GoodmanKruskal():
+    """DEPRECATED"""
     
     def __init__(self, D, classes, isSimilarityMatrix=False):
+        """DEPRECATED"""
+        print("DEPRECATED: Please use GoodmanKruskal.goodman_kruskal_index "
+              "instead.", file=sys.stderr)
         self.D = D
         self.classes = classes
         self.is_similarity_matrix = isSimilarityMatrix
         
     def calculate_goodman_kruskal_index(self) -> float:
-        """Calculate the Goodman-Kruskal clustering index."""
-        print("DEPRECATED: Please use GoodmanKruskal.goodman_kruskal_index "
-              "instead.", file=sys.stderr)
+        """DEPRECATED"""
         if self.is_similarity_matrix:
             metric = 'similarity'
         else:

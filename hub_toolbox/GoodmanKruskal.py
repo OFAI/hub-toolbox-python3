@@ -346,6 +346,46 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
         print("done.", flush=True)
     return gamma
 
+def _naive_goodman_kruskal(D:np.ndarray, labels:np.ndarray, metric='distance'):
+    """Calculate Goodman-Kruskal's gamma (slow naive implementation)
+    
+    Please use one of the others methods for calculating the GK index. This
+    function is intended for testing purposes only.
+    """
+    
+    Q_c = 0
+    Q_d = 0
+    if metric not in ['similarity', 'distance']:
+        raise ValueError("Parameter 'metric' must be 'distance' or "
+                         "'similarity'. Got {}.".format(metric.__str__()))
+    assert D.shape[0] == D.shape[1], 'Non-quadratic input matrix!'
+    assert D.shape[0] == labels.size, 'Number of labels does not match number of points!'
+    n = D.shape[0]
+    
+    # loop through all quadruples...
+    for i in range(n):
+        # ...but ignore self distances and only count undirected edges
+        for j in range(i + 1, n):
+            if labels[i] == labels[j]:
+                for k in range(n):
+                    for l in range(k + 1, n):
+                        if labels[l] != labels[k]: # or l == i or l == j:
+                            if D[i, j] < D[k, l]:
+                                Q_c += 1
+                            elif D[i, j] > D[k, l]:
+                                Q_d += 1
+                            else: # don't count equal distances
+                                pass
+    if Q_c + Q_d == 0:
+        return 0
+    if metric == 'similarity':
+        return (Q_d - Q_c) / (Q_c + Q_d)
+    else:
+        if metric != 'distance':
+            print("WARNING: unknown type: {}. Trying to interpret as "
+                  "'distance'.".format(metric))
+        return (Q_c - Q_d) / (Q_c + Q_d)
+
 # DEPRECATED class GoodmanKruskal. Remove for next hub_toolbox release.
 class GoodmanKruskal():
     """DEPRECATED"""

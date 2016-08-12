@@ -185,8 +185,8 @@ def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float,
     
     Returns:
     -------- 
-    D_lcent : ndarray
-        Secondary distance (localized centering) matrix.
+    S_lcent : ndarray
+        Secondary similarity (localized centering) matrix.
         
     See also:
     ---------
@@ -232,7 +232,7 @@ def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float,
             raise ValueError("Localized centering only "
                              "supports cosine distances.")
     sim_lcent = sim - (local_affinity ** gamma)
-    return 1 - sim_lcent
+    return sim_lcent
 
 def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
     """

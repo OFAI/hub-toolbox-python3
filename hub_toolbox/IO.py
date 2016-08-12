@@ -70,6 +70,19 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
     nr_batches = int(np.ceil(rows / nr_rows))
     return nr_batches, nr_rows
 
+def random_sparse_matrix(size, density=0.05):
+    """Return a random sparse similarity matrix.
+    
+    Values are bounded by [0, 1]. Diagonal is all ones. The final density is
+    approximately 2*density.
+    """
+    S = sparse.rand(size, size, density, 'csr')
+    S += S.T
+    S /= S.max()
+    S -= sparse.diags(S.diagonal(), 0)
+    S += sparse.diags(np.ones(size), 0)
+    return S
+
 class FreeMemLinux(object):
     """Non-cross platform way to get free memory on Linux. 
     

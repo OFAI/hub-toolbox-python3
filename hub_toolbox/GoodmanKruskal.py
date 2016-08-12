@@ -286,6 +286,7 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
             # Positions with repeated values
             equi_mask[1:] = sdf[1:] == sdf[:-1]
             equi_dist = sdf[equi_mask]
+            equi_arg = 0
             # How often does each value occur in self/other:
             for dist in np.unique(equi_dist):
                 equi_arg = np.where(S_full_data == dist)[0]

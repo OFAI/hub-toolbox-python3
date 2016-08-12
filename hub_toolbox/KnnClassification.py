@@ -18,7 +18,7 @@ import numpy as np
 from scipy.sparse.base import issparse
 from hub_toolbox import Logging
 
-def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=5, 
+def score(D:np.ndarray, target:np.ndarray, k=5, 
           metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
     """Perform k-nearest neighbor classification.
     
@@ -35,7 +35,7 @@ def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=5,
     target : ndarray
         The n x 1 target class labels (ground truth).
     
-    k : int or array_like (of dtype=int), optional (default: [5])
+    k : int or array_like (of dtype=int), optional (default: 5)
         Neighborhood size for k-NN classification.
         For each value in k, one k-NN experiment is performed.
         HINT: Providing more than one value for k is a cheap means to perform 
@@ -99,9 +99,9 @@ def score(D:np.ndarray, target:np.ndarray, k:np.ndarray=5,
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
     # Number of k-NN parameters
     try:
-        k_length = np.array(k).size
+        k_length = k.size
     except AttributeError:
-        k = np.array(k)
+        k = np.array([k])
         k_length = k.size
         
     acc = np.zeros((k_length, 1))

@@ -35,11 +35,13 @@ class TestGoodmanKruskal(unittest.TestCase):
         del self.distance, self.similarity, self.labels
 
     def test_efficient_goodmankruskal_equal_to_naive_goodmankruskal(self):
+        """Test whether goodman_kruskal_index yields correct result"""
         gamma_efficient = goodman_kruskal_index(self.distance, self.labels)
         gamma_naive = _naive_goodman_kruskal(self.distance, self.labels)
         return self.assertEqual(gamma_efficient, gamma_naive)
     
     def test_goodmankruskal_distance_based_equal_to_similarity_based(self):
+        """Test whether results are correct using similarities"""
         gamma_dist = goodman_kruskal_index(self.distance, self.labels, 'distance')
         gamma_sim = goodman_kruskal_index(self.similarity, self.labels, 'similarity')
         return self.assertEqual(gamma_dist, gamma_sim)

@@ -23,12 +23,11 @@ def cosine_distance(X):
     X = X / np.tile(xn[:, np.newaxis], np.size(X, 1))
     D = 1 - np.dot(X, X.T)
     D[D < 0] = 0
-    D = np.triu(D, 0) + np.triu(D, 0).T
+    D = np.triu(D, 1) + np.triu(D, 1).T
     return D
 
 def euclidean_distance(X):
     """Calculate the euclidean distances between all pairs of vectors in X."""
-
     D = cdist(X, X, 'euclidean')
     return D
 

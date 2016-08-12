@@ -23,7 +23,7 @@ class TestDistances(unittest.TestCase):
         self.vectors = 99. * (np.random.rand(400, 200) - 0.5)
 
     def tearDown(self):
-        pass
+        del self.vectors
 
     def test_cosine_dist_equal_to_scipy_pdist_cos(self):
         cos_dist = cosine_distance(self.vectors)
@@ -38,5 +38,4 @@ class TestDistances(unittest.TestCase):
         return self.assertTrue(result)
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

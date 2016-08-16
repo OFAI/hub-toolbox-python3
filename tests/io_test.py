@@ -14,7 +14,7 @@ Contact: <roman.feldbauer@ofai.at>
 import unittest
 import numpy as np
 from scipy.sparse.csr import csr_matrix
-from hub_toolbox.IO import random_sparse_matrix
+from hub_toolbox.IO import random_sparse_matrix, load_dexter
 
 class TestIO(unittest.TestCase):
 
@@ -56,6 +56,15 @@ class TestIO(unittest.TestCase):
     def test_random_sparse_similarity_matrix_density(self):
         return self.assertAlmostEqual(
             self.similarity.nnz / self.matrix_n**2, self.density*2, places=2)
+
+    def test_load_dexter(self):
+        """Loading dexter, checking shape of distances, labels, vectors"""
+        self.dist, self.lab, self.vect = load_dexter()
+        symm_dist_shape = self.dist.shape[0] == self.dist.shape[1]
+        corr_dist_shape = self.dist.shape[0] == self.vect.shape[0]
+        corr_label_shape = self.lab.shape[0] == self.vect.shape[0]
+        return self.assertTrue(
+            symm_dist_shape == corr_dist_shape == corr_label_shape)
 
 if __name__ == "__main__":
     unittest.main()

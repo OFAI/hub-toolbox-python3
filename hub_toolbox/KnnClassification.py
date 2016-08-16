@@ -100,9 +100,15 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     # Number of k-NN parameters
     try:
         k_length = k.size
-    except AttributeError:
-        k = np.array([k])
-        k_length = k.size
+    except AttributeError as e:
+        if isinstance(k, int):
+            k = np.array([k])
+            k_length = k.size
+        elif isinstance(k, list):
+            k = np.array(k)
+            k_length = k.size
+        else:
+            raise e
         
     acc = np.zeros((k_length, 1))
     corr = np.zeros((k_length, D.shape[0]))

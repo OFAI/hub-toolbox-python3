@@ -33,6 +33,15 @@ class TestGoodmanKruskal(unittest.TestCase):
 
     def tearDown(self):
         del self.distance, self.similarity, self.labels
+        
+    def test_naive_goodmankruskal_algorithm(self):
+        """Using a small clustering with correct value calc by hand"""
+        distance = np.array(
+            squareform([0.7, 1.55, 0.5, 1.7, 0.9, 0.85, 1.2, 1.5, 0.6, 1.4]))
+        label = np.array([0, 0, 1, 2, 1])
+        CORRECT_RESULT = 0.75
+        result = _naive_goodman_kruskal(distance, label, 'distance')
+        return self.assertEqual(result, CORRECT_RESULT)
 
     def test_efficient_goodmankruskal_equal_to_naive_goodmankruskal(self):
         """Test whether goodman_kruskal_index yields correct result"""
@@ -58,6 +67,7 @@ class TestGoodmanKruskal(unittest.TestCase):
         return self.assertEqual(gamma_dense, gamma_sparse)
     
     def test_correct_handling_equal_distances_goodmankruskal(self):
+        """SharedNN matrices contain lots of equal distances"""
         dist_snn = shared_nearest_neighbors(self.distance)
         gamma_efficient = goodman_kruskal_index(dist_snn, self.labels)
         gamma_naive = _naive_goodman_kruskal(dist_snn, self.labels)

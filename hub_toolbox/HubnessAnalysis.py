@@ -13,7 +13,6 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-import os
 import numpy as np
 from hub_toolbox.Hubness import hubness
 from hub_toolbox.KnnClassification import score
@@ -26,6 +25,7 @@ from hub_toolbox.SharedNN import shared_nearest_neighbors
 from hub_toolbox.Centering import centering, weighted_centering, \
                                   localized_centering
 from hub_toolbox.Distances import cosine_distance
+from hub_toolbox.IO import load_dexter as io_load_dexter
 
 
 class HubnessAnalysis():
@@ -185,18 +185,15 @@ class HubnessAnalysis():
                     # Hubness after localized centering
                     D_lcent = localized_centering(self.vectors, metric='cosine',
                                                   kappa=lcent_k, gamma=lcent_g)
-                    Sn5, Nk5 = hubness(D_lcent)[::2]
-                    self.print_results(\
-                        'LOCALIZED CENTERING (k={}, gamma={})'.format(\
-                        lcent_k, lcent_g), D_lcent, Sn5, Nk5)
+                    Sn5, Nk5 = hubness(D_lcent, metric='similarity')[::2]
+                    self.print_results('LOCALIZED CENTERING (k={}, gamma={})'.
+                                       format(lcent_k, lcent_g), 
+                                       D_lcent, Sn5, Nk5, metric='similarity')
     
     def print_results(self, heading:str, D:np.ndarray, Sn5:float, Nk5:float, 
-                      calc_intrinsic_dimensionality:bool=True, Sn10=False):
+                      calc_intrinsic_dimensionality:bool=True, 
+                      metric='distance'):
         """Print the results of a hubness analysis."""     
-        
-        if Sn10:
-            print('data set hubness (S^n=10)                : {:.3}'.format(Sn5)) 
-            return
         
         print()
         print(heading + ':')
@@ -207,12 +204,12 @@ class HubnessAnalysis():
             100 * max(Nk5) / self.n))
         if self.has_class_data:
             k_params = [1, 5, 20]
-            acc = score(D, self.classes, k_params, 'distance', None, 0)[0]
+            acc = score(D, self.classes, k_params, metric)[0]
             for i, k in enumerate(k_params):
-                print('k={:2}-NN classification accuracy          : {:.4}%'.format(\
-                        k, 100*float(acc[i])))                
+                print('k={:2}-NN classification accuracy          : {:.4}%'.
+                      format(k, 100*float(acc[i])))                
             print('Goodman-Kruskal index (higher=better)    : {:.3}'.format(\
-                goodman_kruskal_index(D, self.classes, 'distance')))
+                goodman_kruskal_index(D, self.classes, metric)))
         else:
             print('k=5-NN classification accuracy           : No classes given')
             print('Goodman-Kruskal index (higher=better)    : No classes given')
@@ -224,47 +221,15 @@ class HubnessAnalysis():
                 print('intrinsic dimensionality estimate        : {}'.format(\
                     round(intrinsic_dimension(self.vectors))))
             else:
-                print('original dimensionality                  : No vectors given')
-                print('intrinsic dimensionality estimate        : No vectors given')
+                print('original dimensionality                  : '
+                      'No vectors given')
+                print('intrinsic dimensionality estimate        : '
+                      'No vectors given')
         
 def load_dexter():
-    """Load the example data set (dexter).
-    
-    Returns:
-    --------
-    D : ndarray
-        Distance matrix
-    classes : ndarray
-        Class label vector
-    vectors : ndarray
-        Vector data matrix
-    """
-        
-    n = 300
-    dim = 20000
-    
-    # Read class labels
-    classes_file = os.path.dirname(os.path.realpath(__file__)) +\
-        '/example_datasets/dexter_train.labels'
-    classes = np.loadtxt(classes_file)  
+    """DEPRECATED (moved to IO.py)"""
 
-    # Read data
-    vectors = np.zeros((n, dim))
-    data_file = os.path.dirname(os.path.realpath(__file__)) + \
-        '/example_datasets/dexter_train.data'
-    with open(data_file, mode='r') as fid:
-        data = fid.readlines()       
-    row = 0
-    for line in data:
-        line = line.strip().split() # line now contains pairs of dim:val
-        for word in line:
-            col, val = word.split(':')
-            vectors[row][int(col)-1] = int(val)
-        row += 1
-    
-    # Calc distance
-    D = cosine_distance(vectors)
-    return D, classes, vectors
+    return io_load_dexter()
 
 if __name__ == "__main__":
     hub = HubnessAnalysis()

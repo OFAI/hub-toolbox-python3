@@ -17,6 +17,46 @@ import os
 import sys
 import numpy as np
 from scipy import sparse
+from hub_toolbox.Distances import cosine_distance
+
+def load_dexter():
+    """Load the example data set (dexter).
+    
+    Returns:
+    --------
+    D : ndarray
+        Distance matrix
+    classes : ndarray
+        Class label vector
+    vectors : ndarray
+        Vector data matrix
+    """
+        
+    n = 300
+    dim = 20000
+    
+    # Read class labels
+    classes_file = os.path.dirname(os.path.realpath(__file__)) +\
+        '/example_datasets/dexter_train.labels'
+    classes = np.loadtxt(classes_file)  
+
+    # Read data
+    vectors = np.zeros((n, dim))
+    data_file = os.path.dirname(os.path.realpath(__file__)) + \
+        '/example_datasets/dexter_train.data'
+    with open(data_file, mode='r') as fid:
+        data = fid.readlines()       
+    row = 0
+    for line in data:
+        line = line.strip().split() # line now contains pairs of dim:val
+        for word in line:
+            col, val = word.split(':')
+            vectors[row][int(col)-1] = int(val)
+        row += 1
+    
+    # Calc distance
+    D = cosine_distance(vectors)
+    return D, classes, vectors
 
 def copy_D_or_load_memmap(D, writeable=False):
     """DEPRECATED. Return a deep copy of a numpy array (if D is an ndarray), 

@@ -24,9 +24,20 @@ from hub_toolbox.MutualProximity import mutual_proximity_empiric, \
 from hub_toolbox.LocalScaling import nicdm, local_scaling
 from hub_toolbox.SharedNN import shared_nearest_neighbors
 from hub_toolbox.Centering import centering, weighted_centering, \
-                                  localized_centering
+    localized_centering, dis_sim_global, dis_sim_local
 from hub_toolbox.Distances import cosine_distance
 from hub_toolbox.IO import load_dexter as io_load_dexter
+
+CITATION = \
+"""
+Feldbauer, R., Flexer, A. (2016). Centering Versus Scaling for 
+Hubness Reduction. ICANN 2016, Part I, LNCS 9886, pp. 1–9 (preprint 
+available at http://www.ofai.at/cgi-bin/tr-online?number+2016-05).
+or
+Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). Local 
+and global scaling reduce hubs in space. The Journal of Machine 
+Learning Research, 13(1), 2871–2902.
+"""
 
 def _primary_distance(D:np.ndarray, metric):
     """Return D, identical. (Dummy function.)"""
@@ -43,6 +54,8 @@ SEC_DIST = {'mp' : mutual_proximity_empiric,
             'cent' : centering,
             'wcent' : weighted_centering,
             'lcent' : localized_centering,
+            'dsg' : dis_sim_global,
+            'dsl' : dis_sim_local,
             'orig' : _primary_distance # a dummy function
             }
 
@@ -63,6 +76,8 @@ class HubnessAnalysis():
              - Use the distance matrix D (NxN) together with an optional 
              class labels vector (classes) and the original (optional) 
              data vectors (vectors) to perform a full hubness analysis.
+             - Please consult the docstring of this method for additional 
+             parameters (e.g. k-occurence, k-NN)
     """
 
     def __init__(self, D:np.ndarray=None, classes:np.ndarray=None, 
@@ -125,6 +140,8 @@ class HubnessAnalysis():
                 'cent' : "CENTERING",
                 'wcent' : "WEIGHTED CENTERING",
                 'lcent' : "LOCALIZED CENTERING",
+                'dsg' : "DISSIM GLOBAL",
+                'dsl' : "DISSIM LOCAL",
                 'orig' : "ORIGINAL DATA"}
 
     def _calc_intrinsic_dim(self):
@@ -132,7 +149,7 @@ class HubnessAnalysis():
         self.intrinsic_dim = intrinsic_dimension(X=self.vectors)
         return self
 
-    def analyze_hubness(self, experiments="orig,mp,mp_gaussi,nicdm,cent,lcent",
+    def analyze_hubness(self, experiments="orig,mp,mp_gaussi,nicdm,cent,dsg",
                         hubness_k=(5, 10), knn_k=(1, 5, 20), 
                         print_results=True, verbose:int=0):
         """Analyse hubness in original data and rescaled distances.
@@ -153,6 +170,8 @@ class HubnessAnalysis():
             - "cent" : Centering
             - "wcent" : Weighted Centering
             - "lcent" : Localized Centering
+            - "dsg" : DisSim Global
+            - "dsl" : DisSim Local
 
         hubness_k : tuple, optional (default: (5, 10))
             Hubness parameter (skewness of k-occurence)
@@ -191,6 +210,13 @@ class HubnessAnalysis():
             self.experiments.append(experiment)
             if print_results:
                 self.print_analysis_report(experiment, report_nr=i)
+        if print_results:
+            print("------------------------------------------------------------")
+            print("Thanks for using the HUB-TOOLBOX!")
+            print("If you use this software in a research project, please cite:")
+            print("---", CITATION)
+            print("Please also consider citing the references to the \n"
+                  "individual modules/hubness functions that you use.")
         return self
 
     def print_analysis_report(self, experiment=None, report_nr:int=0):
@@ -224,7 +250,9 @@ class HubnessAnalysis():
             sig = signature(SEC_DIST[experiment.secondary_distance_type])
             for p in ['k', 'kappa', 'gamma']:
                 try:
-                    print("parameter {} =".format(p), sig.parameters[p].default)
+                    print("parameter {} = {} (for optimization use the "
+                          "individual modules of the HUB-TOOLBOX)".
+                          format(p, sig.parameters[p].default))
                 except:
                     pass
             try: # to print hubness results, if available
@@ -315,8 +343,13 @@ class HubnessExperiment():
             if self.secondary_distance_type in ['cent', 'wcent']:
                 self.secondary_distance = \
                     cosine_distance(sec_dist_fun(X=self.vectors))
-            else:
+            elif self.secondary_distance_type in ['lcent']:
                 self.secondary_distance = 1. - sec_dist_fun(X=self.vectors)
+            elif self.secondary_distance_type in ['dsg', 'dsl']:
+                self.secondary_distance = sec_dist_fun(X=self.vectors)
+            else:
+                raise ValueError("Erroneus secondary distance type: {}".
+                                 format(self.secondary_distance_type))
         return self
 
     def _calc_hubness(self, k:int=5):
@@ -352,4 +385,4 @@ def load_dexter():
 
 if __name__ == "__main__":
     hub = HubnessAnalysis()
-    hub.analyze_hubness("orig,mp,mp_gauss,mp_gaussi,mp_gammai,ls,nicdm,snn,cent,wcent,lcent")
+    hub.analyze_hubness()

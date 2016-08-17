@@ -14,23 +14,43 @@ Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
+from inspect import signature
 from hub_toolbox.Hubness import hubness
 from hub_toolbox.KnnClassification import score
 from hub_toolbox.GoodmanKruskal import goodman_kruskal_index
 from hub_toolbox.IntrinsicDim import intrinsic_dimension
 from hub_toolbox.MutualProximity import mutual_proximity_empiric, \
     mutual_proximity_gammai, mutual_proximity_gauss, mutual_proximity_gaussi
-from hub_toolbox.LocalScaling import nicdm
+from hub_toolbox.LocalScaling import nicdm, local_scaling
 from hub_toolbox.SharedNN import shared_nearest_neighbors
 from hub_toolbox.Centering import centering, weighted_centering, \
                                   localized_centering
 from hub_toolbox.Distances import cosine_distance
 from hub_toolbox.IO import load_dexter as io_load_dexter
 
+def _primary_distance(D:np.ndarray, metric):
+    """Return D, identical. (Dummy function.)"""
+    return D
+
+# New types of hubness reduction methods must be added here
+SEC_DIST = {'mp' : mutual_proximity_empiric,
+            'mp_gauss': mutual_proximity_gauss,
+            'mp_gaussi' : mutual_proximity_gaussi,
+            'mp_gammai' : mutual_proximity_gammai,
+            'ls' : local_scaling,
+            'nicdm' : nicdm,
+            'snn' : shared_nearest_neighbors,
+            'cent' : centering,
+            'wcent' : weighted_centering,
+            'lcent' : localized_centering,
+            'orig' : _primary_distance # a dummy function
+            }
 
 class HubnessAnalysis():
-    """
-    The main hubness analysis class.
+    """The main hubness analysis class.
+    
+    For more detailed analyses (optimizing parameters, using similarity data, 
+    etc.) please use the individual modules.
     
     Usage:
         hub = HubnessAnalysis()
@@ -44,9 +64,9 @@ class HubnessAnalysis():
              class labels vector (classes) and the original (optional) 
              data vectors (vectors) to perform a full hubness analysis.
     """
-    
+
     def __init__(self, D:np.ndarray=None, classes:np.ndarray=None, 
-                 vectors:np.ndarray=None):
+                 vectors:np.ndarray=None, metric:str='distance'):
         """Initialize a quick hubness analysis.
         
         Parameters:
@@ -60,6 +80,9 @@ class HubnessAnalysis():
             
         vectors : ndarray, optional (default: None)
             The m x n vector data. Required for IntrDim estimation.
+            
+        metric : {'distance', 'similarity'}
+            Define whether D is a distance or similarity matrix.
         """        
         
         self.has_class_data, self.has_vector_data = False, False
@@ -73,8 +96,9 @@ class HubnessAnalysis():
                   'This dataset is one of five datasets of the NIPS 2003\n'
                   'feature selection challenge.\n'
                   'http://archive.ics.uci.edu/ml/datasets/Dexter\n')
-            self.D, self.classes, self.vectors = load_dexter()
+            self.D, self.classes, self.vectors = io_load_dexter()
             self.has_class_data, self.has_vector_data = True, True
+            self.metric = 'distance'
         else:
             # copy data and ensure correct type (not int16 etc.)
             self.D = np.copy(D).astype(np.float64)
@@ -85,147 +109,242 @@ class HubnessAnalysis():
                 self.has_class_data = True
             if vectors is not None:
                 self.has_vector_data = True
+            self.metric = metric
         self.n = len(self.D)
-    
-    def analyse_hubness(self, orig_data=True, mp=True, mp_gauss=False, 
-                        mp_gaussi=True, mp_gammai=False, ls=True, snn=True, 
-                        cent=True, wcent=False, wcent_g=0.4, 
-                        lcent=True, lcent_k=40, lcent_g=1.4):
-        """Analyse hubness in original data and rescaled distances.
+        self.experiments = []
         
+    @property
+    def _header(self):
+        return {'mp' : "MUTUAL PROXIMITY (Empiric)",
+                'mp_gauss': "MUTUAL PROXIMITY (Gaussian)",
+                'mp_gaussi' : "MUTUAL PROXIMITY (Independent Gaussians)",
+                'mp_gammai' : "MUTUAL PROXIMITY (Independent Gamma)",
+                'ls' : "LOCAL SCALING (original)",
+                'nicdm' : "LOCAL SCALING (NICDM)",
+                'snn' : "SHARED NEAREST NEIGHBORS",
+                'cent' : "CENTERING",
+                'wcent' : "WEIGHTED CENTERING",
+                'lcent' : "LOCALIZED CENTERING",
+                'orig' : "ORIGINAL DATA"}
+
+    def _calc_intrinsic_dim(self):
+        """Calculate intrinsic dimension estimate."""
+        self.intrinsic_dim = intrinsic_dimension(X=self.vectors)
+        return self
+
+    def analyze_hubness(self, experiments="orig,mp,mp_gaussi,nicdm,cent,lcent",
+                        hubness_k=(5, 10), knn_k=(1, 5, 20), 
+                        print_results=True, verbose:int=0):
+        """Analyse hubness in original data and rescaled distances.
+
         Parameters:
         -----------
-        args : bool
-            - orig_data ... original data
-            - mp ... Mutual Proximity (empiric)
-            - mp_gauss ... Mutual Proximity (Gaussian)
-            - mp_gaussi ... Mutual Proximity (independent Gaussian)
-            - mp_gammai ... Mutual Proximity (independent Gamma)
-            - ls ... Local Scaling (NICDM)
-            - snn ... Shared Nearest Neighbors
-            - cent ... Centering
-            - wcent ... Weighted Centering
-            - lcent ... Localized Centering
-        args : float
-            - wcent_g ... Weighted Centering gamma parameter
-            - lcent_k ... Localized Centering kappa parameter
-            - lcent_g ... Localized Centering gamma parameter
+        experiments : str, optional
+            Define which experiments to perform. Please provide a string of 
+            comma separated values chosen from the following options:
+            - "orig" : Original, primary distances
+            - "mp" : Mutual Proximity (empiric)
+            - "mp_gauss" : Mutual Proximity (Gaussians)
+            - "mp_gaussi" : Mutual Proximity (independent Gaussians)
+            - "mp_gammai" ... Mutual Proximity (independent Gamma)
+            - "ls" : Local Scaling (using k-th neighbor)
+            - "nicdm" : Local Scaling variant NICDM (average of k neighbors)
+            - "snn" : Shared Nearest Neighbors
+            - "cent" : Centering
+            - "wcent" : Weighted Centering
+            - "lcent" : Localized Centering
+
+        hubness_k : tuple, optional (default: (5, 10))
+            Hubness parameter (skewness of k-occurence)
+
+        knn_k : tuple, optional (default: (1, 5, 20))
+            k-NN classification parameter
+
+        print_results : bool, optional (default: True)
+            Define whether to print hubness analysis report to stdout
             
+        verbose : int, optional (default: 0)
+            Increasing output verbosity
+
         Returns:
         --------
-        None : print summary of results to stdout
+        self (and optionally prints results to stdout)
         """
-        
-        print()
-        print("Hubness Analysis")
-            
-        if not (orig_data or mp or mp_gauss or mp_gaussi or mp_gammai or \
-                ls or snn or cent or wcent or lcent):
-            print("---Nothing to do. Please specify tasks to be performed.---")
-        if orig_data:
-            Sn5, Nk5 = hubness(self.D)[::2]
-            self.print_results('ORIGINAL DATA', self.D, Sn5, Nk5, True)
-        if mp or mp_gaussi or mp_gammai or mp_gauss:
-            if mp:  
-                # Hubness in empiric mutual proximity distance space
-                Dn = mutual_proximity_empiric(self.D)
-                Sn5, Nk5 = hubness(Dn)[::2]
-                self.print_results('MUTUAL PROXIMITY (Empiric/Slow)', \
-                                   Dn, Sn5, Nk5)
-            if mp_gauss:    
-                # Hubness in mutual proximity distance space, Gaussian model
-                Dn = mutual_proximity_gauss(self.D)
-                Sn5, Nk5 = hubness(Dn)[::2]
-                self.print_results('MUTUAL PROXIMITY (Gaussian)', Dn, Sn5, Nk5)
-            if mp_gaussi:
-                # Hubness in mutual proximity distance space, independent Gaussians
-                Dn = mutual_proximity_gaussi(self.D)
-                Sn5, Nk5 = hubness(Dn)[::2]
-                self.print_results('MUTUAL PROXIMITY (Independent Gaussians)', \
-                                   Dn, Sn5, Nk5)
-            if mp_gammai:
-                # Hubness in mutual proximity distance space, indep. Gamma distr.
-                Dn = mutual_proximity_gammai(self.D)
-                Sn5, Nk5 = hubness(Dn)[::2]
-                self.print_results('MUTUAL PROXIMITY (Independent Gamma)', \
-                                   Dn, Sn5, Nk5)
-        if ls:
-            # Hubness in local scaling distance space
-            radius = 10
-            scalingType = 'nicdm' # 'original'
-            Dn = nicdm(self.D, radius)
-            Sn5, Nk5 = hubness(Dn)[::2]
-            self.print_results('LOCAL SCALING ({}, k={})'.format(\
-                scalingType, radius), Dn, Sn5, Nk5)
-        if snn:
-            # Hubness in shared nearest neighbors space
-            Dn = shared_nearest_neighbors(self.D)
-            Sn5, Nk5 = hubness(Dn)[::2]
-            self.print_results('SHARED NEAREST NEIGHBORS (k={})'.format(\
-                radius), Dn, Sn5, Nk5)
-        if cent or wcent or lcent:
-            if not self.has_vector_data:
-                print("Centering is currently only supported for vector data.")
-            else:
-                if cent:
-                    # Hubness after centering
-                    D_cent = cosine_distance(centering(self.vectors, 'vector'))
-                    Sn5, Nk5 = hubness(D_cent)[::2]
-                    self.print_results('CENTERING', D_cent, Sn5, Nk5)
-                
-                if wcent:
-                    # Hubness after weighted centering
-                    D_wcent = cosine_distance(weighted_centering(
-                        self.vectors, metric='cosine', gamma=wcent_g))
-                    Sn5, Nk5 = hubness(D_wcent)[::2]
-                    self.print_results('WEIGHTED CENTERING (gamma={})'.format(\
-                                        wcent_g), D_wcent, Sn5, Nk5)
-                
-                if lcent:
-                    # Hubness after localized centering
-                    D_lcent = localized_centering(self.vectors, metric='cosine',
-                                                  kappa=lcent_k, gamma=lcent_g)
-                    Sn5, Nk5 = hubness(D_lcent, metric='similarity')[::2]
-                    self.print_results('LOCALIZED CENTERING (k={}, gamma={})'.
-                                       format(lcent_k, lcent_g), 
-                                       D_lcent, Sn5, Nk5, metric='similarity')
-    
-    def print_results(self, heading:str, D:np.ndarray, Sn5:float, Nk5:float, 
-                      calc_intrinsic_dimensionality:bool=True, 
-                      metric='distance'):
-        """Print the results of a hubness analysis."""     
-        
-        print()
-        print(heading + ':')
-        print('data set hubness (S^n=5)                 : {:.3}'.format(Sn5))
-        print('% of anti-hubs at k=5                    : {:.4}%'.format(\
-            100 * sum(Nk5 == 0) / self.n))
-        print('% of k=5-NN lists the largest hub occurs : {:.4}%'.format(\
-            100 * max(Nk5) / self.n))
-        if self.has_class_data:
-            k_params = [1, 5, 20]
-            acc = score(D, self.classes, k_params, metric)[0]
-            for i, k in enumerate(k_params):
-                print('k={:2}-NN classification accuracy          : {:.4}%'.
-                      format(k, 100*float(acc[i])))                
-            print('Goodman-Kruskal index (higher=better)    : {:.3}'.format(\
-                goodman_kruskal_index(D, self.classes, metric)))
+        experiments = experiments.split(',')
+        if self.vectors is not None:
+            self._calc_intrinsic_dim()    
+        for i, exp_type in enumerate(experiments):
+            if verbose:
+                print("Experiment {}/{} ({})".
+                      format(i+1, len(experiments), exp_type), end="\r")
+            experiment = HubnessExperiment(D=self.D, 
+                secondary_distance_type=exp_type, metric=self.metric, 
+                classes=self.classes, vectors=self.vectors)
+            if self.D is not None:
+                experiment._calc_secondary_distance()
+                for k in hubness_k:
+                    experiment._calc_hubness(k=k)
+            if self.classes is not None:
+                for k in knn_k:
+                    experiment._calc_knn_accuracy(k=k)
+                experiment._calc_gk_index()
+            self.experiments.append(experiment)
+            if print_results:
+                self.print_analysis_report(experiment, report_nr=i)
+        return self
+
+    def print_analysis_report(self, experiment=None, report_nr:int=0):
+        """Print a report of the performed hubness analysis.
+
+        Parameters:
+        -----------
+        experiment : HubnessExperiment, optional (default: None)
+            If given, report only this experiment. Otherwise, report all 
+            experiments of this analysis.
+
+        report_nr : int, optional (default: 0)
+            Method only prints headline for first report
+
+        Returns:
+        --------
+        None : Output is printed to stdout
+        """
+        if experiment is not None:
+            experiments = [experiment]
         else:
-            print('k=5-NN classification accuracy           : No classes given')
-            print('Goodman-Kruskal index (higher=better)    : No classes given')
-        
-        if calc_intrinsic_dimensionality:
-            if self.has_vector_data:
-                print('original dimensionality                  : {}'.format(\
-                    np.size(self.vectors, 1)))
-                print('intrinsic dimensionality estimate        : {}'.format(\
-                    round(intrinsic_dimension(self.vectors))))
+            experiments = self.experiments
+        if report_nr == 0:
+            print("\n"
+                  "================\n"
+                  "Hubness Analysis\n"
+                  "================\n")
+        for experiment in experiments:
+            print(self._header[experiment.secondary_distance_type] + ':')
+            # Print used parameters (which are the default parameters)
+            sig = signature(SEC_DIST[experiment.secondary_distance_type])
+            for p in ['k', 'kappa', 'gamma']:
+                try:
+                    print("parameter {} =".format(p), sig.parameters[p].default)
+                except:
+                    pass
+            try: # to print hubness results, if available
+                for k in sorted(experiment.hubness.keys()):
+                    print('data set hubness (S^k={:2})                : {:.3}'.
+                          format(k, experiment.hubness[k]))
+                    print('% of anti-hubs at k={:2}                   : {:.4}%'.
+                          format(k, experiment.anti_hubs[k]))
+                    print('% of k={:2}-NN lists the largest hub occurs: {:.4}%'.
+                          format(k, experiment.max_hub_k_occurence[k]))
+            except KeyError:
+                print('data set hubness (S^k={:2})                : '
+                      'No k given')
+            try: # to print k-NN results, if available
+                for k in sorted(experiment.knn_accuracy.keys()):
+                    print('k={:2}-NN classification accuracy          : {:.4}%'.
+                          format(k, 100.*float(experiment.knn_accuracy[k])))
+            except KeyError:
+                print('k=5-NN classification accuracy           : '
+                      'No classes given')   
+            # print Goodman-Kruskal result, if available
+            if experiment.gk_index is None:
+                print('Goodman-Kruskal index (higher=better)    : '
+                      'No classes given/Not calculated')
             else:
-                print('original dimensionality                  : '
-                      'No vectors given')
+                print('Goodman-Kruskal index (higher=better)    : {:.3}'.
+                      format(experiment.gk_index))
+            # Embedding dimension
+            print('embedding dimensionality                 : {}'.
+                  format(experiment.embedding_dim))
+            # Intrinsic dimension estimate, if available
+            if self.intrinsic_dim is None:
                 print('intrinsic dimensionality estimate        : '
                       'No vectors given')
+            else:
+                print('intrinsic dimensionality estimate        : {}'.
+                      format(round(self.intrinsic_dim)))
+            print()
+        return
+
+class HubnessExperiment():
+    """Perform a single hubness experiment"""
+    
+    def __init__(self, D:np.ndarray, secondary_distance_type:str, 
+                 metric:str='distance', classes:np.ndarray=None, 
+                 vectors:np.ndarray=None):
+        """Initialize a hubness experiment"""
+        if D.shape[0] != D.shape[1]:
+            raise TypeError("Distance/similarity matrix is not quadratic.")
+        if secondary_distance_type not in SEC_DIST.keys():
+            raise ValueError("Requested secondary distance type unknown.")
+        if metric not in ['distance', 'similarity']:
+            raise ValueError("Metric must be 'distance' or 'similarity'.")
+        if classes is not None:
+            if D.shape[0] != classes.size:
+                raise TypeError("Target vector (classes) length does not "
+                                "match number of points.")
+        if vectors is None:
+            self.embedding_dim = None
+        else: # got vectors
+            if D.shape[0] != vectors.shape[0]:
+                raise TypeError("Data vectors dimension does not match "
+                                "distance matrix (D) dimension.")
+            else:
+                self.embedding_dim = vectors.shape[1]
+        self.original_distance = D
+        self.secondary_distance_type = secondary_distance_type
+        self.classes = classes
+        self.vectors = vectors
+        self.metric = metric
+        self.n = D.shape[0]
+        # Obtained later through functions:
+        self.secondary_distance = None
+        self.hubness = dict()
+        self.anti_hubs = dict()
+        self.max_hub_k_occurence = dict()
+        self.knn_accuracy = dict()
+        self.gk_index = None
+        self.intrinsic_dim = None
+
+    def _calc_secondary_distance(self):
+        """Calculate secondary distances (e.g. Mutual Proximity)"""
+        sec_dist_fun = SEC_DIST[self.secondary_distance_type]
+        try:
+            self.secondary_distance = sec_dist_fun(
+                D=self.original_distance, metric=self.metric)
+        except TypeError: # centering has no keyword 'D='
+            if self.secondary_distance_type in ['cent', 'wcent']:
+                self.secondary_distance = \
+                    cosine_distance(sec_dist_fun(X=self.vectors))
+            else:
+                self.secondary_distance = 1. - sec_dist_fun(X=self.vectors)
+        return self
+
+    def _calc_hubness(self, k:int=5):
+        """Calculate hubness (skewness of k-occurence).
         
+        Also calculate percentage of anti hubs (k-occurence == 0) and 
+        percentage of k-NN lists the largest hub occurs in"""
+        S_k, _, N_k = hubness(D=self.secondary_distance, 
+                              metric=self.metric, k=k)
+        self.hubness[k] = S_k
+        self.anti_hubs[k] = 100 * (N_k == 0).sum() / self.n
+        self.max_hub_k_occurence[k] = 100 * N_k.max() / self.n
+        return self
+
+    def _calc_knn_accuracy(self, k:int=5):
+        """Calculate k-NN accuracy."""
+        acc, _, _ = score(D=self.secondary_distance, target=self.classes, 
+                          k=k, metric=self.metric)
+        self.knn_accuracy[k] = acc
+        return self
+
+    def _calc_gk_index(self):
+        """Calculate Goodman-Kruskal's gamma."""
+        self.gk_index = goodman_kruskal_index(D=self.secondary_distance, 
+                                              classes=self.classes, 
+                                              metric=self.metric)
+        return self
+
 def load_dexter():
     """DEPRECATED (moved to IO.py)"""
 
@@ -233,18 +352,4 @@ def load_dexter():
 
 if __name__ == "__main__":
     hub = HubnessAnalysis()
-    #"""
-    hub.analyse_hubness()
-    """
-    hub.analyse_hubness(origData=True, 
-                        mp=False,
-                        mp_gauss=False,
-                        mp_gaussi=False,
-                        mp_gammai=False,
-                        ls=False, 
-                        snn=False, 
-                        cent=False, 
-                        wcent=False, 
-                        lcent=False)
-    #"""
-    
+    hub.analyze_hubness("orig,mp,mp_gauss,mp_gaussi,mp_gammai,ls,nicdm,snn,cent,wcent,lcent")

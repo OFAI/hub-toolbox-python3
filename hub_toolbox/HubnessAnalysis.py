@@ -331,7 +331,6 @@ class HubnessExperiment():
         self.max_hub_k_occurence = dict()
         self.knn_accuracy = dict()
         self.gk_index = None
-        self.intrinsic_dim = None
 
     def _calc_secondary_distance(self):
         """Calculate secondary distances (e.g. Mutual Proximity)"""

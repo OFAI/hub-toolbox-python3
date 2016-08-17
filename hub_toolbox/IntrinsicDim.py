@@ -56,7 +56,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         - 'var': subtract mean, divide by variance (default behavior of 
                  Laurens van der Maaten's DR toolbox; most likely for other 
                  ID/DR techniques).
-        
+    
     See also:
     ---------
     [1] Levina, E., & Bickel, P. (2004). Maximum likelihood estimation of 
@@ -64,7 +64,6 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
     http://doi.org/10.2307/2335172
     [2] http://www.inference.phy.cam.ac.uk/mackay/dimension/
     """
-    
     n = X.shape[0]
     if metric in ['vector', 'distance']:
         data_type = metric

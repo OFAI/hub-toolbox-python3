@@ -278,7 +278,7 @@ def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
             D_dsg[x, q] = x_q - xq_c[x] - xq_c[q]
     return D_dsg
 
-def dis_sim_local(X:np.ndarray, k:int, test_set_mask:np.ndarray=None):
+def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
     """Calculate dissimilarity based on local 'sample-wise centrality' [5].
     
     Parameters:
@@ -287,8 +287,9 @@ def dis_sim_local(X:np.ndarray, k:int, test_set_mask:np.ndarray=None):
         - An (m x n) vector data matrix with n objects in an 
           m-dimensional feature space
           
-    k : int
+    k : int, optional (default: 10)
         Neighborhood size used for determining the local centroids.
+        Can be optimized as to maximally reduce hubness [5].
           
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 

@@ -10,6 +10,14 @@ Contact: <roman.feldbauer@ofai.at>
 
 If you use the functions in your publication, please cite:
 
+@article{feldbauer2016a,
+  title={Centering Versus Scaling for Hubness Reduction},
+  author={Feldbauer, Roman and Flexer, Arthur},
+  book={Artificial Neural Networks and Machine Learning - ICANN 2016},
+  year={2016},
+  url={http://www.ofai.at/cgi-bin/tr-online?number+2016-05}
+}
+or
 @article{schnitzer2012local,
   title={Local and global scaling reduce hubs in space},
   author={Schnitzer, Dominik and Flexer, Arthur and Schedl, Markus and Widmer,
@@ -30,7 +38,7 @@ impact use the HubnessAnalysis() class:
 
 >>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
 >>> analysis = HubnessAnalysis(D, classes, vectors)
->>> analysis.analyse_hubness() 
+>>> analysis.analyze_hubness() 
 
 'D' is your (NxN) distance matrix, 'classes' is an optional vector with a
 class number per item in the rows of D. 'vectors' is the optional original data
@@ -41,7 +49,7 @@ Internally the function uses the:
   *  mutual_proximity(D),
   *  local_scaling(D, k),
   *  shared_nn(D, k)
-  *  centering(vectors) # EXPERIMENTAL, under active development
+  *  centering(vectors)
 functions to reduce hubness with different methods, and
   *  hubness(D, k),
   *  knn_classification(D, classes, k),

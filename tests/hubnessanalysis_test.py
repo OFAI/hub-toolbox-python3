@@ -17,7 +17,7 @@ from hub_toolbox import HubnessAnalysis
 from hub_toolbox.Distances import euclidean_distance
 
 class ParametrizedTestCase(unittest.TestCase):
-    """ TestCase classes that want to be parametrized should
+    """ TestCase classes that you want to be parametrized should
         inherit from this class (© 2003-2016 Eli Bendersky, unlicense,
         http://eli.thegreenplace.net/pages/code)
     """

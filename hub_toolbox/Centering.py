@@ -20,7 +20,7 @@ from hub_toolbox.Distances import euclidean_distance as l2
 #DEPRECATED
 from hub_toolbox.Distances import Distance
 
-def centering(X:np.ndarray, metric:str, test_set_mask:np.ndarray=None):
+def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
     """Perform  centering, i.e. shift the origin to the data centroid.
     
     Centering of vector data X with n objects in an m-dimensional feature space.
@@ -38,7 +38,7 @@ def centering(X:np.ndarray, metric:str, test_set_mask:np.ndarray=None):
         where X.T denotes the transpose of X.
         NOTE: The type must be defined via parameter 'metric'!
         
-    metric : {'vector', 'distance'}
+    metric : {'vector', 'distance'}, optional (Default: 'vector')
         Define, whether 'X' is vector data or a distance matrix.
         
     test_set_mask : ndarray, optional (default: None)
@@ -81,7 +81,7 @@ def centering(X:np.ndarray, metric:str, test_set_mask:np.ndarray=None):
     else:
         raise ValueError("Parameter 'metric' must be 'distance' or 'vector'.")
 
-def weighted_centering(X:np.ndarray, metric:str, gamma:float, 
+def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1., 
                        test_set_mask:np.ndarray=None):
     """Perform  weighted centering: shift origin to the weighted data mean
     
@@ -94,12 +94,12 @@ def weighted_centering(X:np.ndarray, metric:str, gamma:float,
         - An (m x n) vector data matrix with n objects in an 
         m-dimensional feature space 
         
-    metric : {'cosine', 'euclidean'}
+    metric : {'cosine', 'euclidean'}, optional (default: 'cosine')
         Distance measure used to place more weight on objects that are more 
         likely to become hubs. (Defined for 'cosine' in [2], 'euclidean' does 
         not make much sense and might be removed in the future).
         
-    gamma : float
+    gamma : float, optional (default: 1.0)
         Controls how much we emphasize the weighting effect
         - gamma=0: equivalent to normal centering
         - gamma>0: move origin closer to objects with larger similarity 
@@ -149,8 +149,8 @@ def weighted_centering(X:np.ndarray, metric:str, gamma:float,
     X_wcent = X - vectors_mean_weighted
     return X_wcent
 
-def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float, 
-                        test_set_mask:np.ndarray=None):
+def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40, 
+                        gamma:float=1., test_set_mask:np.ndarray=None):
     """Perform localized centering.
     
     Reduce hubness in datasets according to the method proposed in [3].
@@ -166,14 +166,14 @@ def localized_centering(X:np.ndarray, metric:str, kappa:float, gamma:float,
         likely to become hubs. (Defined for 'cosine' in [2], 'euclidean' does 
         not make much sense and might be removed in the future).
         
-    kappa : float
+    kappa : int, optional (default: 40)
         Local segment size, determines the size of the local neighborhood for 
         calculating the local affinity. When kappa=n localized centering 
         reduces to standard centering.
         "select κ depending on the dataset, so that the correlation between
         Nk(x) and the local affinity <x, cκ(x)> is maximized" [3]
         
-    gamma : float
+    gamma : float, optional (default: 1.0)
         Control the degree of penalty, so that used the similarity score 
         is smaller depending on how likely a point is to become a hub.
         "Parameter γ can be tuned so as to maximally reduce the skewness 

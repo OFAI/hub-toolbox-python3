@@ -208,14 +208,21 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     D = D.copy()
     
     np.fill_diagonal(D, self_value)
+    #np.fill_diagonal(D, np.nan)
     
     mu = np.mean(D[train_set_ind], 0)
     sd = np.std(D[train_set_ind], 0, ddof=0)
+    #===========================================================================
+    # mu = np.nanmean(D[train_set_ind], 0)
+    # sd = np.nanstd(D[train_set_ind], 0, ddof=0)
+    #===========================================================================
+    
     #Code for the BadMatrixSigma error [derived from matlab]
     #===========================================================================
     # eps = np.spacing(1)
     # epsmat = np.array([[1e5 * eps, 0], [0, 1e5 * eps]])
     #===========================================================================
+    
     D_mp = np.zeros_like(D)
     
     # MP Gauss
@@ -223,6 +230,11 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
         if verbose and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gauss: {} of {}.".format(i+1, n))
         for j in range(i+1, n):
+            #===================================================================
+            # mask = np.isnan(D[[i, j], :])
+            # D_mask = np.ma.array(D[[i, j], :], mask=mask)
+            # c = np.ma.cov(D_mask, ddof=0)
+            #===================================================================
             c = np.cov(D[[i, j], :], ddof=0)
             x = np.array([D[i, j], D[j, i]])
             m = np.array([mu[i], mu[j]])
@@ -239,6 +251,7 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
                 # log.warning("p12 is NaN: i={}, j={}. Increased cov matrix by "
                 #             "O({}).".format(i, j, epsmat[0, 0]*(10**power)))
                 #===============================================================
+                
                 p12 = 0.
                 log.warning("p12 is NaN: i={}, j={}. Set to zero.".format(i, j))
                 

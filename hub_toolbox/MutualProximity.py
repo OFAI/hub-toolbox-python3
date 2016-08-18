@@ -35,6 +35,9 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     D : ndarray or csr_matrix
         - ndarray: The n x n symmetric distance or similarity matrix.
         - csr_matrix: The n x n symmetric similarity matrix.
+          NOTE: In case of sparse D, zeros are interpreted as missing values 
+                and ignored during calculations. Thus, results may differ 
+                from using a dense version.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix.
@@ -262,6 +265,9 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     D : ndarray or csr_matrix
         - ndarray: The n x n symmetric distance or similarity matrix.
         - csr_matrix: The n x n symmetric similarity matrix.
+          NOTE: In case of sparse D, zeros are interpreted as missing values 
+                and ignored during calculations. Thus, results may differ 
+                from using a dense version.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix.
@@ -406,6 +412,9 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     D : ndarray or csr_matrix
         - ndarray: The n x n symmetric distance or similarity matrix.
         - csr_matrix: The n x n symmetric similarity matrix.
+          NOTE: In case of sparse D, zeros are interpreted as missing values 
+                and ignored during calculations. Thus, results may differ 
+                from using a dense version.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix.

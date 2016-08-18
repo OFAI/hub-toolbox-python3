@@ -207,17 +207,15 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     # Start MP
     D = D.copy()
     
-    np.fill_diagonal(D, np.nan)
-    
-    mu = np.nanmean(D[train_set_ind], 0)
-    sd = np.nanstd(D[train_set_ind], 0, ddof=1)
     np.fill_diagonal(D, self_value)
+    
+    mu = np.mean(D[train_set_ind], 0)
+    sd = np.std(D[train_set_ind], 0, ddof=1)
     #Code for the BadMatrixSigma error [derived from matlab]
     #===========================================================================
     # eps = np.spacing(1)
     # epsmat = np.array([[1e5 * eps, 0], [0, 1e5 * eps]])
     #===========================================================================
-            
     D_mp = np.zeros_like(D)
     
     # MP Gauss
@@ -241,6 +239,7 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
                 # log.warning("p12 is NaN: i={}, j={}. Increased cov matrix by "
                 #             "O({}).".format(i, j, epsmat[0, 0]*(10**power)))
                 #===============================================================
+                p12 = 0.
                 log.warning("p12 is NaN: i={}, j={}. Set to zero.".format(i, j))
                 
             
@@ -252,7 +251,7 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
                 D_mp[i, j] = p1 + p2 - p12
     D_mp += D_mp.T
     np.fill_diagonal(D_mp, self_value)
-    
+    print(D_mp)
     return D_mp
 
 def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance', 

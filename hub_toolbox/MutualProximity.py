@@ -521,10 +521,13 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     #=======================================================================
     
     # mean, variance WITHOUT zero values (missing values)
-    mu = np.array(S.sum(0) / S.getnnz(0)).ravel()
+    if S.diagonal().max() != 1. or S.diagonal().min() != 1.:
+        raise ValueError("Self similarities must be 1.")
+    # the -1 accounts for self similarities that must be excluded from the calc
+    mu = np.array((S.sum(0) - 1) / (S.getnnz(0) - 1)).ravel()
     X = S.copy()
     X.data **= 2
-    E1 = np.array(X.sum(0) / X.getnnz(0)).ravel()
+    E1 = np.array((X.sum(0) - 1) / (X.getnnz(0) - 1)).ravel()
     del X
     va = E1 - mu**2
     del E1

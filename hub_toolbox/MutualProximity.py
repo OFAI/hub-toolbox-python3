@@ -504,7 +504,7 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     va = np.nanvar(D[train_set_ind], 0, ddof=1)
     A = (mu**2) / va
     B = va / mu
-    
+
     D_mp = np.zeros_like(D)
     
     # MP gammai
@@ -556,16 +556,19 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     S_param = S[train_set_ind]
     # the -1 accounts for self similarities that must be excluded from the calc
     mu = np.array((S_param.sum(0) - 1) / (S_param.getnnz(0) - 1)).ravel()
+    E2 = mu**2
     X = S_param.copy()
     X.data **= 2
-    E1 = np.array((X.sum(0) - 1) / (X.getnnz(0) - 1)).ravel()
+    n_x = (X.getnnz(0) - 1)
+    E1 = np.array((X.sum(0) - 1) / (n_x)).ravel()
     del X
-    va = E1 - mu**2
+    # for an unbiased sample variance
+    va = n_x / (n_x - 1) * (E1 - E2)
     del E1
     
-    A = (mu**2) / va
+    A = E2 / va
     B = va / mu
-    del mu, va
+    del mu, va, E2
     A[A < 0] = np.nan
     B[B <= 0] = np.nan
 

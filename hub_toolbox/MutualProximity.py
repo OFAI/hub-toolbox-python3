@@ -373,10 +373,26 @@ def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0,
         train_set_ind = slice(0, n)
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
-    from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
-    mu, var = csr_mean_variance_axis0(S[train_set_ind])
-    sd = np.sqrt(var)
-    del var
+    #===========================================================================
+    # from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
+    # mu, var = csr_mean_variance_axis0(S[train_set_ind])
+    # sd = np.sqrt(var)
+    # del var
+    #===========================================================================
+    # mean, variance WITHOUT zero values (missing values)
+    if S.diagonal().max() != 1. or S.diagonal().min() != 1.:
+        raise ValueError("Self similarities must be 1.")
+    S_param = S[train_set_ind]
+    # the -1 accounts for self similarities that must be excluded from the calc
+    mu = np.array((S_param.sum(0) - 1) / (S_param.getnnz(0) - 1)).ravel()
+    X = S_param.copy()
+    X.data **= 2
+    E1 = np.array((X.sum(0) - 1) / (X.getnnz(0) - 1)).ravel()
+    del X
+    va = E1 - mu**2
+    del E1
+    sd = np.sqrt(va)
+    del va
     
     S_mp = lil_matrix(S.shape)
 

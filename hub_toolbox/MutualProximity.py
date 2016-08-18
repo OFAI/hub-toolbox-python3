@@ -210,7 +210,7 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     np.fill_diagonal(D, self_value)
     
     mu = np.mean(D[train_set_ind], 0)
-    sd = np.std(D[train_set_ind], 0, ddof=1)
+    sd = np.std(D[train_set_ind], 0, ddof=0)
     #Code for the BadMatrixSigma error [derived from matlab]
     #===========================================================================
     # eps = np.spacing(1)
@@ -223,7 +223,7 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
         if verbose and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gauss: {} of {}.".format(i+1, n))
         for j in range(i+1, n):
-            c = np.cov(D[[i, j], :])
+            c = np.cov(D[[i, j], :], ddof=0)
             x = np.array([D[i, j], D[j, i]])
             m = np.array([mu[i], mu[j]])
             
@@ -251,7 +251,6 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
                 D_mp[i, j] = p1 + p2 - p12
     D_mp += D_mp.T
     np.fill_diagonal(D_mp, self_value)
-    print(D_mp)
     return D_mp
 
 def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance', 

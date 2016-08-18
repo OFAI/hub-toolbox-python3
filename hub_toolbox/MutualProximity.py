@@ -193,8 +193,6 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
         raise ValueError("Parameter 'metric' must be 'distance' "
                          "or 'similarity'.")  
     if metric == 'similarity':
-        log.warning("MP Gauss is untested for similarity matrices. "
-                    "Use with caution!")
         self_value = 1
     else: # metric == 'distance':
         self_value = 0  

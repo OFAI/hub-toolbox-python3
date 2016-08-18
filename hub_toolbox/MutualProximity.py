@@ -207,14 +207,16 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     # Start MP
     D = D.copy()
     
-    np.fill_diagonal(D, self_value)
+    np.fill_diagonal(D, np.nan)
     
-    mu = np.mean(D[train_set_ind], 0)
-    sd = np.std(D[train_set_ind], 0, ddof=1)
-            
+    mu = np.nanmean(D[train_set_ind], 0)
+    sd = np.nanstd(D[train_set_ind], 0, ddof=1)
+    np.fill_diagonal(D, self_value)
     #Code for the BadMatrixSigma error [derived from matlab]
-    eps = np.spacing(1)
-    epsmat = np.array([[1e5 * eps, 0], [0, 1e5 * eps]])
+    #===========================================================================
+    # eps = np.spacing(1)
+    # epsmat = np.array([[1e5 * eps, 0], [0, 1e5 * eps]])
+    #===========================================================================
             
     D_mp = np.zeros_like(D)
     
@@ -230,13 +232,17 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
             low = np.tile(np.finfo(np.float32).min, 2)
             p12 = mvn.mvnun(low, x, m, c)[0] # [0]...p, [1]...inform
             if np.isnan(p12):
-                power = 7
-                while np.isnan(p12):
-                    c += epsmat * (10**power) 
-                    p12 = mvn.mvnun(low, x, m, c)[0]
-                    power += 1
-                log.warning("p12 is NaN: i={}, j={}. Increased cov matrix by "
-                            "O({}).".format(i, j, epsmat[0, 0]*(10**power)))
+                #===============================================================
+                # power = 7
+                # while np.isnan(p12):
+                #     c += epsmat * (10**power) 
+                #     p12 = mvn.mvnun(low, x, m, c)[0]
+                #     power += 1
+                # log.warning("p12 is NaN: i={}, j={}. Increased cov matrix by "
+                #             "O({}).".format(i, j, epsmat[0, 0]*(10**power)))
+                #===============================================================
+                log.warning("p12 is NaN: i={}, j={}. Set to zero.".format(i, j))
+                
             
             if metric == 'similarity':
                 D_mp[i, j] = p12
@@ -322,16 +328,16 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
         return _mutual_proximity_gaussi_sparse(D, sample_size, test_set_ind, 
                                                verbose, log)
 
-    np.fill_diagonal(D, self_value)
+    np.fill_diagonal(D, np.nan)
         
     # Calculate mean and std
     if sample_size != 0:
         samples = np.random.shuffle(train_set_ind)[0:sample_size]
-        mu = np.mean(D[samples], 0)
-        sd = np.std(D[samples], 0, ddof=1)
+        mu = np.nanmean(D[samples], 0)
+        sd = np.nanstd(D[samples], 0, ddof=1)
     else:
-        mu = np.mean(D[train_set_ind], 0)
-        sd = np.std(D[train_set_ind], 0, ddof=1)
+        mu = np.nanmean(D[train_set_ind], 0)
+        sd = np.nanstd(D[train_set_ind], 0, ddof=1)
     
     # MP Gaussi
     D_mp = np.zeros_like(D)
@@ -464,10 +470,10 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     if issparse(D):
         return _mutual_proximity_gammai_sparse(D, test_set_ind, verbose, log)
 
-    np.fill_diagonal(D, self_value)
+    np.fill_diagonal(D, np.nan)
     
-    mu = np.mean(D[train_set_ind], 0)
-    va = np.var(D[train_set_ind], 0, ddof=1)
+    mu = np.nanmean(D[train_set_ind], 0)
+    va = np.nanvar(D[train_set_ind], 0, ddof=1)
     A = (mu**2) / va
     B = va / mu
     

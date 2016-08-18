@@ -550,7 +550,7 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     # mu, va = csr_mean_variance_axis0(self.S[train_set_mask])
     #=======================================================================
     
-    # mean, variance WITHOUT zero values (missing values)
+    # mean, variance WITHOUT zero values (missing values), ddof=1
     if S.diagonal().max() != 1. or S.diagonal().min() != 1.:
         raise ValueError("Self similarities must be 1.")
     S_param = S[train_set_ind]

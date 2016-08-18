@@ -334,11 +334,10 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     if sample_size != 0:
         samples = np.random.shuffle(train_set_ind)[0:sample_size]
         mu = np.nanmean(D[samples], 0)
-        sd = np.nanstd(D[samples], 0, ddof=1)
+        sd = np.nanstd(D[samples], 0, ddof=0)
     else:
         mu = np.nanmean(D[train_set_ind], 0)
-        sd = np.nanstd(D[train_set_ind], 0, ddof=1)
-    
+        sd = np.nanstd(D[train_set_ind], 0, ddof=0)
     # MP Gaussi
     D_mp = np.zeros_like(D)
     for i in range(n):
@@ -379,18 +378,20 @@ def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0,
     # sd = np.sqrt(var)
     # del var
     #===========================================================================
-    # mean, variance WITHOUT zero values (missing values)
+    
+    # mean, variance WITHOUT zero values (missing values), ddof=0
     if S.diagonal().max() != 1. or S.diagonal().min() != 1.:
         raise ValueError("Self similarities must be 1.")
     S_param = S[train_set_ind]
     # the -1 accounts for self similarities that must be excluded from the calc
-    mu = np.array((S_param.sum(0) - 1) / (S_param.getnnz(0) - 1)).ravel()
-    X = S_param.copy()
+    mu = np.array((S_param.sum(0) - 1.) / (S_param.getnnz(0) - 1)).ravel()
+    X = S_param
     X.data **= 2
-    E1 = np.array((X.sum(0) - 1) / (X.getnnz(0) - 1)).ravel()
-    del X
-    va = E1 - mu**2
-    del E1
+    E1 = np.array((X.sum(0) - 1.) / (X.getnnz(0) - 1)).ravel()
+    del X, S_param
+    E2 = mu**2
+    va = E1 - E2
+    del E1, E2
     sd = np.sqrt(va)
     del va
     

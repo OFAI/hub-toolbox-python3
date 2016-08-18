@@ -253,8 +253,8 @@ class HubnessAnalysis():
                     print("parameter {} = {} (for optimization use the "
                           "individual modules of the HUB-TOOLBOX)".
                           format(p, sig.parameters[p].default))
-                except:
-                    pass
+                except KeyError:
+                    pass # function does not use this parameter
             try: # to print hubness results, if available
                 for k in sorted(experiment.hubness.keys()):
                     print('data set hubness (S^k={:2})                : {:.3}'.

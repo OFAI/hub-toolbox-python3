@@ -525,10 +525,12 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     Please do not directly use this function, but invoke via 
     mutual_proximity_gammai()
     """
-    # TODO implement train_test split
-    if test_set_ind is not None:
-        raise NotImplementedError("MP gammai sparse does not support "
-                                  "train/test split atm.")
+    n = S.shape[0]
+    self_value = 1.
+    if test_set_ind is None:
+        train_set_ind = slice(0, n)
+    else:
+        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
     
     # mean, variance WITH zero values
     #=======================================================================
@@ -539,9 +541,10 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     # mean, variance WITHOUT zero values (missing values)
     if S.diagonal().max() != 1. or S.diagonal().min() != 1.:
         raise ValueError("Self similarities must be 1.")
+    S_param = S[train_set_ind]
     # the -1 accounts for self similarities that must be excluded from the calc
-    mu = np.array((S.sum(0) - 1) / (S.getnnz(0) - 1)).ravel()
-    X = S.copy()
+    mu = np.array((S_param.sum(0) - 1) / (S_param.getnnz(0) - 1)).ravel()
+    X = S_param.copy()
     X.data **= 2
     E1 = np.array((X.sum(0) - 1) / (X.getnnz(0) - 1)).ravel()
     del X
@@ -555,8 +558,6 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     B[B <= 0] = np.nan
 
     S_mp = lil_matrix(S.shape, dtype=np.float32)
-    n = S.shape[0]
-    self_value = 1.
     
     for i in range(n):
         if verbose and log and ((i+1)%1000 == 0 or i+1 == n):

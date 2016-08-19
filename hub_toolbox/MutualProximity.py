@@ -74,8 +74,10 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
                          "or 'similarity'.")  
     if metric == 'similarity':
         self_value = 1
+        exclude_value = np.inf
     else:
         self_value = 0
+        exclude_value = -np.inf
         if issparse(D):
             raise ValueError("MP sparse only supports similarity matrices.")
     if test_set_ind is None:
@@ -93,7 +95,7 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
         return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log)
         
     # ensure correct self distances (NOT done for sparse matrices!)
-    np.fill_diagonal(D, self_value)
+    np.fill_diagonal(D, exclude_value)
     
     D_mp = np.zeros_like(D)
      
@@ -139,7 +141,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
         dI = S.getrow(i).toarray()
         dJ = S.getrow(j).toarray()
         nz = (dI > 0) & (dJ > 0)
-        S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / nz.sum()
+        S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum() - 1)
     
     S_mp += S_mp.T
     for i in range(n):

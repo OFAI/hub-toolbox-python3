@@ -109,9 +109,9 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
         d = D[j_idx:n, i][:, np.newaxis]
          
         if metric == 'similarity':
-            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / n
+            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / (n - 1)
         else: # metric == 'distance':
-            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n)
+            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / (n - 1))
          
     # Mirror, so that matrix is symmetric
     D_mp += D_mp.T

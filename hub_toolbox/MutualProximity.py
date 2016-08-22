@@ -596,7 +596,7 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     
     return S_mp.tocsr()
 
-def _local_gamcdf(x, a, b):
+def _local_gamcdf(x, a, b, mv=np.nan):
     """Gamma CDF"""
     try:
         a[a < 0] = np.nan
@@ -604,13 +604,21 @@ def _local_gamcdf(x, a, b):
         if a < 0:
             a = np.nan
     try:
-        b[b <= 0] = np.nan
+        b[ b<= 0] = np.nan
     except TypeError:
         if b <= 0:
             b = np.nan
-    x[x<0] = 0
-    z = x / b
-    p = gammainc(a, z)
+    x[x < 0] = 0
+    
+    # don't calculate gamcdf for missing values
+    if mv == 0:
+        nz = x > 0
+        z = x[nz] / b[nz]
+        p = np.zeros_like(x)
+        p[nz] = gammainc(a[nz], z)
+    else:
+        z = x / b
+        p = gammainc(a, z)
     return p
 
 ##############################################################################

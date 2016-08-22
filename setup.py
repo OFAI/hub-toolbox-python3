@@ -45,8 +45,9 @@ try:
 except ImportError:
     from distutils.core import setup
     import warnings
-    warnings.warn("setuptools not found, resorting to distutils")
-    
+    warnings.warn("setuptools not found, resorting to distutils. "
+                  "Unit tests won't be discovered automatically.")
+
 setup(
     name = "hub_toolbox",
     version = "2.3",
@@ -61,7 +62,7 @@ setup(
     requires=['numpy', 'scipy', 'sklearn'],
     packages=['hub_toolbox'],
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Environment :: Console",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: GNU General Public License v3 "

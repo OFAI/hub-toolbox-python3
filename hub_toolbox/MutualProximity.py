@@ -597,7 +597,7 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray,
     return S_mp.tocsr()
 
 def _local_gamcdf(x, a, b):
-    """Gamma CDF, moment estimator"""
+    """Gamma CDF"""
     try:
         a[a < 0] = np.nan
     except TypeError:

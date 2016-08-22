@@ -191,7 +191,7 @@ def _partial_mp_emp_sparse(batch, matrix, idx, n, verbose):
                 dJ = matrix.getrow(j).toarray()
                 # non-zeros elements
                 nz = (dI > 0) & (dJ > 0) 
-                S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / nz.sum()
+                S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum() - 1)
                 # need to mirror later
             else:
                 pass # skip zero entries
@@ -298,10 +298,10 @@ def _mutual_proximity_gaussi_sparse(S, sample_size, train_set_ind,
         mu, va = csr_mean_variance_axis0(S[train_set_ind])
     elif mv == 0:
         # mean, variance WITHOUT zero values (missing values)
-        mu = np.array(S.sum(0) / S.getnnz(0)).ravel()
+        mu = np.array((S.sum(0) - 1) / (S.getnnz(0) - 1)).ravel()
         X = S.copy()
         X.data **= 2
-        E1 = np.array(X.sum(0) / X.getnnz(0)).ravel()
+        E1 = np.array((X.sum(0) - 1) / (X.getnnz(0) - 1)).ravel()
         del X
         va = E1 - mu**2
         del E1
@@ -345,7 +345,11 @@ def _mutual_proximity_gaussi_sparse(S, sample_size, train_set_ind,
         if verbose:
             log.message("Merging submatrix {} (rows {}..{})".
                         format(i, rows[0], rows[-1]), flush=True)
-        Dmp[rows, :] = Dmp_part
+        if rows.size > 0:
+            rows_slice = slice(rows[0], rows[-1]+1)
+        else:
+            rows_slice = slice(0, 0)
+        Dmp[rows_slice, :] = Dmp_part
      
     for p in processes:
         p.join()
@@ -452,20 +456,27 @@ def _mutual_proximity_gammai_sparse(S, sample_size=0, train_set_ind=None,
     Please do not directly use this function, but invoke via 
     mutual_proximity_gaussi()
     """
-    # TODO implement train_test split
     self_value = 1. # similarity matrix
+    # mean, variance WITHOUT zero values (missing values), ddof=1
+    if S.diagonal().max() != self_value or S.diagonal().min() != self_value:
+        raise ValueError("Self similarities must be 1.")
+    S_param = S[train_set_ind]
+
     if mv is None:
         # mean, variance WITH zero values:
         from sklearn.utils.sparsefuncs_fast import csr_mean_variance_axis0  # @UnresolvedImport
-        mu, va = csr_mean_variance_axis0(S[train_set_ind])
-    elif mv == 0:
-        # mean, variance WITHOUT zero values (missing values)
-        mu = np.array(S.sum(0) / S.getnnz(0)).ravel()
-        X = S.copy()
+        mu, va = csr_mean_variance_axis0(S_param)
+    elif mv == 0: # mean, variance WITHOUT zero values (missing values)
+        # the -1 accounts for self sim that must be excluded from the calc
+        mu = np.array((S_param.sum(0) - 1) / (S_param.getnnz(0) - 1)).ravel()
+        E2 = mu**2
+        X = S_param.copy()
         X.data **= 2
-        E1 = np.array(X.sum(0) / X.getnnz(0)).ravel()
+        n_x = (X.getnnz(0) - 1)
+        E1 = np.array((X.sum(0) - 1) / n_x).ravel()
         del X
-        va = E1 - mu**2
+        # for an unbiased sample variance
+        va = n_x / (n_x - 1) * (E1 - E2)
         del E1
     else:
         log.error("MP only supports missing values as zeros.", flush=True)
@@ -488,7 +499,7 @@ def _mutual_proximity_gammai_sparse(S, sample_size=0, train_set_ind=None,
     tasks = []
     
     batches = _get_weighted_batches(n, NUMBER_OF_PROCESSES)
-    
+    #   create jobs
     for idx, batch in enumerate(batches):
         matrix = S
         tasks.append((_partial_mp_gammai_sparse, 
@@ -499,20 +510,24 @@ def _mutual_proximity_gammai_sparse(S, sample_size=0, train_set_ind=None,
     
     for task in tasks:
         task_queue.put(task)
-        
+    #   start jobs
     processes = []
     for i in range(NUMBER_OF_PROCESSES):
         processes.append(mp.Process(target=_worker, 
                                     args=(task_queue, done_queue)))
         processes[i].start()  
-    
+    #   collect results
     for i in range(len(tasks)):
         rows, Dmp_part = done_queue.get()
         task_queue.put('STOP')
         if verbose:
             log.message("Merging submatrix {} (rows {}..{})".
                         format(i, rows[0], rows[-1]), flush=True)
-        S_mp[rows, :] = Dmp_part
+        if rows.size > 0:
+            row_slice = slice(rows[0], rows[-1]+1)
+        else: # for very small matrices, some batches might be empty
+            row_slice = slice(0, 0)
+        S_mp[row_slice] = Dmp_part
      
     for p in processes:
         p.join()
@@ -603,7 +618,7 @@ def _worker(work_input, work_output):
         work_output.put(result)
 
 def _local_gamcdf(x, a, b, mv=np.nan):
-    """Gamma CDF, moment estimator"""
+    """Gamma CDF"""
     try:
         a[a < 0] = np.nan
     except TypeError:

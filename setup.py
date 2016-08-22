@@ -60,7 +60,8 @@ setup(
     keywords = ["machine learning", "data science"],
     url = "https://github.com/OFAI/hub-toolbox-python3",
     requires=['numpy', 'scipy', 'sklearn'],
-    packages=['hub_toolbox'],
+    packages=['hub_toolbox', 'tests'],
+    package_data={'hub_toolbox': ['example_datasets/*']},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",

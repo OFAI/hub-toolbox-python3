@@ -38,7 +38,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix.
-        NOTE: self similarities in D_ls are set to np.inf
+        NOTE: self similarities in sparse D_ls are set to np.inf
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
@@ -66,13 +66,14 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     if metric == 'similarity':
         sort_order = -1
         exclude = -np.inf
-        self_value = np.inf
-        if issparse(D):
-            log.warning("Sparse matrix support for LS is experimental.")
+        self_tmp_value = np.inf
+        self_value = 1.
+        log.warning("Similarity matrix support for LS is experimental.")
     else: # metric == 'distance':
         sort_order = 1
         exclude = np.inf
         self_value = 0
+        self_tmp_value = self_value
         if issparse(D):
             log.error("Sparse distance matrices are not supported.")
             raise NotImplementedError(
@@ -103,8 +104,11 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     for i in range(n):
         # vectorized inner loop: calc only triu part
         tmp = np.empty(n-i)
-        tmp[0] = self_value
-        tmp[1:] = D[i, i+1:] / np.sqrt(r[i] * r[i+1:])
+        tmp[0] = self_tmp_value
+        if metric == 'similarity':
+            tmp[1:] = np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
+        else:
+            tmp[1:] = 1 - np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
         D_ls[i, i:] = tmp
     # copy triu to tril -> symmetric matrix (diag=zeros)
     # NOTE: does not affect self values, since inf+inf=inf and 0+0=0
@@ -113,6 +117,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     if issparse(D):
         return D_ls.tocsr()
     else:
+        np.fill_diagonal(D_ls, self_value)
         return D_ls
 
 def nicdm(D:np.ndarray, k:int=7, metric:str='distance', 
@@ -177,7 +182,8 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
         train_set_ind = slice(0, n)
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
-         
+
+    knn = np.zeros((n, k))
     r = np.zeros(n)
     np.fill_diagonal(D, np.inf)
     for i in range(n):
@@ -185,13 +191,14 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
         di[i] = exclude
         di = di[train_set_ind]
         nn = np.argsort(di)[::sort_order]
-        r[i] = np.mean(di[nn[0:k]]) # largest sim. or smallest dist.
-    rg = _local_geomean(r)
+        knn[i, :] = di[nn[0:k]] # largest sim. or smallest dist.
+        r[i] = np.mean(knn[i]) 
+    r_geom = _local_geomean(knn.ravel())
      
     D_nicdm = np.zeros_like(D)
     for i in range(n):
         # vectorized inner loop for 100x speed-up (using broadcasting)
-        D_nicdm[i, i+1:] = (rg * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
+        D_nicdm[i, i+1:] = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
     D_nicdm += D_nicdm.T
      
     return D_nicdm

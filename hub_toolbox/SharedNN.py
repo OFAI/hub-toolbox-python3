@@ -53,34 +53,42 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     if D.shape[0] != D.shape[1]:
         raise TypeError("Distance/similarity matrix is not quadratic.")
     if metric == 'distance':
+        self_value = 0.
         sort_order = 1
+        exclude = np.inf
     elif metric == 'similarity':
+        self_value = 1.
         sort_order = -1
+        exclude = -np.inf
     else:
         raise ValueError("Parameter 'metric' must be "
                          "'distance' or 'similarity'.")
-    # need to copy matrix, because it is modified later
-    self_D = D.copy()
     
-    n = np.shape(self_D)[0]
-    z = np.zeros_like(self_D, bool)
+    distance = D.copy()
+    np.fill_diagonal(distance, exclude)
+    n = np.shape(distance)[0]
+    knn = np.zeros_like(distance, bool)
+    
+    # find nearest neighbors for each point
     for i in range(n):
-        di = self_D[i, :]
-        di[i] = np.inf
+        di = distance[i, :]
         nn = np.argsort(di)[::sort_order]
-        z[i, nn[0:k]] = 1
+        knn[i, nn[0:k]] = True
     
-    D_snn = np.zeros_like(self_D)
+    D_snn = np.zeros_like(distance)
     for i in range(n):
-        zi = z[i, :]
-        j_idx = np.arange(i+1, n)
+        knn_i = knn[i, :]
+        j_idx = slice(i+1, n)
         
         # using broadcasting
-        Dij = np.sum(np.logical_and(zi, z[j_idx, :]), 1)
+        Dij = np.sum(np.logical_and(knn_i, knn[j_idx, :]), 1)
+        if metric == 'distance':
+            D_snn[i, j_idx] = 1. - Dij / k
+        else: # metric == 'similarity':
+            D_snn[i, j_idx] = Dij / k
         
-        D_snn[i, j_idx] = 1 - Dij / k
-        D_snn[j_idx, i] = D_snn[i, j_idx]
-
+    D_snn += D_snn.T
+    np.fill_diagonal(D_snn, self_value)
     return D_snn
 
 class SharedNN():

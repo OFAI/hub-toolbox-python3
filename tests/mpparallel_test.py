@@ -26,7 +26,8 @@ class TestMutualProximityParallel(unittest.TestCase):
     """Unit tests for MutualProximity_parallel class"""
 
     def setUp(self):
-        points = 5
+        np.random.seed(626)
+        points = 100
         dim = 1000
         self.vector = 99. * (np.random.rand(points, dim) - 0.5)
         self.label = np.random.randint(0, 5, points)
@@ -36,63 +37,70 @@ class TestMutualProximityParallel(unittest.TestCase):
     def tearDown(self):
         del self.dist, self.label, self.vector
 
- #==============================================================================
- #    def test_mp_empiric_parallel(self):
- #        """ MP Empiric not parallelized for dense matrices so far, fallback 
- #            to serial version. Until then, test is meaningless."""
- #        dist_s = mpe_s(self.dist)
- #        dist_p = mutual_proximity_empiric(self.dist)
- #        parallel_all_close_serial = np.allclose(dist_p, dist_s)
- #        return self.assertTrue(parallel_all_close_serial)
- # 
- #    def test_mp_empiric_sparse_parallel(self):
- #        sim = csr_matrix(1. - self.dist)
- #        sim_s = mpe_s(sim, 'similarity')
- #        sim_p = mutual_proximity_empiric(sim, 'similarity')
- #        parallel_all_close_serial = np.allclose(sim_p.toarray(), 
- #                                                sim_s.toarray()) 
- #        return self.assertTrue(parallel_all_close_serial)
- # 
- #    def test_mp_gauss_parallel(self):
- #        """MP Gauss not parallelized so far, so skip this test for now."""
- #        pass
- # 
- #    def test_mp_gauss_sparse_parallel(self):
- #        """MP Gauss not parallelized so far, so skip this test for now."""
- #        pass
- # 
- #    def test_mp_gaussi_parallel(self):
- #        """ MP GaussI not parallelized for dense matrices so far, fallback 
- #            to serial version. Until then, test is meaningless."""
- #        dist_s = mpmvni_s(self.dist)
- #        dist_p = mutual_proximity_gaussi(self.dist)
- #        parallel_all_close_serial = np.allclose(dist_p, dist_s)
- #        return self.assertTrue(parallel_all_close_serial)
- #==============================================================================
- 
-    #===========================================================================
-    # def test_mp_gaussi_sparse_parallel(self):
-    #     sim = csr_matrix(1. - self.dist)
-    #     sim_s = mpmvni_s(sim, 'similarity')
-    #     sim_p = mutual_proximity_gaussi(sim, 'similarity')
-    #     parallel_all_close_serial = np.allclose(sim_p.toarray(), 
-    #                                             sim_s.toarray())
-    #     return self.assertTrue(parallel_all_close_serial)
-    #===========================================================================
- 
+    def test_mp_empiric_parallel(self):
+        """ MP Empiric not parallelized for dense matrices so far, fallback 
+            to serial version. Until then, test is meaningless."""
+        return self.skipTest("MP Empiric parallel: fallback to serial.")
+        #=======================================================================
+        # dist_s = mpe_s(self.dist)
+        # dist_p = mutual_proximity_empiric(self.dist)
+        # parallel_all_close_serial = np.allclose(dist_p, dist_s)
+        # return self.assertTrue(parallel_all_close_serial)
+        #=======================================================================
+  
+    def test_mp_empiric_sparse_parallel(self):
+        """Test parallel version equivalent to serial version."""
+        sim = csr_matrix(1. - self.dist)
+        sim_s = mpe_s(sim, 'similarity')
+        sim_p = mutual_proximity_empiric(sim, 'similarity')
+        parallel_all_close_serial = np.allclose(sim_p.toarray(), 
+                                                sim_s.toarray()) 
+        return self.assertTrue(parallel_all_close_serial)
+  
+    def test_mp_gauss_parallel(self):
+        """Test parallel version equivalent to serial version."""
+        return self.skipTest("MP Gauss not parallelized so far.")
+   
+    def test_mp_gauss_sparse_parallel(self):
+        """Test parallel version equivalent to serial version."""
+        return self.skipTest("MP Gauss not parallelized so far.")
+   
+    def test_mp_gaussi_parallel(self):
+        """ MP GaussI not parallelized for dense matrices so far, fallback 
+            to serial version. Until then, test is meaningless."""
+        return self.skipTest("MP GaussI parallel: fallback to serial.")
+        #=======================================================================
+        # dist_s = mpmvni_s(self.dist)
+        # dist_p = mutual_proximity_gaussi(self.dist)
+        # parallel_all_close_serial = np.allclose(dist_p, dist_s)
+        # return self.assertTrue(parallel_all_close_serial)
+        #=======================================================================
+  
+    def test_mp_gaussi_sparse_parallel(self):
+        """Test parallel version equivalent to serial version."""
+        sim = csr_matrix(1. - self.dist)
+        sim_s = mpmvni_s(sim, 'similarity')
+        sim_p = mutual_proximity_gaussi(sim, 'similarity', mv=0)
+        parallel_all_close_serial = np.allclose(sim_p.toarray(), 
+                                                sim_s.toarray())
+        return self.assertTrue(parallel_all_close_serial)
+  
     def test_mp_gammai_parallel(self):
         """ MP GammaI not parallelized for dense matrices so far, fallback 
             to serial version. Until then, test is meaningless."""
-        dist_s = mpgam_s(self.dist)
-        dist_p = mutual_proximity_gammai(self.dist)
-        parallel_all_close_serial = np.allclose(dist_p, dist_s)
-        return self.assertTrue(parallel_all_close_serial)
- 
+        return self.skipTest("MP GammaI parallel: fallback to serial.")
+        #=======================================================================
+        # dist_s = mpgam_s(self.dist)
+        # dist_p = mutual_proximity_gammai(self.dist)
+        # parallel_all_close_serial = np.allclose(dist_p, dist_s)
+        # return self.assertTrue(parallel_all_close_serial)
+        #=======================================================================
+  
     def test_mp_gammai_sparse_parallel(self):
+        """Test parallel version equivalent to serial version."""
         sim = csr_matrix(1. - self.dist)
         sim_s = mpgam_s(sim, 'similarity')
-        sim_p = mutual_proximity_gammai(sim, 'similarity')
-        d = (sim_s - sim_p).toarray()
+        sim_p = mutual_proximity_gammai(sim, 'similarity', mv=0)
         parallel_all_close_serial = np.allclose(sim_p.toarray(),
                                                 sim_s.toarray())
         return self.assertTrue(parallel_all_close_serial)

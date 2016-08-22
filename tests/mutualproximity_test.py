@@ -25,7 +25,7 @@ class TestMutualProximity(unittest.TestCase):
     def setUpMod(self, mode='rnd'):
         np.random.seed(626)
         if mode == 'rnd':
-            points = 5
+            points = 50
             dim = 500
             self.vector = 99. * (np.random.rand(points, dim) - 0.5)
             self.label = np.random.randint(0, 5, points)

@@ -101,7 +101,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance', verbose:int=0):
         D_k[:, i] = rp[d2idx[0:k]]      
                
     # N-occurence
-    N_k = np.bincount(D_k.astype(int).ravel())    
+    N_k = np.bincount(D_k.astype(int).ravel(), minlength=n)    
     # Hubness
     S_k = stats.skew(N_k)
      

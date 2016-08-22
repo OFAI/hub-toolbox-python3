@@ -1,3 +1,4 @@
 include *.txt
 include README
-recursive-include hub_toolbox/example_datasets *
+recursive-include hub_toolbox *
+recursive-include tests *.py

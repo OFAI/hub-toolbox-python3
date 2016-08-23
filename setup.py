@@ -14,7 +14,7 @@ Contact: <roman.feldbauer@ofai.at>
 
 
 Installation:
-
+-------------
 In the console (terminal application) change to the folder containing this file.
 
 To build the package hub_toolbox:
@@ -23,10 +23,17 @@ python3 setup.py build
 To install the package (with administrator rights):
 sudo python3 setup.py install
 
+To test the installation:
+sudo python3 setup.py test
+
+If this succeeds with an 'OK' message, you are ready to go.
+Otherwise you may consider filing a bug report on github.
+(Some skipped tests are perfectly fine, though.)
 """
 import sys
 if sys.version_info < (3, 0):
-    sys.stdout.write("The HUB TOOLBOX requires Python 3.x\n")
+    sys.stdout.write("The HUB TOOLBOX requires Python 3.x\n"
+                     "Please try to run as python3 setup.py")
     sys.exit(1)
 
 try:

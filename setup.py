@@ -18,10 +18,10 @@ Installation:
 In the console (terminal application) change to the folder containing this file.
 
 To build the package hub_toolbox:
-python setup.py build
+python3 setup.py build
 
 To install the package (with administrator rights):
-sudo python setup.py install
+sudo python3 setup.py install
 
 """
 import sys
@@ -33,9 +33,9 @@ try:
     import numpy, scipy, sklearn  # @UnusedImport
 except ImportError:
     sys.stdout.write("The HUB TOOLBOX requires numpy, scipy and scikit-learn. "
-                     "Please make sure these packages are available locally. "
+                     "Setup will try to install them for you. If this fails, "
+                     "please make sure these packages are available locally. "
                      "Consider using Anaconda for easy package handling.\n")
-    sys.exit(1)
 
 setup_options = {}
 
@@ -60,6 +60,7 @@ setup(
     keywords = ["machine learning", "data science"],
     url = "https://github.com/OFAI/hub-toolbox-python3",
     requires=['numpy', 'scipy', 'sklearn'],
+    install_requires=['numpy', 'scipy', 'sklearn'],
     packages=['hub_toolbox', 'tests'],
     package_data={'hub_toolbox': ['example_datasets/*']},
     classifiers=[

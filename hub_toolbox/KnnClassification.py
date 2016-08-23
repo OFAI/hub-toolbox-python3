@@ -32,7 +32,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     D : ndarray
         The n x n symmetric distance (similarity) matrix.
     
-    target : ndarray
+    target : ndarray (of dtype=int)
         The n x 1 target class labels (ground truth).
     
     k : int or array_like (of dtype=int), optional (default: 5)
@@ -84,6 +84,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                          "'similarity'.")
     # Copy, because data is changed
     D = D.copy()
+    target = target.astype(int)
     
     if verbose:
         log.message("Start k-NN experiment.")
@@ -156,7 +157,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 cmat[j, seed_class, nn_class[0]] += 1       
             # majority vote
             else:
-                if cl[max_cs] == seed_class:
+                if cl[max_cs[0]] == seed_class:
                     acc[j] += 1/n
                     corr[j, i] = 1
                 cmat[j, seed_class, cl[max_cs]] += 1

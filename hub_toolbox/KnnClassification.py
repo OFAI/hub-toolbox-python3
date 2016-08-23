@@ -160,7 +160,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 if cl[max_cs[0]] == seed_class:
                     acc[j] += 1/n
                     corr[j, i] = 1
-                cmat[j, seed_class, cl[max_cs]] += 1
+                cmat[j, seed_class, cl[max_cs[0]]] += 1
                        
     if verbose:
         log.message("Finished k-NN experiment.")

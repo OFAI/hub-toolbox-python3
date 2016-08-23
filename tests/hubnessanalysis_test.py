@@ -16,30 +16,9 @@ import numpy as np
 from hub_toolbox import HubnessAnalysis
 from hub_toolbox.Distances import euclidean_distance
 
-class ParametrizedTestCase(unittest.TestCase):
-    """ TestCase classes that you want to be parametrized should
-        inherit from this class (© 2003-2016 Eli Bendersky, unlicense,
-        http://eli.thegreenplace.net/pages/code)
-    """
-    def __init__(self, methodName='runTest', param=None):
-        super(ParametrizedTestCase, self).__init__(methodName)
-        self.param = param
-
-    @staticmethod
-    def parametrize(testcase_klass, param=None):
-        """ Create a suite containing all tests taken from the given
-            subclass, passing them the parameter 'param'.
-        """
-        testloader = unittest.TestLoader()
-        testnames = testloader.getTestCaseNames(testcase_klass)
-        suite = unittest.TestSuite()
-        for name in testnames:
-            suite.addTest(testcase_klass(name, param=param))
-        return suite
-
-class TestHubnessAnalysis(ParametrizedTestCase):
+class TestHubnessAnalysis(unittest.TestCase):
     """Test the HubnessAnalysis class (check for results,
-       but not for *correct* results.
+       but not for *correct* results.)
     """
 
     def setUp(self):
@@ -48,16 +27,31 @@ class TestHubnessAnalysis(ParametrizedTestCase):
         self.vector = 99. * (np.random.rand(points, dim) - 0.5)
         self.label = np.random.randint(0, 5, points)
         self.dist = euclidean_distance(self.vector)
+        self.SEC_DIST = set(['mp', 'mp_gauss', 'mp_gaussi', 'mp_gammai', 
+                            'ls', 'nicdm', 'snn', 'cent', 'wcent', 'lcent', 
+                            'dsg', 'dsl', 'orig'])
 
     def tearDown(self):
-        del self.dist, self.label, self.vector
+        del self.dist, self.label, self.vector, self.SEC_DIST
 
-    def test_dist_type(self):
+    def test_all_sec_dist_are_covered_in_unittests(self):
+        n_self_sec_dist = len(self.SEC_DIST)
+        hub_ana_sec_dist = set(HubnessAnalysis.SEC_DIST.keys())
+        n_intersection = len(hub_ana_sec_dist & self.SEC_DIST)
+        return self.assertEqual(n_self_sec_dist, n_intersection)
+
+    def test_all_sec_dist_types(self):
+        got_all_results = True
+        for dist_type in self.SEC_DIST:
+            got_all_results &= self._perform(dist_type)
+        return self.assertTrue(got_all_results)
+
+    def _perform(self, dist_type):
         """Test whether the given secondary distance type is supported."""
         ana = HubnessAnalysis.HubnessAnalysis(
             self.dist, self.label, self.vector, 'distance')
         ana = ana.analyze_hubness(
-            experiments=self.param, print_results=False)
+            experiments=dist_type, print_results=False)
         exp = ana.experiments[0]
         got_all_results = \
             (exp.secondary_distance is not None and
@@ -67,11 +61,7 @@ class TestHubnessAnalysis(ParametrizedTestCase):
              len(exp.knn_accuracy) > 0 and
              exp.gk_index is not None and
              ana.intrinsic_dim is not None)
-        return self.assertTrue(got_all_results)
+        return got_all_results
 
 if __name__ == "__main__":
-    hub_test_suite = unittest.TestSuite()
-    for dist_type in HubnessAnalysis.SEC_DIST.keys():
-        hub_test_suite.addTest(ParametrizedTestCase.parametrize(
-            TestHubnessAnalysis, param=dist_type))
-    unittest.TextTestRunner(verbosity=1).run(hub_test_suite)
+    unittest.main()

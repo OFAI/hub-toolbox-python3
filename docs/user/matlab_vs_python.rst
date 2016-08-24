@@ -50,4 +50,5 @@ flavor offers, plus:
 - unit tests
 - this documentation
  
-We recommend using hub-toolbox-python3 for all users.
+We recommend using hub-toolbox-python3 for all users. This documentation will 
+assume you are using this flavor.

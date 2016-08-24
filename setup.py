@@ -31,9 +31,11 @@ Otherwise you may consider filing a bug report on github.
 (Some skipped tests are perfectly fine, though.)
 """
 import sys
-if sys.version_info < (3, 0):
-    sys.stdout.write("The HUB TOOLBOX requires Python 3.x\n"
-                     "Please try to run as python3 setup.py")
+if sys.version_info < (3, 4):
+    sys.stdout.write("The HUB TOOLBOX requires Python 3.4\n"
+                     "Please try to run as python3 setup.py or\n"
+                     "update your Python environment.\n"
+                     "Consider using Anaconda for easy package handling.\n")
     sys.exit(1)
 
 try:

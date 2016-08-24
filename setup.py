@@ -65,7 +65,6 @@ setup(
     license = "GNU GPLv3",
     keywords = ["machine learning", "data science"],
     url = "https://github.com/OFAI/hub-toolbox-python3",
-    requires=['numpy', 'scipy', 'scikit-learn'],
     packages=['hub_toolbox', 'tests'],
     package_data={'hub_toolbox': ['example_datasets/*']},
     classifiers=[

@@ -2,7 +2,6 @@ language: python
 sudo: true
 python:
   # We don't actually use the Travis Python, but this keeps it organized.
-  - "3.3"
   - "3.4"
   - "3.5"
 install:
@@ -19,7 +18,7 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn setuptools
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn
   - source activate test-environment
   - python setup.py build
   - python setup.py install

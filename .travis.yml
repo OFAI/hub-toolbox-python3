@@ -1,7 +1,7 @@
 language: python
 sudo: false
 python:
-  - "3.5"
+  - "3.4"
 install:
   - python3 setup.py install
 script: 

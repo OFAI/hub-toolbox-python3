@@ -40,8 +40,7 @@ try:
     import numpy, scipy, sklearn  # @UnusedImport
 except ImportError:
     sys.stdout.write("The HUB TOOLBOX requires numpy, scipy and scikit-learn. "
-                     "Setup will try to install them for you. If this fails, "
-                     "please make sure these packages are available locally. "
+                     "Please make sure these packages are available locally. "
                      "Consider using Anaconda for easy package handling.\n")
 
 setup_options = {}
@@ -67,7 +66,6 @@ setup(
     keywords = ["machine learning", "data science"],
     url = "https://github.com/OFAI/hub-toolbox-python3",
     requires=['numpy', 'scipy', 'scikit-learn'],
-    install_requires=['numpy', 'scipy', 'scikit-learn'],
     packages=['hub_toolbox', 'tests'],
     package_data={'hub_toolbox': ['example_datasets/*']},
     classifiers=[

@@ -22,6 +22,6 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn setuptools
   - source activate test-environment
   - python3 setup.py build
-  - sudo python3 setup.py install
+  - python3 setup.py install
 script:
-  - sudo python3 setup.py test
+  - python3 setup.py test

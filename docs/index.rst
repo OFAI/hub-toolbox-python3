@@ -16,6 +16,7 @@ data sets for hubness, and how to use the Hub Toolbox to lift this
 .. toctree::
   :maxdepth: 2
 
+  user/matlab_vs_python
   user/installation
   user/tutorial
   

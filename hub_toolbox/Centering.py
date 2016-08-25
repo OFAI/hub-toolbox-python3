@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
-https://github.com/OFAI/hub-toolbox-python3/
-The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
-
-(c) 2015-2016, Roman Feldbauer
-Austrian Research Institute for Artificial Intelligence (OFAI)
+This file is part of the HUB TOOLBOX available at\n
+http://ofai.at/research/impml/projects/hubology.html\n
+Source code is available at https://github.com/OFAI/hub-toolbox-python3/\n
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.\n
+\n
+(c) 2015-2016, Roman Feldbauer\n
+Austrian Research Institute for Artificial Intelligence (OFAI)\n
 Contact: <roman.feldbauer@ofai.at>
 """
 
@@ -21,22 +20,23 @@ from hub_toolbox.Distances import euclidean_distance as l2
 from hub_toolbox.Distances import Distance
 
 def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
-    """Perform  centering, i.e. shift the origin to the data centroid.
+    """
+    Perform  centering, i.e. shift the origin to the data centroid.
     
     Centering of vector data X with n objects in an m-dimensional feature space.
     The mean of each feature is calculated and subtracted from each point [1].
     In distance based mode, it must be checked upstream, that the distance
     matrix is a gram matrix as described below!
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     X : ndarray
         - An (m x n) vector data matrix with n objects in an 
-        m-dimensional feature space 
+          m-dimensional feature space 
         - An (n x n) distance matrix of form K = X(X.T), if X is an (n x m) 
-        matrix; and of form K = (X.T)X, if X is an (m x n) matrix, 
-        where X.T denotes the transpose of X.
-        NOTE: The type must be defined via parameter 'metric'!
+          matrix; and of form K = (X.T)X, if X is an (m x n) matrix, 
+          where X.T denotes the transpose of X.
+          NOTE: The type must be defined via parameter 'metric'!
         
     metric : {'vector', 'distance'}, optional (Default: 'vector')
         Define, whether 'X' is vector data or a distance matrix.
@@ -45,14 +45,14 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
         Hold back data as a test set and perform centering on the remaining 
         data (training set).
     
-    Returns:
-    -------- 
+    Returns
+    ------- 
     X_cent : ndarray
         - Centered vectors, when given vector data
         - Centered gram matrix, when given distance data.
         
-    See also:
-    ---------
+    See also
+    --------
     [1] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., & Fukumizu, K. (2013). 
     Centering similarity measures to reduce hubs. In Proceedings of the 2013 
     Conference on Empirical Methods in Natural Language Processing (pp 613–623). 
@@ -83,15 +83,16 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
 
 def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1., 
                        test_set_mask:np.ndarray=None):
-    """Perform  weighted centering: shift origin to the weighted data mean
+    """
+    Perform  weighted centering: shift origin to the weighted data mean
     
     Move the origin more actively towards hub objects in the dataset, 
     rather than towards the data centroid [2].
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     X : ndarray
-        - An (m x n) vector data matrix with n objects in an 
+        An (m x n) vector data matrix with n objects in an 
         m-dimensional feature space 
         
     metric : {'cosine', 'euclidean'}, optional (default: 'cosine')
@@ -103,19 +104,19 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
         Controls how much we emphasize the weighting effect
         - gamma=0: equivalent to normal centering
         - gamma>0: move origin closer to objects with larger similarity 
-                   to other objects
+          to other objects
         
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 
         data (training set).
     
-    Returns:
-    -------- 
+    Returns
+    ------- 
     X_wcent : ndarray
         Weighted centered vectors.
         
-    See also:
-    ---------
+    See also
+    --------
     [2] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., & Fukumizu, K. (2013). 
     Centering similarity measures to reduce hubs. In Proceedings of the 2013 
     Conference on Empirical Methods in Natural Language Processing (pp 613–623). 
@@ -151,14 +152,15 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
 
 def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40, 
                         gamma:float=1., test_set_mask:np.ndarray=None):
-    """Perform localized centering.
+    """
+    Perform localized centering.
     
     Reduce hubness in datasets according to the method proposed in [3].
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     X : ndarray
-        - An (m x n) vector data matrix with n objects in an 
+        An (m x n) vector data matrix with n objects in an 
         m-dimensional feature space 
         
     metric : {'cosine', 'euclidean'}
@@ -183,13 +185,13 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
         Hold back data as a test set and perform centering on the remaining 
         data (training set).
     
-    Returns:
-    -------- 
+    Returns
+    ------- 
     S_lcent : ndarray
         Secondary similarity (localized centering) matrix.
         
-    See also:
-    ---------
+    See also
+    --------
     [3] Hara, K., Suzuki, I., Shimbo, M., Kobayashi, K., Fukumizu, K., & 
     Radovanović, M. (2015). Localized centering: Reducing hubness in 
     large-sample data hubness in high-dimensional data. In AAAI ’15: 
@@ -238,23 +240,23 @@ def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
     """
     Calculate dissimilarity based on global 'sample-wise centrality' [4].
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     X : ndarray
-        - An (m x n) vector data matrix with n objects in an 
-          m-dimensional feature space
+        An (m x n) vector data matrix with n objects in an 
+        m-dimensional feature space
           
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 
         data (training set).
         
-    Returns:
-    --------
+    Returns
+    -------
     D_dsg : ndarray
         Secondary distance (DisSimGlobal) matrix.
         
-    See also:
-    ---------
+    See also
+    --------
     [4] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., & 
     Radovanović, M. (2016). Flattening the density gradient for eliminating 
     spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI 
@@ -281,11 +283,11 @@ def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
 def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
     """Calculate dissimilarity based on local 'sample-wise centrality' [5].
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     X : ndarray
-        - An (m x n) vector data matrix with n objects in an 
-          m-dimensional feature space
+        An (m x n) vector data matrix with n objects in an 
+        m-dimensional feature space
           
     k : int, optional (default: 10)
         Neighborhood size used for determining the local centroids.
@@ -295,13 +297,13 @@ def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
         Hold back data as a test set and perform centering on the remaining 
         data (training set).
         
-    Returns:
-    --------
+    Returns
+    -------
     D_dsl : ndarray
         Secondary distance (DisSimLocal) matrix.
         
-    See also:
-    ---------
+    See also
+    --------
     [5] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., & 
     Radovanović, M. (2016). Flattening the density gradient for eliminating 
     spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI 

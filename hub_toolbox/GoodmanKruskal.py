@@ -45,12 +45,12 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     concordant, if 
     
     .. math:: 
-        d_ij < d_kl
+        d_{i,j} < d_{k,l}
     
     discordant, if 
     
     .. math:: 
-        d_ij > d_kl
+        d_{i,j} > d_{k,l}
     
     and not counted, otherwise.
     
@@ -188,12 +188,12 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     concordant, if 
     
     .. math:: 
-        d_ij < d_kl
+        d_{i,j} < d_{k,l}
     
     discordant, if 
     
     .. math:: 
-        d_ij > d_kl
+        d_{i,j} > d_{k,l}
     
     and not counted, otherwise.
     

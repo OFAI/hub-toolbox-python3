@@ -35,8 +35,8 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     Parameters
     ----------
     D : ndarray or csr_matrix
-        - ndarray: The n x n symmetric distance or similarity matrix.
-        - csr_matrix: The n x n symmetric similarity matrix.
+        - ndarray: The ``n x n`` symmetric distance or similarity matrix.
+        - csr_matrix: The ``n x n`` symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix.
@@ -55,7 +55,7 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     n_jobs : int, optional (default: -1)
         Number of parallel processes to be used.
         
-        NOTE: set n_jobs=-1 to use all CPUs
+        NOTE: set ``n_jobs=-1`` to use all CPUs
         
     Returns
     -------
@@ -213,8 +213,8 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     Parameters
     ----------
     D : ndarray or csr_matrix
-        - ndarray: The n x n symmetric distance or similarity matrix.
-        - csr_matrix: The n x n symmetric similarity matrix.
+        - ndarray: The ``n x n`` symmetric distance or similarity matrix.
+        - csr_matrix: The ``n x n`` symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix.
@@ -223,7 +223,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     
     sample_size : int, optional (default: 0)
         Define sample size from which Gauss parameters are estimated.
-        Use all data when set to 0.
+        Use all data when set to ``0``.
     
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
@@ -237,7 +237,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     n_jobs : int, optional (default: -1)
         Number of parallel processes to be used.
         
-        NOTE: set n_jobs=-1 to use all CPUs
+        NOTE: set ``n_jobs=-1`` to use all CPUs
     
     Returns
     -------
@@ -409,8 +409,8 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     Parameters
     ----------
     D : ndarray or csr_matrix
-        - ndarray: The n x n symmetric distance or similarity matrix.
-        - csr_matrix: The n x n symmetric similarity matrix.
+        - ndarray: The ``n x n`` symmetric distance or similarity matrix.
+        - csr_matrix: The ``n x n`` symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix.
@@ -429,7 +429,7 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     n_jobs : int, optional (default: -1)
         Number of parallel processes to be used.
         
-        NOTE: set n_jobs=-1 to use all CPUs
+        NOTE: set ``n_jobs=-1`` to use all CPUs
         
     Returns
     -------

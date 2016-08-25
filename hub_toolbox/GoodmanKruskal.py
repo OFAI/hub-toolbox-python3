@@ -23,10 +23,10 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     Parameters
     ----------
     D : ndarray
-        The n x n symmetric distance (similarity) matrix.
+        The ``n x n`` symmetric distance (similarity) matrix.
     
     classes : ndarray
-        The 1 x n vector of class labels for each point.
+        The ``1 x n`` vector of class labels for each point.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether the matrix `D` is a distance or similarity matrix
@@ -34,7 +34,7 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     Returns
     -------
     gamma : float
-        Goodman-Kruskal index in [-1, 1] (higher=better)
+        Goodman-Kruskal index in ``[-1, 1]`` (higher=better)
     
     Notes
     -----
@@ -43,15 +43,23 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     We only consider tuples, so that `i`, `j` are from the same class 
     and `k`, `l` are from different classes. Then a quadruple is...
     concordant, if 
-    .. math:: d_ij < d_kl
+    
+    .. math:: 
+        d_ij < d_kl
+    
     discordant, if 
-    .. math:: d_ij > d_kl
+    
+    .. math:: 
+        d_ij > d_kl
+    
     and not counted, otherwise.
     
     The Goodman-Kruskal index gamma is then defined as: 
-    .. math:: gamma = {Q_c - Q_d} over {Q_c + Q_d}
+    
+    .. math:: 
+        gamma = \\frac{Q_c - Q_d}{Q_c + Q_d}
         
-    `gamma` is bounded to [-1, 1], where larger values indicate better 
+    `gamma` is bounded to ``[-1, 1]``, where larger values indicate better 
     clustering.
     """
     
@@ -139,10 +147,10 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     Parameters
     ----------
     S : csr_matrix
-        The n x n symmetric similarity matrix.
+        The ``n x n`` symmetric similarity matrix.
     
     classes : ndarray
-        The 1 x n vector of class labels for each point.
+        The ``1 x n`` vector of class labels for each point.
     
     metric : {'similarity', 'distance'}, optional (default: 'similarity')
         Define, whether the matrix `D` is a distance or similarity matrix.
@@ -169,7 +177,7 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     Returns
     -------
     gamma : float
-        Goodman-Kruskal index in [-1, 1] (higher=better)
+        Goodman-Kruskal index in ``[-1, 1]`` (higher=better)
     
     Notes
     -----
@@ -178,15 +186,23 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     We only consider tuples, so that `i`, `j` are from the same class 
     and `k`, `l` are from different classes. Then a quadruple is...
     concordant, if 
-    .. math:: d_ij < d_kl
+    
+    .. math:: 
+        d_ij < d_kl
+    
     discordant, if 
-    .. math:: d_ij > d_kl
+    
+    .. math:: 
+        d_ij > d_kl
+    
     and not counted, otherwise.
     
     The Goodman-Kruskal index gamma is then defined as: 
-    .. math:: gamma = {Q_c - Q_d} over {Q_c + Q_d}
+    
+    .. math:: 
+        gamma = \\frac{Q_c - Q_d}{Q_c + Q_d}
         
-    `gamma` is bounded to [-1, 1], where larger values indicate better 
+    `gamma` is bounded to ``[-1, 1]``, where larger values indicate better 
     clustering.
     """
     

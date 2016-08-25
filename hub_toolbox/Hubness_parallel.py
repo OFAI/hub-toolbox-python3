@@ -31,7 +31,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     Parameters
     ----------
     D : ndarray
-        The n x n symmetric distance (similarity) matrix.
+        The ``n x n`` symmetric distance (similarity) matrix.
     
     k : int, optional (default: 5)
         Neighborhood size for `k`-occurence.

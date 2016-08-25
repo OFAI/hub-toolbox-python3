@@ -31,7 +31,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     Parameters
     ----------
     D : ndarray or csr_matrix
-        The n x n symmetric distance (similarity) matrix.
+        The ``n x n`` symmetric distance (similarity) matrix.
     
     k : int, optional (default: 7)
         Neighborhood radius for local scaling.
@@ -39,7 +39,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix.
         
-        NOTE: self similarities in sparse `D_ls` are set to np.inf
+        NOTE: self similarities in sparse `D_ls` are set to ``np.inf``
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
@@ -135,7 +135,7 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     Parameters
     ----------
     D : ndarray
-        The n x n symmetric distance (similarity) matrix.
+        The ``n x n`` symmetric distance (similarity) matrix.
     
     k : int, optional (default: 7)
         Neighborhood radius for local scaling.

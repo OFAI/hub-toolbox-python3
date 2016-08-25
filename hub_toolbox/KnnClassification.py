@@ -22,7 +22,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
           metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
     """Perform `k`-nearest neighbor classification.
     
-    Use the (n x n) symmetric distance matrix `D` and target class 
+    Use the ``n x n`` symmetric distance matrix `D` and target class 
     labels `target` to perform a `k`-NN experiment (leave-one-out 
     cross-validation or evaluation of test set; see parameter `test_set_ind`).
     Ties are broken by the nearest neighbor.
@@ -30,17 +30,17 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     Parameters
     ----------
     D : ndarray
-        The n x n symmetric distance (similarity) matrix.
+        The ``n x n`` symmetric distance (similarity) matrix.
     
     target : ndarray (of dtype=int)
-        The n x 1 target class labels (ground truth).
+        The ``n x 1`` target class labels (ground truth).
     
     k : int or array_like (of dtype=int), optional (default: 5)
         Neighborhood size for `k`-NN classification.
         For each value in `k`, one `k`-NN experiment is performed.
         
         HINT: Providing more than one value for `k` is a cheap means to perform 
-        multiple `k`-NN experiments at once. Try e.g. `k`=[1, 5, 20]
+        multiple `k`-NN experiments at once. Try e.g. ``k=[1, 5, 20]``.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix
@@ -61,16 +61,16 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
         Classification accuracy (`n_k`... number of items in parameter `k`)
         
         HINT: Refering to the above example... 
-        ... `acc[0]` gives the accuracy of the k=1 exp. 
-    corr : ndarray (shape=(n_k x n),dtype=int
+        ... ``acc[0]`` gives the accuracy of the ``k=1`` experiment.
+    corr : ndarray (shape=(n_k x n), dtype=int)
         Raw vectors of correctly classified items
         
-        HINT: ... `corr[1, :]` gives these items for the k=5 experiment.
+        HINT: ... ``corr[1, :]`` gives these items for the ``k=5`` experiment.
     cmat : ndarray (shape=(n_k x n_t x n_t), dtype=int) 
-        Confusion matrix (n_t... number of unique items in parameter target)
+        Confusion matrix (``n_t`` number of unique items in parameter target)
         
-        HINT: ... `cmat[2, :, :]` gives the confusion matrix of 
-        the k=20 experiment.
+        HINT: ... ``cmat[2, :, :]`` gives the confusion matrix of 
+        the ``k=20`` experiment.
     """
     
     # Check input sanity

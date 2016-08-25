@@ -26,7 +26,7 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     Parameters
     ----------
     D : np.ndarray
-        The n x n symmetric distance (similarity) matrix.
+        The ``n x n`` symmetric distance (similarity) matrix.
         
     k : int, optional (default: 10)
         Neighborhood radius: The `k` nearest neighbors are used to calculate SNN.

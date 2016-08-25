@@ -34,9 +34,9 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
         - An (m x n) vector data matrix with n objects in an 
           m-dimensional feature space 
         - An (n x n) distance matrix 
-          of form `K` = `X`(`X`.T), if `X` is an (n x m) matrix; 
-          and of form `K` = (`X`.T)`X`, if `X` is an (m x n) matrix, 
-          where `X`.T denotes the transpose of `X`.
+          of form ``K = X(X.T)``, if `X` is an ``(n x m)`` matrix; 
+          and of form ``K = (X.T)X``, if `X` is an ``(m x n)`` matrix, 
+          where ``X.T`` denotes the transpose of `X`.
         
         NOTE: The type must be defined via parameter 'metric'!
         
@@ -96,8 +96,8 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
     Parameters
     ----------
     X : ndarray
-        An (m x n) vector data matrix with n objects in an 
-        m-dimensional feature space 
+        An ``m x n`` vector data matrix with ``n`` objects in an 
+        ``m`` dimensional feature space 
     
     metric : {'cosine', 'euclidean'}, optional (default: 'cosine')
         Distance measure used to place more weight on objects that are more 
@@ -107,8 +107,8 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
     gamma : float, optional (default: 1.0)
         Controls how much we emphasize the weighting effect
         
-        - `gamma`=0: equivalent to normal centering
-        - `gamma`>0: move origin closer to objects with larger similarity 
+        - ``gamma=0`` : equivalent to normal centering
+        - ``gamma>0`` : move origin closer to objects with larger similarity 
           to other objects
     
     test_set_mask : ndarray, optional (default: None)
@@ -166,8 +166,8 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
     Parameters
     ----------
     X : ndarray
-        An (m x n) vector data matrix with n objects in an 
-        m-dimensional feature space 
+        An ``m x n`` vector data matrix with ``n`` objects in an 
+        ``m`` dimensional feature space 
         
     metric : {'cosine', 'euclidean'}
         Distance measure used to place more weight on objects that are more 
@@ -176,7 +176,7 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
         
     kappa : int, optional (default: 40)
         Local segment size, determines the size of the local neighborhood for 
-        calculating the local affinity. When `kappa`=n localized centering 
+        calculating the local affinity. When ``kappa=n`` localized centering 
         reduces to standard centering.
         "select κ depending on the dataset, so that the correlation between
         Nk(x) and the local affinity <x, cκ(x)> is maximized" [2]_
@@ -255,8 +255,8 @@ def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
     Parameters
     ----------
     X : ndarray
-        An (m x n) vector data matrix with n objects in an 
-        m-dimensional feature space
+        An ``m x n`` vector data matrix with ``n`` objects in an 
+        ``m`` dimensional feature space
           
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 
@@ -299,8 +299,8 @@ def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
     Parameters
     ----------
     X : ndarray
-        An (m x n) vector data matrix with n objects in an 
-        m-dimensional feature space
+        An ``m x n`` vector data matrix with ``n`` objects in an 
+        ``m`` dimensional feature space
           
     k : int, optional (default: 10)
         Neighborhood size used for determining the local centroids.

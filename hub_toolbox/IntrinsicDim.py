@@ -30,9 +30,9 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
     Parameters
     ----------
     X : ndarray
-        - An (m x n) vector data matrix with n objects in an 
-          m-dimensional feature space 
-        - An (n x n) distance matrix.
+        - An ``m x n`` vector data matrix with ``n`` objects in an 
+          ``m`` dimensional feature space 
+        - An ``n x n`` distance matrix.
         
         NOTE: The type must be defined via parameter `metric`!
         

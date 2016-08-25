@@ -31,9 +31,13 @@ def euclidean_distance(X):
     D = cdist(X, X, 'euclidean')
     return D
 
-# DEPRECATED
 class Distance(Enum):
-    """Enum for distance metrics."""
+    """Enum for distance metrics.
+
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              All functions now take str parameters directly.
+    """
     cosine = 'cosine'
     euclidean = 'euclidean'
     skl = 'skl'

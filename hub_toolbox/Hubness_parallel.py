@@ -176,7 +176,11 @@ def _partial_hubness(k, d_self, log, sort_order,
 
 
 class Hubness():
-    """DEPRECATED"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Please use static functions instead.
+    """
     
     def __init__(self, D, k:int=5, isSimilarityMatrix:bool=False):
         self.log = Logging.ConsoleLogging()
@@ -194,7 +198,12 @@ class Hubness():
         np.random.seed()
         
     def calculate_hubness(self, debug=False, n_jobs=-1):
-        """Calculate hubness."""
+        """Calculate hubness.
+
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use Hubness_parallel.hubness().", 
               file=sys.stderr)
         if self.sort_order == 1:

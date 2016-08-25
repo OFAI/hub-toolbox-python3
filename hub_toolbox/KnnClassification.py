@@ -177,10 +177,18 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
 # DEPRECATED class
 #
 class KnnClassification():
-    """DEPRECATED"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Please use static functions instead.
+    """
     
     def __init__(self, D, classes, k, isSimilarityMatrix=False):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use KnnClassification.score() instead.", 
               file=sys.stderr)
         if issparse(D):
@@ -202,7 +210,11 @@ class KnnClassification():
         assert D.shape[0] == len(classes)
         
     def perform_knn_classification(self):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  KnnClassification.score() replaces this function.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
@@ -210,7 +222,11 @@ class KnnClassification():
         return score(self.D, self.classes, self.k, metric, None, 0)
             
     def perform_knn_classification_with_test_set(self, test_set_mask=None):
-        """DEPRECATED"""  
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  KnnClassification.score() replaces this function.
+        """ 
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:

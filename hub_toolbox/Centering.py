@@ -346,12 +346,21 @@ def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
 # DEPRECATED class
 #
 class Centering(object):
-    """Transform data (in vector space) by various 'centering' approaches."""
+    """Transform data (in vector space) by various 'centering' approaches.
+    
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Please use static functions instead.
+    """
 
 
     def __init__(self, vectors:np.ndarray=None, dist:np.ndarray=None, 
                  is_distance_matrix=False):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if is_distance_matrix:
             self.distance_matrix = np.copy(dist)
             self.vectors = None
@@ -360,7 +369,11 @@ class Centering(object):
             self.vectors = np.copy(vectors)
                 
     def centering(self, distance_based=False, test_set_mask=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use Centering.centering() instead.", 
               file=sys.stderr)
         if self.vectors is not None:
@@ -375,7 +388,11 @@ class Centering(object):
         
     def weighted_centering(self, gamma, 
                            distance_metric=Distance.cosine, test_set_mask=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use Centering.weighted_centering() instead.", 
               file=sys.stderr)
         if distance_metric == Distance.cosine:
@@ -389,7 +406,11 @@ class Centering(object):
     
     def localized_centering(self, kappa:int=20, gamma:float=1, 
         distance_metric=Distance.cosine, test_set_mask=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use Centering.localized_centering() instead.", 
               file=sys.stderr)
         if distance_metric == Distance.cosine:
@@ -403,13 +424,21 @@ class Centering(object):
                                    kappa, gamma, test_set_mask)
         
     def dis_sim_global(self, test_set_mask=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use Centering.disSim_glocal() instead.", 
               file=sys.stderr)
         return dis_sim_global(self.vectors, test_set_mask)
     
     def dis_sim_local(self, k, test_set_mask=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use Centering.dis_sim_local() instead.", 
               file=sys.stderr)
         return dis_sim_local(self.vectors, k, test_set_mask)

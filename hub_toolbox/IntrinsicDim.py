@@ -154,10 +154,18 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
     
 
 class IntrinsicDim():
-    """DEPRECATED"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Please use static functions instead.
+    """
        
     def __init__(self, X, data_type='vector'):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         # Deep copy required due to changes in vector data
         self.X = X.copy()
         if data_type in ['vector', 'distance', 'similarity']:
@@ -172,7 +180,11 @@ class IntrinsicDim():
 
     def calculate_intrinsic_dimensionality(self, k1=6, k2=12, 
                                            estimator='levina'):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use IntrinsicDim.intrinsic_dimension().", 
               file=sys.stderr)
         return intrinsic_dimension(self.X, k1, k2, estimator, self.data_type)

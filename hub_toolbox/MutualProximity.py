@@ -636,17 +636,29 @@ def _local_gamcdf(x, a, b, mv=np.nan):
 # DEPRECATED classes
 #
 class Distribution(Enum):
-    """DEPRECATED"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Use str parameters.
+    """
     empiric = 'empiric'
     gauss = 'gauss'
     gaussi = 'gaussi'
     gammai = 'gammai'
 
 class MutualProximity():
-    """DEPRECATED"""
+    """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
     
     def __init__(self, D, isSimilarityMatrix=False):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use the appropriate MutualProximity."
               "mutual_proximity_DISTRIBUTIONTYPE() function instead.", 
               file=sys.stderr)
@@ -661,7 +673,11 @@ class MutualProximity():
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, enforce_disk=False,
                                    sample_size=0, filename=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         
         if test_set_mask is not None:
             train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)
@@ -695,11 +711,19 @@ class MutualProximity():
         return Dmp
          
     def mp_empiric_sparse(self, train_set_mask=None, verbose=False):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         return mutual_proximity_empiric(self.D, 'similarity', None, verbose)
     
     def mp_empiric(self, train_set_mask=None, verbose=False):
-        """DEPRECATED"""  
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
@@ -709,7 +733,11 @@ class MutualProximity():
         return mutual_proximity_empiric(self.D, metric, test_set_mask, verbose)
     
     def mp_gauss(self, train_set_mask=None, verbose=False):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
@@ -721,7 +749,11 @@ class MutualProximity():
         return mutual_proximity_gauss(self.D, metric, test_set_ind, verbose)
         
     def mp_gaussi_sparse(self, train_set_mask, verbose):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if train_set_mask is not None:
             test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
         else:
@@ -730,7 +762,11 @@ class MutualProximity():
 
     def mp_gaussi(self, train_set_mask=None, verbose=False, enforce_disk=False,
                   sample_size=0, filename=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
@@ -742,7 +778,11 @@ class MutualProximity():
         return mutual_proximity_gaussi(self.D, metric, sample_size, test_set_ind, verbose)
     
     def mp_gammai_sparse(self, train_set_mask, verbose):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if train_set_mask is not None:
             test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), train_set_mask)
         else:
@@ -750,7 +790,11 @@ class MutualProximity():
         return mutual_proximity_gammai(self.D, 'similarity', test_set_ind, verbose)
     
     def mp_gammai(self, train_set_mask=None, verbose=False):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:

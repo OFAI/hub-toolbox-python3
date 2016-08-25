@@ -92,9 +92,17 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     return D_snn
 
 class SharedNN():
-    """ DEPRECATED class."""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Please use static functions instead.
+    """
     def __init__(self, D, k=10, isSimilarityMatrix=False):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use SharedNN.shared_nearest_neighbors() "
               "instead.", file=sys.stderr)
         self.D = np.copy(D)
@@ -105,7 +113,12 @@ class SharedNN():
             self.sort_order = 1
         
     def perform_snn(self):
-        """Transform distance matrix using shared nearest neighbor."""
+        """Transform distance matrix using shared nearest neighbor.
+
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.sort_order == -1:
             metric = 'similarity'
         else:

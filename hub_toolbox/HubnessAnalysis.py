@@ -381,7 +381,12 @@ class HubnessExperiment():
         return self
 
 def load_dexter():
-    """DEPRECATED (moved to IO.py)"""
+    """Load the dexter data set.
+    
+    .. note:: Deprecated in hub-toolbox 2.3
+              Will be removed in hub-toolbox 3.0.
+              Please use IO.load_dexter() instead.
+    """
 
     return io_load_dexter()
 

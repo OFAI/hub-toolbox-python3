@@ -214,10 +214,18 @@ def _local_geomean(x):
 # DEPRECATED class
 #
 class LocalScaling():
-    """DEPRECATED"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Please use static functions instead.
+    """
     
     def __init__(self, D, k:int=7, scalingType='nicdm', isSimilarityMatrix=False):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use LocalScaling.local_scaling() or "
               "LocalScaling.nicdm() instead.", file=sys.stderr)
         self.log = Logging.ConsoleLogging()
@@ -253,7 +261,11 @@ class LocalScaling():
                                "Sparse distance matrices are not supported.")    
             
     def perform_local_scaling(self, test_set_mask=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.scalingType == 'original':
             Dls = self.ls_k(test_set_mask)
         elif self.scalingType == 'nicdm':
@@ -267,7 +279,11 @@ class LocalScaling():
         return Dls
     
     def ls_k(self, test_set_mask=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
@@ -275,7 +291,11 @@ class LocalScaling():
         return local_scaling(self.D, self.k, metric, test_set_mask)
     
     def ls_nicdm(self, test_set_mask=None):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:

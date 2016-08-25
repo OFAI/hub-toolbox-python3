@@ -656,10 +656,18 @@ def _local_gamcdf(x, a, b, mv=np.nan):
 # DEPRECATED class
 #
 class MutualProximity():
-    """DEPRECATED"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Please use static functions instead.
+    """
     
     def __init__(self, D, isSimilarityMatrix=False, missing_values=None, tmp='/tmp/'):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use the appropriate MutualProximity_parallel."
               "mutual_proximity_DISTRIBUTIONTYPE() function instead.", 
               file=sys.stderr)
@@ -682,7 +690,11 @@ class MutualProximity():
     def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
                                    verbose=False, sample_size=0, empspex=False, 
                                    n_jobs=-1):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         
         if verbose:
             self.log.message('Mutual proximity rescaling started.', flush=True)
@@ -718,7 +730,11 @@ class MutualProximity():
                            
     def mp_empiric(self, train_set_mask=None, verbose=False, 
                    empspex=False, n_jobs=-1):
-        """DEPRECATED"""   
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """ 
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
@@ -730,7 +746,11 @@ class MutualProximity():
     
     def mp_gaussi(self, train_set_mask=None, verbose=False, 
                   sample_size=0, n_jobs=-1):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
@@ -742,7 +762,11 @@ class MutualProximity():
                                        test_set_ind, verbose, n_jobs, self.mv)
             
     def mp_gammai(self, train_set_mask=None, verbose=False, n_jobs=-1):
-        """DEPRECATED"""
+        """
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         if self.isSimilarityMatrix:
             metric = 'similarity'
         else:
@@ -754,7 +778,11 @@ class MutualProximity():
                                        verbose, n_jobs, self.mv)
  
 class Distribution(Enum):
-    """DEPRECATED"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Functions now take str parameters directly.
+    """
     empiric = 'empiric'
     gaussi = 'gaussi'
     gammai = 'gammai'

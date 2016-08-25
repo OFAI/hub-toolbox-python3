@@ -113,7 +113,11 @@ def hubness(D:np.ndarray, k:int=5, metric='distance', verbose:int=0):
     
 
 class Hubness():
-    """DEPRECATED"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.3
+              Class will be removed in hub-toolbox 3.0.
+              Please use static functions instead.
+    """
     
     def __init__(self, D, k:int=5, isSimilarityMatrix:bool=False):
         self.log = Logging.ConsoleLogging()
@@ -131,7 +135,12 @@ class Hubness():
         np.random.seed()
                 
     def calculate_hubness(self, debug=False):
-        """Calculate hubness."""
+        """Calculate hubness.
+        
+        .. note:: Deprecated in hub-toolbox 2.3
+                  Class will be removed in hub-toolbox 3.0.
+                  Please use static functions instead.
+        """
         print("DEPRECATED: Please use Hubness.hubness().", file=sys.stderr)
         if self.sort_order == 1:
             metric = 'distance'

@@ -17,11 +17,11 @@ import sys
 import numpy as np
 
 def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
-    """Transform distance matrix using shared nearest neighbors [1].
+    """Transform distance matrix using shared nearest neighbors [1]_.
     
     SNN similarity is based on computing the overlap between the k nearest 
     neighbors of two objects. SNN approaches try to symmetrize nearest neighbor 
-    relations using only rank and not distance information [2].
+    relations using only rank and not distance information [2]_.
     
     Parameters
     ----------
@@ -41,14 +41,14 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
         
     References
     ---------- 
-    [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure 
-    based on shared near neighbors,” IEEE Transactions on Computers, 
-    vol. 22, pp. 1025–1034, 1973.
+    .. [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure 
+           based on shared near neighbors,” IEEE Transactions on Computers, 
+           vol. 22, pp. 1025–1034, 1973.
     
-    [2] Flexer, A., & Schnitzer, D. (2013). Can Shared Nearest Neighbors 
-    Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th International 
-    Conference on Data Mining Workshops, 460–467. 
-    http://doi.org/10.1109/ICDMW.2013.101
+    .. [2] Flexer, A., & Schnitzer, D. (2013). Can Shared Nearest Neighbors 
+           Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th 
+           International Conference on Data Mining Workshops, 460–467. 
+           http://doi.org/10.1109/ICDMW.2013.101
     """
     if D.shape[0] != D.shape[1]:
         raise TypeError("Distance/similarity matrix is not quadratic.")

@@ -28,7 +28,7 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
                              n_jobs:int=-1):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
-    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix using 
+    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using 
     the empiric data distribution (EXACT, rather SLOW). The resulting 
     secondary distance/similarity matrix should show lower hubness.
     
@@ -64,9 +64,9 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     
     References
     ----------
-    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
-    Local and global scaling reduce hubs in space. The Journal of Machine 
-    Learning Research, 13(1), 2871–2902.
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+           Local and global scaling reduce hubs in space. The Journal of Machine 
+           Learning Research, 13(1), 2871–2902.
     """
     log = Logging.ConsoleLogging()
     # DO NOT DELETE this comment, will be used upon parallel MP emp dist impl
@@ -206,7 +206,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
                             verbose:int=0, n_jobs:int=-1, mv=None):
     """Transform a distance matrix with Mutual Proximity (indep. normal distr.).
     
-    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gaussi 
+    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix. Gaussi 
     variant assumes independent normal distributions (FAST).
     The resulting second. distance/similarity matrix should show lower hubness.
     
@@ -246,9 +246,9 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     
     References
     ----------
-    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
-    Local and global scaling reduce hubs in space. The Journal of Machine 
-    Learning Research, 13(1), 2871–2902.
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+           Local and global scaling reduce hubs in space. The Journal of Machine 
+           Learning Research, 13(1), 2871–2902.
     """    
     # Initialization   
     n = D.shape[0]  # @UnusedVariable
@@ -402,7 +402,7 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
                             n_jobs:int=-1, mv=None):
     """Transform a distance matrix with Mutual Proximity (indep. Gamma distr.).
     
-    Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gammai 
+    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix. Gammai 
     variant assumes independent Gamma distributed distances (FAST).
     The resulting second. distance/similarity matrix should show lower hubness.
     
@@ -438,9 +438,9 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     
     References
     ----------
-    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
-    Local and global scaling reduce hubs in space. The Journal of Machine 
-    Learning Research, 13(1), 2871–2902.
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+           Local and global scaling reduce hubs in space. The Journal of Machine 
+           Learning Research, 13(1), 2871–2902.
     """
     n = D.shape[0]
     log = Logging.ConsoleLogging()

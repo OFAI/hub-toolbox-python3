@@ -23,7 +23,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
                   test_set_ind:np.ndarray=None):
     """Transform a distance matrix with Local Scaling.
     
-    Transforms the given distance matrix into new one using local scaling [1]
+    Transforms the given distance matrix into new one using local scaling [1]_
     with the given k-th nearest neighbor. There are two types of local
     scaling methods implemented. The original one and NICDM, both reduce
     hubness in distance spaces, similarly to Mutual Proximity.
@@ -54,9 +54,9 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     
     References
     ----------
-    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
-    Local and global scaling reduce hubs in space. The Journal of Machine 
-    Learning Research, 13(1), 2871–2902.
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+           Local and global scaling reduce hubs in space. The Journal of Machine 
+           Learning Research, 13(1), 2871–2902.
     """
     log = Logging.ConsoleLogging()
     # Checking input
@@ -126,7 +126,7 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
           test_set_ind:np.ndarray=None):
     """Transform a distance matrix with local scaling variant NICDM.
     
-    Transforms the given distance matrix into new one using NICDM [1]
+    Transforms the given distance matrix into new one using NICDM [1]_
     with the given neighborhood radius k (average). There are two types of 
     local scaling methods implemented. The original one and the non-iterative 
     contextual dissimilarity measure, both reduce hubness in distance spaces, 
@@ -156,9 +156,9 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     
     References
     ----------
-    [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
-    Local and global scaling reduce hubs in space. The Journal of Machine 
-    Learning Research, 13(1), 2871–2902.
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+           Local and global scaling reduce hubs in space. The Journal of Machine 
+           Learning Research, 13(1), 2871–2902.
     """
     #log = Logging.ConsoleLogging()
     # Checking input

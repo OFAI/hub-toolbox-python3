@@ -25,7 +25,7 @@ import numpy as np
 def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12, 
                         estimator:str='levina', metric:str='vector', 
                         trafo:str='var'):
-    """Calculate intrinsic dimension based on the MLE by Levina and Bickel [1].
+    """Calculate intrinsic dimension based on the MLE by Levina and Bickel [1]_.
     
     Parameters
     ----------
@@ -43,7 +43,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         End of neighborhood range to search in.
         
     estimator : {'levina', 'mackay'}, optional (default: 'levina')
-        Determine the summation strategy: see [2].
+        Determine the summation strategy: see [2]_.
     
     metric : {'vector', 'distance'}, optional (default: 'vector')
         Determine data type of 'X'. 
@@ -60,12 +60,17 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
           Laurens van der Maaten's DR toolbox; most likely for other 
           ID/DR techniques).
     
-    See also
-    --------
-    [1] Levina, E., & Bickel, P. (2004). Maximum likelihood estimation of 
-    intrinsic dimension. Advances in Neural Information …, 17, 777–784. 
-    http://doi.org/10.2307/2335172
-    [2] http://www.inference.phy.cam.ac.uk/mackay/dimension/
+    Returns
+    -------
+    d_mle : int
+        Intrinsic dimension estimate (rounded to next integer)
+    
+    References
+    ----------
+    .. [1] Levina, E., & Bickel, P. (2004). Maximum likelihood estimation of 
+           intrinsic dimension. Advances in Neural Information …, 17, 777–784. 
+           http://doi.org/10.2307/2335172
+    .. [2] http://www.inference.phy.cam.ac.uk/mackay/dimension/
     """
     n = X.shape[0]
     if metric in ['vector', 'distance']:

@@ -24,7 +24,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
             verbose:int=0, n_jobs:int=-1):
     """Compute hubness of a distance matrix.
     
-    Hubness [1] is the skewness of the k-occurrence histogram (reverse nearest 
+    Hubness [1]_ is the skewness of the k-occurrence histogram (reverse nearest 
     neighbor count, i.e. how often does a point occur in the k-nearest 
     neighbor lists of other points).
     
@@ -55,12 +55,13 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     N_k : ndarray
         k-occurence list    
     
-    See also
-    --------
-    [1] Radovanović, M., Nanopoulos, A., & Ivanović, M. (2010). 
-    Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data. 
-    Journal of Machine Learning Research, 11, 2487–2531. Retrieved from 
-    http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/radovanovic10a.pdf
+    References
+    ----------
+    .. [1] Radovanović, M., Nanopoulos, A., & Ivanović, M. (2010). 
+           Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data. 
+           Journal of Machine Learning Research, 11, 2487–2531. Retrieved from 
+           http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/
+           radovanovic10a.pdf
     """
     log = Logging.ConsoleLogging()
     if D.shape[0] != D.shape[1]:

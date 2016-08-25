@@ -152,7 +152,7 @@
 <span class="kn">from</span> <span class="nn">scipy.sparse.lil</span> <span class="kn">import</span> <span class="n">lil_matrix</span>
 <span class="kn">from</span> <span class="nn">hub_toolbox</span> <span class="kn">import</span> <span class="n">Logging</span>
     
-<div class="viewcode-block" id="local_scaling"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.local_scaling">[docs]</a><span class="k">def</span> <span class="nf">local_scaling</span><span class="p">(</span><span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="local_scaling"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.LocalScaling.local_scaling">[docs]</a><span class="k">def</span> <span class="nf">local_scaling</span><span class="p">(</span><span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span>
                   <span class="n">test_set_ind</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transform a distance matrix with Local Scaling.</span>
 <span class="sd">    </span>
@@ -255,7 +255,7 @@
         <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">D_ls</span><span class="p">,</span> <span class="n">self_value</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">D_ls</span></div>
 
-<div class="viewcode-block" id="nicdm"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.nicdm">[docs]</a><span class="k">def</span> <span class="nf">nicdm</span><span class="p">(</span><span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span> 
+<div class="viewcode-block" id="nicdm"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.LocalScaling.nicdm">[docs]</a><span class="k">def</span> <span class="nf">nicdm</span><span class="p">(</span><span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span> 
           <span class="n">test_set_ind</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transform a distance matrix with local scaling variant NICDM.</span>
 <span class="sd">    </span>
@@ -346,7 +346,7 @@
 <span class="c1">#</span>
 <span class="c1"># DEPRECATED class</span>
 <span class="c1">#</span>
-<div class="viewcode-block" id="LocalScaling"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling">[docs]</a><span class="k">class</span> <span class="nc">LocalScaling</span><span class="p">():</span>
+<div class="viewcode-block" id="LocalScaling"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling">[docs]</a><span class="k">class</span> <span class="nc">LocalScaling</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">scalingType</span><span class="o">=</span><span class="s1">&#39;nicdm&#39;</span><span class="p">,</span> <span class="n">isSimilarityMatrix</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
@@ -385,7 +385,7 @@
                 <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
                                <span class="s2">&quot;Sparse distance matrices are not supported.&quot;</span><span class="p">)</span>    
             
-<div class="viewcode-block" id="LocalScaling.perform_local_scaling"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.perform_local_scaling">[docs]</a>    <span class="k">def</span> <span class="nf">perform_local_scaling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalScaling.perform_local_scaling"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.perform_local_scaling">[docs]</a>    <span class="k">def</span> <span class="nf">perform_local_scaling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scalingType</span> <span class="o">==</span> <span class="s1">&#39;original&#39;</span><span class="p">:</span>
             <span class="n">Dls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ls_k</span><span class="p">(</span><span class="n">test_set_mask</span><span class="p">)</span>
@@ -399,7 +399,7 @@
         
         <span class="k">return</span> <span class="n">Dls</span></div>
     
-<div class="viewcode-block" id="LocalScaling.ls_k"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.ls_k">[docs]</a>    <span class="k">def</span> <span class="nf">ls_k</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalScaling.ls_k"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.ls_k">[docs]</a>    <span class="k">def</span> <span class="nf">ls_k</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
             <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;similarity&#39;</span>
@@ -407,7 +407,7 @@
             <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;distance&#39;</span>
         <span class="k">return</span> <span class="n">local_scaling</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">)</span></div>
     
-<div class="viewcode-block" id="LocalScaling.ls_nicdm"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.ls_nicdm">[docs]</a>    <span class="k">def</span> <span class="nf">ls_nicdm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalScaling.ls_nicdm"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.ls_nicdm">[docs]</a>    <span class="k">def</span> <span class="nf">ls_nicdm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
             <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;similarity&#39;</span>

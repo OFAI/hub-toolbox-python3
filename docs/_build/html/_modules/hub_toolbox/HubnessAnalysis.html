@@ -192,7 +192,7 @@
             <span class="s1">&#39;orig&#39;</span> <span class="p">:</span> <span class="n">_primary_distance</span> <span class="c1"># a dummy function</span>
             <span class="p">}</span>
 
-<div class="viewcode-block" id="HubnessAnalysis"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis">[docs]</a><span class="k">class</span> <span class="nc">HubnessAnalysis</span><span class="p">():</span>
+<div class="viewcode-block" id="HubnessAnalysis"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis">[docs]</a><span class="k">class</span> <span class="nc">HubnessAnalysis</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;The main hubness analysis class.</span>
 <span class="sd">    </span>
 <span class="sd">    For more detailed analyses (optimizing parameters, using similarity data, </span>
@@ -284,7 +284,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">intrinsic_dim</span> <span class="o">=</span> <span class="n">intrinsic_dimension</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span>
 
-<div class="viewcode-block" id="HubnessAnalysis.analyze_hubness"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.analyze_hubness">[docs]</a>    <span class="k">def</span> <span class="nf">analyze_hubness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiments</span><span class="o">=</span><span class="s2">&quot;orig,mp,mp_gaussi,nicdm,cent,dsg&quot;</span><span class="p">,</span>
+<div class="viewcode-block" id="HubnessAnalysis.analyze_hubness"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.analyze_hubness">[docs]</a>    <span class="k">def</span> <span class="nf">analyze_hubness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiments</span><span class="o">=</span><span class="s2">&quot;orig,mp,mp_gaussi,nicdm,cent,dsg&quot;</span><span class="p">,</span>
                         <span class="n">hubness_k</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">knn_k</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> 
                         <span class="n">print_results</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Analyse hubness in original data and rescaled distances.</span>
@@ -355,7 +355,7 @@
                   <span class="s2">&quot;individual modules/hubness functions that you use.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
-<div class="viewcode-block" id="HubnessAnalysis.print_analysis_report"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.print_analysis_report">[docs]</a>    <span class="k">def</span> <span class="nf">print_analysis_report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiment</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">report_nr</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="HubnessAnalysis.print_analysis_report"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.print_analysis_report">[docs]</a>    <span class="k">def</span> <span class="nf">print_analysis_report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiment</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">report_nr</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Print a report of the performed hubness analysis.</span>
 
 <span class="sd">        Parameters</span>
@@ -429,7 +429,7 @@
             <span class="k">print</span><span class="p">()</span>
         <span class="k">return</span></div></div>
 
-<div class="viewcode-block" id="HubnessExperiment"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessExperiment">[docs]</a><span class="k">class</span> <span class="nc">HubnessExperiment</span><span class="p">():</span>
+<div class="viewcode-block" id="HubnessExperiment"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessExperiment">[docs]</a><span class="k">class</span> <span class="nc">HubnessExperiment</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Perform a single hubness experiment&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">secondary_distance_type</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> 
@@ -513,7 +513,7 @@
                                               <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
 
-<div class="viewcode-block" id="load_dexter"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.load_dexter">[docs]</a><span class="k">def</span> <span class="nf">load_dexter</span><span class="p">():</span>
+<div class="viewcode-block" id="load_dexter"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.HubnessAnalysis.load_dexter">[docs]</a><span class="k">def</span> <span class="nf">load_dexter</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;DEPRECATED (moved to IO.py)&quot;&quot;&quot;</span>
 
     <span class="k">return</span> <span class="n">io_load_dexter</span><span class="p">()</span></div>

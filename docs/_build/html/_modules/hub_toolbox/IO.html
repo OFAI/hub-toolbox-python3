@@ -152,7 +152,7 @@
 <span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">sparse</span>
 <span class="kn">from</span> <span class="nn">hub_toolbox.Distances</span> <span class="kn">import</span> <span class="n">cosine_distance</span>
 
-<div class="viewcode-block" id="load_dexter"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.load_dexter">[docs]</a><span class="k">def</span> <span class="nf">load_dexter</span><span class="p">():</span>
+<div class="viewcode-block" id="load_dexter"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.IO.load_dexter">[docs]</a><span class="k">def</span> <span class="nf">load_dexter</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Load the example data set (dexter).</span>
 <span class="sd">    </span>
 <span class="sd">    Returns</span>
@@ -191,7 +191,7 @@
     <span class="n">D</span> <span class="o">=</span> <span class="n">cosine_distance</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">D</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">vectors</span></div>
 
-<div class="viewcode-block" id="copy_D_or_load_memmap"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.copy_D_or_load_memmap">[docs]</a><span class="k">def</span> <span class="nf">copy_D_or_load_memmap</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">writeable</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="copy_D_or_load_memmap"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.IO.copy_D_or_load_memmap">[docs]</a><span class="k">def</span> <span class="nf">copy_D_or_load_memmap</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">writeable</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;DEPRECATED. Return a deep copy of a numpy array (if D is an ndarray), </span>
 <span class="sd">    otherwise return a read-only memmap (if D is a path).&quot;&quot;&quot;</span>
     <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: memmap support will be dropped completely.&quot;</span><span class="p">,</span> 
@@ -218,7 +218,7 @@
         
     <span class="k">return</span> <span class="n">newD</span></div>
 
-<div class="viewcode-block" id="matrix_split"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.matrix_split">[docs]</a><span class="k">def</span> <span class="nf">matrix_split</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">elem_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">nr_matrices</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<div class="viewcode-block" id="matrix_split"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.IO.matrix_split">[docs]</a><span class="k">def</span> <span class="nf">matrix_split</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">elem_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">nr_matrices</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Determine how to split a matrix that does not fit into memory. </span>
 <span class="sd">    </span>
 <span class="sd">    Parameters</span>
@@ -249,7 +249,7 @@
     <span class="n">nr_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">rows</span> <span class="o">/</span> <span class="n">nr_rows</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">nr_batches</span><span class="p">,</span> <span class="n">nr_rows</span></div>
 
-<div class="viewcode-block" id="random_sparse_matrix"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.random_sparse_matrix">[docs]</a><span class="k">def</span> <span class="nf">random_sparse_matrix</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+<div class="viewcode-block" id="random_sparse_matrix"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.IO.random_sparse_matrix">[docs]</a><span class="k">def</span> <span class="nf">random_sparse_matrix</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return a random sparse similarity matrix.</span>
 <span class="sd">    </span>
 <span class="sd">    Values are bounded by [0, 1]. Diagonal is all ones. The final density is</span>
@@ -262,7 +262,7 @@
     <span class="n">S</span> <span class="o">+=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">size</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">S</span></div>
 
-<div class="viewcode-block" id="FreeMemLinux"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.FreeMemLinux">[docs]</a><span class="k">class</span> <span class="nc">FreeMemLinux</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="FreeMemLinux"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.IO.FreeMemLinux">[docs]</a><span class="k">class</span> <span class="nc">FreeMemLinux</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Non-cross platform way to get free memory on Linux. </span>
 <span class="sd">    </span>
 <span class="sd">    Original code by Oz123, </span>

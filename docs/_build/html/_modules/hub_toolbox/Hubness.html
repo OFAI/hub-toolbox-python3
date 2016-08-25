@@ -152,7 +152,7 @@
 <span class="kn">from</span> <span class="nn">hub_toolbox</span> <span class="kn">import</span> <span class="n">IO</span><span class="p">,</span> <span class="n">Logging</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
-<div class="viewcode-block" id="hubness"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Hubness.hubness">[docs]</a><span class="k">def</span> <span class="nf">hubness</span><span class="p">(</span><span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="hubness"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.Hubness.hubness">[docs]</a><span class="k">def</span> <span class="nf">hubness</span><span class="p">(</span><span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute hubness of a distance matrix.</span>
 <span class="sd">    </span>
 <span class="sd">    Hubness [1] is the skewness of the k-occurrence histogram (reverse nearest </span>
@@ -244,7 +244,7 @@
     <span class="k">return</span> <span class="n">S_k</span><span class="p">,</span> <span class="n">D_k</span><span class="p">,</span> <span class="n">N_k</span>    </div>
     
 
-<div class="viewcode-block" id="Hubness"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Hubness.Hubness">[docs]</a><span class="k">class</span> <span class="nc">Hubness</span><span class="p">():</span>
+<div class="viewcode-block" id="Hubness"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.Hubness.Hubness">[docs]</a><span class="k">class</span> <span class="nc">Hubness</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">isSimilarityMatrix</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
@@ -262,7 +262,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># ascending, interested in smallest distance</span>
         <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">()</span>
                 
-<div class="viewcode-block" id="Hubness.calculate_hubness"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Hubness.Hubness.calculate_hubness">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_hubness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Hubness.calculate_hubness"><a class="viewcode-back" href="../../source/hub_toolbox.html#hub_toolbox.Hubness.Hubness.calculate_hubness">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_hubness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Calculate hubness.&quot;&quot;&quot;</span>
         <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: Please use Hubness.hubness().&quot;</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>

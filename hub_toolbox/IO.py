@@ -59,8 +59,8 @@ def load_dexter():
     return D, classes, vectors
 
 def copy_D_or_load_memmap(D, writeable=False):
-    """Return a deep copy of a numpy array (if D is an ndarray), 
-    otherwise return a read-only memmap (if D is a path).
+    """Return a deep copy of a numpy array (if `D` is an ndarray), 
+    otherwise return a read-only memmap (if `D` is a path).
     
     .. note:: Deprecated in hub-toolbox 2.3
               Will be removed in hub-toolbox 3.0.
@@ -102,7 +102,7 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
         memory requirement per matrix element in bytes. E.g. 8 bytes for float64
     nr_matrices : int 
         How many times must the split matrix fit into memory?
-        This depends on the subsequent operations. \n
+        This depends on the subsequent operations.
     
     Returns
     -------
@@ -114,7 +114,7 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
     Notes
     -----
         - Submatrices always contain all columns per row. 
-        - The last batch will usually have less rows than nr_rows
+        - The last batch will usually have less rows than `nr_rows`
     """
     free_mem = FreeMemLinux(unit='k').user_free
     max_rows = int(free_mem / cols / elem_size)
@@ -126,12 +126,12 @@ def random_sparse_matrix(size, density=0.05):
     """Generate a random sparse similarity matrix.
     
     Values are bounded by [0, 1]. Diagonal is all ones. The final density is
-    approximately 2*density.
+    approximately 2*`density`.
     
     Parameters
     ----------
     size : int
-        Shape of the matrix (size x size)
+        Shape of the matrix (`size` x `size`)
     
     density : float, optional, default=0.05
         The matrix' density will be approximately 2 * `density`

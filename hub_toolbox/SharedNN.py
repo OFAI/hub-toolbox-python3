@@ -19,7 +19,7 @@ import numpy as np
 def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     """Transform distance matrix using shared nearest neighbors [1]_.
     
-    SNN similarity is based on computing the overlap between the k nearest 
+    SNN similarity is based on computing the overlap between the `k` nearest 
     neighbors of two objects. SNN approaches try to symmetrize nearest neighbor 
     relations using only rank and not distance information [2]_.
     
@@ -29,10 +29,10 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
         The n x n symmetric distance (similarity) matrix.
         
     k : int, optional (default: 10)
-        Neighborhood radius: The k nearest neighbors are used to calculate SNN.
+        Neighborhood radius: The `k` nearest neighbors are used to calculate SNN.
         
     metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether the matrix 'D' is a distance or similarity matrix
+        Define, whether the matrix `D` is a distance or similarity matrix
 
     Returns
     -------

@@ -34,7 +34,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
           m-dimensional feature space 
         - An (n x n) distance matrix.
         
-        NOTE: The type must be defined via parameter 'metric'!
+        NOTE: The type must be defined via parameter `metric`!
         
     k1 : int, optional (default: 6)
         Start of neighborhood range to search in.
@@ -46,7 +46,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         Determine the summation strategy: see [2]_.
     
     metric : {'vector', 'distance'}, optional (default: 'vector')
-        Determine data type of 'X'. 
+        Determine data type of `X`. 
         
         NOTE: the MLE was derived for euclidean distances. Using 
         other dissimilarity measures may lead to undefined results.

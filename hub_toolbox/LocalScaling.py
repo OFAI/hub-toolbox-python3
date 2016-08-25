@@ -24,7 +24,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     """Transform a distance matrix with Local Scaling.
     
     Transforms the given distance matrix into new one using local scaling [1]_
-    with the given k-th nearest neighbor. There are two types of local
+    with the given `k`-th nearest neighbor. There are two types of local
     scaling methods implemented. The original one and NICDM, both reduce
     hubness in distance spaces, similarly to Mutual Proximity.
     
@@ -37,9 +37,9 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         Neighborhood radius for local scaling.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix 'D' is a distance or similarity matrix.
+        Define, whether matrix `D` is a distance or similarity matrix.
         
-        NOTE: self similarities in sparse D_ls are set to np.inf
+        NOTE: self similarities in sparse `D_ls` are set to np.inf
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
@@ -127,7 +127,7 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     """Transform a distance matrix with local scaling variant NICDM.
     
     Transforms the given distance matrix into new one using NICDM [1]_
-    with the given neighborhood radius k (average). There are two types of 
+    with the given neighborhood radius `k` (average). There are two types of 
     local scaling methods implemented. The original one and the non-iterative 
     contextual dissimilarity measure, both reduce hubness in distance spaces, 
     similarly to Mutual Proximity.

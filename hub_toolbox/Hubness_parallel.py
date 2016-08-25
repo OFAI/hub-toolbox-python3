@@ -24,9 +24,9 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
             verbose:int=0, n_jobs:int=-1):
     """Compute hubness of a distance matrix.
     
-    Hubness [1]_ is the skewness of the k-occurrence histogram (reverse nearest 
-    neighbor count, i.e. how often does a point occur in the k-nearest 
-    neighbor lists of other points).
+    Hubness [1]_ is the skewness of the `k`-occurrence histogram (reverse 
+    nearest neighbor count, i.e. how often does a point occur in the 
+    `k`-nearest neighbor lists of other points).
     
     Parameters
     ----------
@@ -34,10 +34,10 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         The n x n symmetric distance (similarity) matrix.
     
     k : int, optional (default: 5)
-        Neighborhood size for k-occurence.
+        Neighborhood size for `k`-occurence.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix 'D' is a distance or similarity matrix
+        Define, whether matrix `D` is a distance or similarity matrix
     
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
@@ -49,11 +49,11 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     Returns
     -------
     S_k : float
-        Hubness (skewness of k-occurence distribution)
+        Hubness (skewness of `k`-occurence distribution)
     D_k : ndarray
-        k-nearest neighbor lists
+        `k`-nearest neighbor lists
     N_k : ndarray
-        k-occurence list    
+        `k`-occurence list    
     
     References
     ----------

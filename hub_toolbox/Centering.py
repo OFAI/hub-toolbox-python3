@@ -23,24 +23,25 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
     """
     Perform  centering, i.e. shift the origin to the data centroid.
     
-    Centering of vector data X with n objects in an m-dimensional feature space.
-    The mean of each feature is calculated and subtracted from each point [1]_.
-    In distance based mode, it must be checked upstream, that the distance
-    matrix is a gram matrix as described below!
+    Centering of vector data `X` with n objects in an m-dimensional feature 
+    space. The mean of each feature is calculated and subtracted from each 
+    point [1]_. In distance based mode, it must be checked upstream, that 
+    the distance matrix is a gram matrix as described below!
     
     Parameters
     ----------
     X : ndarray
         - An (m x n) vector data matrix with n objects in an 
           m-dimensional feature space 
-        - An (n x n) distance matrix of form K = X(X.T), if X is an (n x m) 
-          matrix; and of form K = (X.T)X, if X is an (m x n) matrix, 
-          where X.T denotes the transpose of X.
+        - An (n x n) distance matrix 
+          of form `K` = `X`(`X`.T), if `X` is an (n x m) matrix; 
+          and of form `K` = (`X`.T)`X`, if `X` is an (m x n) matrix, 
+          where `X`.T denotes the transpose of `X`.
         
         NOTE: The type must be defined via parameter 'metric'!
         
     metric : {'vector', 'distance'}, optional (Default: 'vector')
-        Define, whether 'X' is vector data or a distance matrix.
+        Define, whether `X` is vector data or a distance matrix.
         
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 
@@ -100,14 +101,14 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
     
     metric : {'cosine', 'euclidean'}, optional (default: 'cosine')
         Distance measure used to place more weight on objects that are more 
-        likely to become hubs. (Defined for 'cosine' in [2], 'euclidean' does 
+        likely to become hubs. (Defined for 'cosine' in [1]_, 'euclidean' does 
         not make much sense and might be removed in the future).
     
     gamma : float, optional (default: 1.0)
         Controls how much we emphasize the weighting effect
         
-        - gamma=0: equivalent to normal centering
-        - gamma>0: move origin closer to objects with larger similarity 
+        - `gamma`=0: equivalent to normal centering
+        - `gamma`>0: move origin closer to objects with larger similarity 
           to other objects
     
     test_set_mask : ndarray, optional (default: None)
@@ -160,7 +161,7 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
     """
     Perform localized centering.
     
-    Reduce hubness in datasets according to the method proposed in [1]_.
+    Reduce hubness in datasets according to the method proposed in [2]_.
     
     Parameters
     ----------
@@ -170,21 +171,21 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
         
     metric : {'cosine', 'euclidean'}
         Distance measure used to place more weight on objects that are more 
-        likely to become hubs. (Defined for 'cosine' in [2], 'euclidean' does 
+        likely to become hubs. (Defined for 'cosine' in [1]_, 'euclidean' does 
         not make much sense and might be removed in the future).
         
     kappa : int, optional (default: 40)
         Local segment size, determines the size of the local neighborhood for 
-        calculating the local affinity. When kappa=n localized centering 
+        calculating the local affinity. When `kappa`=n localized centering 
         reduces to standard centering.
         "select κ depending on the dataset, so that the correlation between
-        Nk(x) and the local affinity <x, cκ(x)> is maximized" [3]
+        Nk(x) and the local affinity <x, cκ(x)> is maximized" [2]_
         
     gamma : float, optional (default: 1.0)
         Control the degree of penalty, so that used the similarity score 
         is smaller depending on how likely a point is to become a hub.
         "Parameter γ can be tuned so as to maximally reduce the skewness 
-        of the Nk distribution" [3].
+        of the Nk distribution" [2]_.
         
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 
@@ -197,7 +198,13 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
         
     References
     ----------
-    .. [1] Hara, K., Suzuki, I., Shimbo, M., Kobayashi, K., Fukumizu, K., & 
+    .. [1] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., & Fukumizu, K. (2013). 
+           Centering similarity measures to reduce hubs. In Proceedings of the 
+           2013 Conference on Empirical Methods in Natural Language Processing 
+           (pp 613–623). 
+           Retrieved from https://www.aclweb.org/anthology/D/D13/D13-1058.pdf
+    
+    .. [2] Hara, K., Suzuki, I., Shimbo, M., Kobayashi, K., Fukumizu, K., & 
            Radovanović, M. (2015). Localized centering: Reducing hubness in 
            large-sample data hubness in high-dimensional data. In AAAI ’15: 
            Proceedings of the 29th AAAI Conference on Artificial Intelligence 
@@ -297,7 +304,7 @@ def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
           
     k : int, optional (default: 10)
         Neighborhood size used for determining the local centroids.
-        Can be optimized as to maximally reduce hubness [5].
+        Can be optimized as to maximally reduce hubness [1]_.
           
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 

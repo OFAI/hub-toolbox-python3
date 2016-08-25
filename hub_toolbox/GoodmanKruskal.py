@@ -19,20 +19,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
                           metric:str='distance') -> float:
     """Calculate the Goodman-Kruskal clustering index.
-    
-    This clustering quality measure relates the number of concordant (Q_c) 
-    and discordant (Q_d) quadruples (d_ij, d_kl) of a distance matrix.
-    We only consider tuples, so that i, j are from the same class 
-    and k, l are from different classes. Then a quadruple is...
-    concordant, if d_ij < d_kl
-    discordant, if d_ij > d_kl
-    non counted, otherwise.
-    
-    The Goodman-Kruskal index gamma is defined as: 
-        gamma = (Q_c - Q_d) / (Q_c + Q_d)
         
-    gamma is bounded to [-1, 1], where larger values indicate better clustering.
-    
     Parameters
     ----------
     D : ndarray
@@ -42,12 +29,30 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
         The 1 x n vector of class labels for each point.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether the matrix 'D' is a distance or similarity matrix
+        Define, whether the matrix `D` is a distance or similarity matrix
     
     Returns
     -------
     gamma : float
         Goodman-Kruskal index in [-1, 1] (higher=better)
+    
+    Notes
+    -----
+    This clustering quality measure relates the number of concordant (`Q_c`) 
+    and discordant (`Q_d`) quadruples (`d_ij`, `d_kl`) of a distance matrix.
+    We only consider tuples, so that `i`, `j` are from the same class 
+    and `k`, `l` are from different classes. Then a quadruple is...
+    concordant, if 
+    .. math:: d_ij < d_kl
+    discordant, if 
+    .. math:: d_ij > d_kl
+    and not counted, otherwise.
+    
+    The Goodman-Kruskal index gamma is then defined as: 
+    .. math:: gamma = {Q_c - Q_d} over {Q_c + Q_d}
+        
+    `gamma` is bounded to [-1, 1], where larger values indicate better 
+    clustering.
     """
     
     # Checking input
@@ -131,20 +136,6 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
                                  heuristic:str=None, verbose:int=0) -> float:
     """Calculate the Goodman-Kruskal clustering index.
     
-    This clustering quality measure relates the number of concordant (Q_c) 
-    and discordant (Q_d) quadruples (s_ij, s_kl) of a similarity matrix.
-    We only consider tuples, so that i, j are from the same class 
-    and k, l are from different classes. Then a quadruple is...
-    concordant, if s_ij > s_kl
-    discordant, if s_ij < s_kl
-    non counted, otherwise.
-    
-    The Goodman-Kruskal index gamma is defined as: 
-        gamma = (Q_c - Q_d) / (Q_c + Q_d)
-        
-    gamma is bounded to [-1, 1], where larger values indicate better 
-    clustering.
-    
     Parameters
     ----------
     S : csr_matrix
@@ -154,7 +145,7 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
         The 1 x n vector of class labels for each point.
     
     metric : {'similarity', 'distance'}, optional (default: 'similarity')
-        Define, whether the matrix 'D' is a distance or similarity matrix.
+        Define, whether the matrix `D` is a distance or similarity matrix.
         
         NOTE: 'distance' is used for debugging purposes only. Use standard
         goodman_kruskal_index function for distance matrices.
@@ -179,6 +170,24 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     -------
     gamma : float
         Goodman-Kruskal index in [-1, 1] (higher=better)
+    
+    Notes
+    -----
+    This clustering quality measure relates the number of concordant (`Q_c`) 
+    and discordant (`Q_d`) quadruples (`d_ij`, `d_kl`) of a distance matrix.
+    We only consider tuples, so that `i`, `j` are from the same class 
+    and `k`, `l` are from different classes. Then a quadruple is...
+    concordant, if 
+    .. math:: d_ij < d_kl
+    discordant, if 
+    .. math:: d_ij > d_kl
+    and not counted, otherwise.
+    
+    The Goodman-Kruskal index gamma is then defined as: 
+    .. math:: gamma = {Q_c - Q_d} over {Q_c + Q_d}
+        
+    `gamma` is bounded to [-1, 1], where larger values indicate better 
+    clustering.
     """
     
     # Checking input

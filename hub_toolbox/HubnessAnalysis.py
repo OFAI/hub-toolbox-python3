@@ -40,7 +40,7 @@ Learning Research, 13(1), 2871–2902.
 """
 
 def _primary_distance(D:np.ndarray, metric):
-    """Return D, identical. (Dummy function.)"""
+    """Return `D`, identical. (Dummy function.)"""
     return D
 
 # New types of hubness reduction methods must be added here
@@ -67,19 +67,26 @@ class HubnessAnalysis():
     
     Examples
     --------
-    # Load the example data set and perform a quick hubness analysis 
-    # with some of the functions provided in this toolbox.
     >>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
     >>> hub = HubnessAnalysis()
     >>> hub.analyse_hubness()
     
-    # Use the distance matrix D (NxN) together with an optional 
-    # class labels vector (classes) and the original (optional) 
-    # data vectors (vectors) to perform a full hubness analysis.
     >>> hub = HubnessAnalysis(D, classes, vectors)
     >>> hub.analyse_hubness()
-    # Please consult the docstring of this method for additional 
-    # parameters (e.g. k-occurence, k-NN)
+    
+    Notes
+    -----
+    The first example loads the example data set and performs a quick 
+    hubness analysis with some of the functions provided in this toolbox.
+    
+    For the second example you must provide a distance matrix `D` (NxN) 
+    together with an optional class labels vector (`classes`) and the 
+    original (optional) data vectors (`vectors`) to perform a full hubness 
+    analysis.
+    
+    See also
+    --------
+    analyse_hubness : additional parameters (e.g. k-occurence, k-NN)
     """
 
     def __init__(self, D:np.ndarray=None, classes:np.ndarray=None, 
@@ -99,7 +106,7 @@ class HubnessAnalysis():
             The m x n vector data. Required for IntrDim estimation.
             
         metric : {'distance', 'similarity'}
-            Define whether D is a distance or similarity matrix.
+            Define whether `D` is a distance or similarity matrix.
         """        
         
         self.has_class_data, self.has_vector_data = False, False
@@ -177,10 +184,10 @@ class HubnessAnalysis():
             - "dsl" : DisSim Local
 
         hubness_k : tuple, optional (default: (5, 10))
-            Hubness parameter (skewness of k-occurence)
+            Hubness parameter (skewness of `k`-occurence)
 
         knn_k : tuple, optional (default: (1, 5, 20))
-            k-NN classification parameter
+            `k`-NN classification parameter
 
         print_results : bool, optional (default: True)
             Define whether to print hubness analysis report to stdout
@@ -228,7 +235,7 @@ class HubnessAnalysis():
         Parameters
         ----------
         experiment : HubnessExperiment, optional (default: None)
-            If given, report only this experiment. Otherwise, report all 
+            If given, report only this `experiment`. Otherwise, report all 
             experiments of this analysis.
 
         report_nr : int, optional (default: 0)
@@ -355,10 +362,11 @@ class HubnessExperiment():
         return self
 
     def _calc_hubness(self, k:int=5):
-        """Calculate hubness (skewness of k-occurence).
+        """Calculate hubness (skewness of `k`-occurence).
         
-        Also calculate percentage of anti hubs (k-occurence == 0) and 
-        percentage of k-NN lists the largest hub occurs in"""
+        Also calculate percentage of anti hubs (`k`-occurence == 0) and 
+        percentage of k-NN lists the largest hub occurs in.
+        """
         S_k, _, N_k = hubness(D=self.secondary_distance, 
                               metric=self.metric, k=k)
         self.hubness[k] = S_k
@@ -367,7 +375,7 @@ class HubnessExperiment():
         return self
 
     def _calc_knn_accuracy(self, k:int=5):
-        """Calculate k-NN accuracy."""
+        """Calculate `k`-NN accuracy."""
         acc, _, _ = score(D=self.secondary_distance, target=self.classes, 
                           k=k, metric=self.metric)
         self.knn_accuracy[k] = acc

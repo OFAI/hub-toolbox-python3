@@ -18,7 +18,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 def cosine_distance(X):
-    """Calculate the cosine distance between all pairs of vectors in X."""
+    """Calculate the cosine distance between all pairs of vectors in `X`."""
     xn = np.sqrt(np.sum(X**2, 1))
     X = X / np.tile(xn[:, np.newaxis], np.size(X, 1))
     D = 1 - np.dot(X, X.T)
@@ -27,7 +27,7 @@ def cosine_distance(X):
     return D
 
 def euclidean_distance(X):
-    """Calculate the euclidean distances between all pairs of vectors in X."""
+    """Calculate the euclidean distances between all pairs of vectors in `X`."""
     D = cdist(X, X, 'euclidean')
     return D
 

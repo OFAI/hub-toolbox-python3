@@ -39,9 +39,9 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
         - csr_matrix: The n x n symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix 'D' is a distance or similarity matrix.
+        Define, whether matrix `D` is a distance or similarity matrix.
         
-        NOTE: In case of sparse D, only 'similarity' is supported.
+        NOTE: In case of sparse `D`, only 'similarity' is supported.
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
@@ -217,9 +217,9 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
         - csr_matrix: The n x n symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix 'D' is a distance or similarity matrix.
+        Define, whether matrix `D` is a distance or similarity matrix.
         
-        NOTE: In case of sparse D, only 'similarity' is supported.
+        NOTE: In case of sparse `D`, only 'similarity' is supported.
     
     sample_size : int, optional (default: 0)
         Define sample size from which Gauss parameters are estimated.
@@ -413,9 +413,9 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
         - csr_matrix: The n x n symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix 'D' is a distance or similarity matrix.
+        Define, whether matrix `D` is a distance or similarity matrix.
         
-        NOTE: In case of sparse D, only 'similarity' is supported.
+        NOTE: In case of sparse `D`, only 'similarity' is supported.
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:

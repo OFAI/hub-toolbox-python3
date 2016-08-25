@@ -1,0 +1,613 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>hub_toolbox.Centering &mdash; hub-toolbox 2.3 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="hub-toolbox 2.3 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> hub-toolbox
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/matlab_vs_python.html">Which Hub Toolbox to choose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user/tutorial.html">Tutorial</a></li>
+</ul>
+<ul class="simple">
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">hub-toolbox</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>hub_toolbox.Centering</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for hub_toolbox.Centering</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the HUB TOOLBOX available at</span>
+<span class="sd">http://ofai.at/research/impml/projects/hubology.html</span>
+<span class="sd">Source code is available at</span>
+<span class="sd">https://github.com/OFAI/hub-toolbox-python3/</span>
+<span class="sd">The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.</span>
+
+<span class="sd">(c) 2015-2016, Roman Feldbauer</span>
+<span class="sd">Austrian Research Institute for Artificial Intelligence (OFAI)</span>
+<span class="sd">Contact: &lt;roman.feldbauer@ofai.at&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.Distances</span> <span class="kn">import</span> <span class="n">cosine_distance</span> <span class="k">as</span> <span class="n">cos</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.Distances</span> <span class="kn">import</span> <span class="n">euclidean_distance</span> <span class="k">as</span> <span class="n">l2</span>
+<span class="c1">#DEPRECATED</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.Distances</span> <span class="kn">import</span> <span class="n">Distance</span>
+
+<div class="viewcode-block" id="centering"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.centering">[docs]</a><span class="k">def</span> <span class="nf">centering</span><span class="p">(</span><span class="n">X</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Perform  centering, i.e. shift the origin to the data centroid.</span>
+<span class="sd">    </span>
+<span class="sd">    Centering of vector data X with n objects in an m-dimensional feature space.</span>
+<span class="sd">    The mean of each feature is calculated and subtracted from each point [1].</span>
+<span class="sd">    In distance based mode, it must be checked upstream, that the distance</span>
+<span class="sd">    matrix is a gram matrix as described below!</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    X : ndarray</span>
+<span class="sd">        - An (m x n) vector data matrix with n objects in an </span>
+<span class="sd">        m-dimensional feature space </span>
+<span class="sd">        - An (n x n) distance matrix of form K = X(X.T), if X is an (n x m) </span>
+<span class="sd">        matrix; and of form K = (X.T)X, if X is an (m x n) matrix, </span>
+<span class="sd">        where X.T denotes the transpose of X.</span>
+<span class="sd">        NOTE: The type must be defined via parameter &#39;metric&#39;!</span>
+<span class="sd">        </span>
+<span class="sd">    metric : {&#39;vector&#39;, &#39;distance&#39;}</span>
+<span class="sd">        Define, whether &#39;X&#39; is vector data or a distance matrix.</span>
+<span class="sd">        </span>
+<span class="sd">    test_set_mask : ndarray, optional (default: None)</span>
+<span class="sd">        Hold back data as a test set and perform centering on the remaining </span>
+<span class="sd">        data (training set).</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">    -------- </span>
+<span class="sd">    X_cent : ndarray</span>
+<span class="sd">        - Centered vectors, when given vector data</span>
+<span class="sd">        - Centered gram matrix, when given distance data.</span>
+<span class="sd">        </span>
+<span class="sd">    See also:</span>
+<span class="sd">    ---------</span>
+<span class="sd">    [1] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., &amp; Fukumizu, K. (2013). </span>
+<span class="sd">    Centering similarity measures to reduce hubs. In Proceedings of the 2013 </span>
+<span class="sd">    Conference on Empirical Methods in Natural Language Processing (pp 613–623). </span>
+<span class="sd">    Retrieved from https://www.aclweb.org/anthology/D/D13/D13-1058.pdf</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        
+    <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;distance&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Distance based centering does not &quot;</span>
+                                          <span class="s2">&quot;support train/test splits so far.&quot;</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+        <span class="n">K</span> <span class="o">=</span> <span class="n">X</span> <span class="c1"># K = X.T.X must be provided upstream</span>
+        <span class="n">X_cent</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">K</span><span class="p">)</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">X_cent</span>
+    <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;vector&#39;</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">test_set_mask</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">train_set_mask</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="c1">#np.ones(n, np.bool)</span>
+        
+        <span class="n">vectors_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">X_cent</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">vectors_mean</span>
+        <span class="k">return</span> <span class="n">X_cent</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Parameter &#39;metric&#39; must be &#39;distance&#39; or &#39;vector&#39;.&quot;</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="weighted_centering"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.weighted_centering">[docs]</a><span class="k">def</span> <span class="nf">weighted_centering</span><span class="p">(</span><span class="n">X</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">gamma</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> 
+                       <span class="n">test_set_mask</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Perform  weighted centering: shift origin to the weighted data mean</span>
+<span class="sd">    </span>
+<span class="sd">    Move the origin more actively towards hub objects in the dataset, </span>
+<span class="sd">    rather than towards the data centroid [2].</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    X : ndarray</span>
+<span class="sd">        - An (m x n) vector data matrix with n objects in an </span>
+<span class="sd">        m-dimensional feature space </span>
+<span class="sd">        </span>
+<span class="sd">    metric : {&#39;cosine&#39;, &#39;euclidean&#39;}</span>
+<span class="sd">        Distance measure used to place more weight on objects that are more </span>
+<span class="sd">        likely to become hubs. (Defined for &#39;cosine&#39; in [2], &#39;euclidean&#39; does </span>
+<span class="sd">        not make much sense and might be removed in the future).</span>
+<span class="sd">        </span>
+<span class="sd">    gamma : float</span>
+<span class="sd">        Controls how much we emphasize the weighting effect</span>
+<span class="sd">        - gamma=0: equivalent to normal centering</span>
+<span class="sd">        - gamma&gt;0: move origin closer to objects with larger similarity </span>
+<span class="sd">                   to other objects</span>
+<span class="sd">        </span>
+<span class="sd">    test_set_mask : ndarray, optional (default: None)</span>
+<span class="sd">        Hold back data as a test set and perform centering on the remaining </span>
+<span class="sd">        data (training set).</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">    -------- </span>
+<span class="sd">    X_wcent : ndarray</span>
+<span class="sd">        Weighted centered vectors.</span>
+<span class="sd">        </span>
+<span class="sd">    See also:</span>
+<span class="sd">    ---------</span>
+<span class="sd">    [2] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., &amp; Fukumizu, K. (2013). </span>
+<span class="sd">    Centering similarity measures to reduce hubs. In Proceedings of the 2013 </span>
+<span class="sd">    Conference on Empirical Methods in Natural Language Processing (pp 613–623). </span>
+<span class="sd">    Retrieved from https://www.aclweb.org/anthology/D/D13/D13-1058.pdf</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                   
+    <span class="c1"># Indices of training examples</span>
+    <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">test_set_mask</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">train_set_mask</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> 
+    
+    <span class="n">n_train</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;cosine&#39;</span><span class="p">:</span>
+        <span class="n">vectors_sum</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_train</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">vectors_sum</span><span class="o">/</span><span class="n">n_train</span><span class="p">]))[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># Using euclidean distances does not really make sense</span>
+    <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;euclidean&#39;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">displ_v</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">displ_v</span> <span class="o">*</span> <span class="n">displ_v</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Weighted centering only supports cosine distances.&quot;</span><span class="p">)</span>
+    <span class="n">d_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">d</span> <span class="o">**</span> <span class="n">gamma</span><span class="p">)</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span> <span class="o">**</span> <span class="n">gamma</span><span class="p">)</span> <span class="o">/</span> <span class="n">d_sum</span>
+    <span class="n">vectors_mean_weighted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">X</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">X_wcent</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">vectors_mean_weighted</span>
+    <span class="k">return</span> <span class="n">X_wcent</span></div>
+    
+<div class="viewcode-block" id="localized_centering"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.localized_centering">[docs]</a><span class="k">def</span> <span class="nf">localized_centering</span><span class="p">(</span><span class="n">X</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">kappa</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">gamma</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> 
+                       <span class="n">test_set_mask</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Perform localized centering.</span>
+<span class="sd">    </span>
+<span class="sd">    Reduce hubness in datasets according to the method proposed in [3].</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    X : ndarray</span>
+<span class="sd">        - An (m x n) vector data matrix with n objects in an </span>
+<span class="sd">        m-dimensional feature space </span>
+<span class="sd">        </span>
+<span class="sd">    metric : {&#39;cosine&#39;, &#39;euclidean&#39;}</span>
+<span class="sd">        Distance measure used to place more weight on objects that are more </span>
+<span class="sd">        likely to become hubs. (Defined for &#39;cosine&#39; in [2], &#39;euclidean&#39; does </span>
+<span class="sd">        not make much sense and might be removed in the future).</span>
+<span class="sd">        </span>
+<span class="sd">    kappa : float</span>
+<span class="sd">        Local segment size, determines the size of the local neighborhood for </span>
+<span class="sd">        calculating the local affinity. When kappa=n localized centering </span>
+<span class="sd">        reduces to standard centering.</span>
+<span class="sd">        &quot;select κ depending on the dataset, so that the correlation between</span>
+<span class="sd">        Nk(x) and the local affinity &lt;x, cκ(x)&gt; is maximized&quot; [3]</span>
+<span class="sd">        </span>
+<span class="sd">    gamma : float</span>
+<span class="sd">        Control the degree of penalty, so that used the similarity score </span>
+<span class="sd">        is smaller depending on how likely a point is to become a hub.</span>
+<span class="sd">        &quot;Parameter γ can be tuned so as to maximally reduce the skewness </span>
+<span class="sd">        of the Nk distribution&quot; [3].</span>
+<span class="sd">        </span>
+<span class="sd">    test_set_mask : ndarray, optional (default: None)</span>
+<span class="sd">        Hold back data as a test set and perform centering on the remaining </span>
+<span class="sd">        data (training set).</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">    -------- </span>
+<span class="sd">    D_lcent : ndarray</span>
+<span class="sd">        Secondary distance (localized centering) matrix.</span>
+<span class="sd">        </span>
+<span class="sd">    See also:</span>
+<span class="sd">    ---------</span>
+<span class="sd">    [3] Hara, K., Suzuki, I., Shimbo, M., Kobayashi, K., Fukumizu, K., &amp; </span>
+<span class="sd">    Radovanović, M. (2015). Localized centering: Reducing hubness in </span>
+<span class="sd">    large-sample data hubness in high-dimensional data. In AAAI ’15: </span>
+<span class="sd">    Proceedings of the 29th AAAI Conference on Artificial Intelligence </span>
+<span class="sd">    (pp. 2645–2651).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">test_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        
+    <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;cosine&#39;</span><span class="p">:</span>
+        <span class="c1"># Rescale vectors to unit length</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">X</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">X</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))[</span><span class="o">...</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="c1"># for unit vectors it holds inner() == cosine()</span>
+        <span class="n">sim</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">cos</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="c1"># Localized centering meaningful for Euclidean?</span>
+    <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;euclidean&#39;</span><span class="p">:</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">X</span> <span class="c1"># no scaling here...</span>
+        <span class="n">sim</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">l2</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Localized centering only supports cosine distances.&quot;</span><span class="p">)</span>
+    
+    <span class="n">n</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">local_affinity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">sim_i</span> <span class="o">=</span> <span class="n">sim</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="c1"># set similarity of test examples to zero to exclude them from fit</span>
+        <span class="n">sim_i</span><span class="p">[</span><span class="n">test_set_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># also exclude self </span>
+        <span class="n">sim_i</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1">#TODO randomization?</span>
+        <span class="n">nn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">sim_i</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span> <span class="p">:</span> <span class="n">kappa</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">c_kappa_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="n">nn</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;cosine&#39;</span><span class="p">:</span>
+            <span class="c1"># c_kappa_x has no unit length in general</span>
+            <span class="n">local_affinity</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inner</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">c_kappa_x</span><span class="p">)</span>       
+            <span class="c1">#local_affinity[i] = cosine(x, c_kappa_x) </span>
+        <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;euclidean&#39;</span><span class="p">:</span>
+            <span class="n">local_affinity</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">c_kappa_x</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Localized centering only &quot;</span>
+                             <span class="s2">&quot;supports cosine distances.&quot;</span><span class="p">)</span>
+    <span class="n">sim_lcent</span> <span class="o">=</span> <span class="n">sim</span> <span class="o">-</span> <span class="p">(</span><span class="n">local_affinity</span> <span class="o">**</span> <span class="n">gamma</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">sim_lcent</span></div>
+
+
+<div class="viewcode-block" id="disSim_global"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.disSim_global">[docs]</a><span class="k">def</span> <span class="nf">disSim_global</span><span class="p">(</span><span class="n">X</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate dissimilarity based on global &#39;sample-wise centrality&#39; [4].</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    X : ndarray</span>
+<span class="sd">        - An (m x n) vector data matrix with n objects in an </span>
+<span class="sd">          m-dimensional feature space</span>
+<span class="sd">          </span>
+<span class="sd">    test_set_mask : ndarray, optional (default: None)</span>
+<span class="sd">        Hold back data as a test set and perform centering on the remaining </span>
+<span class="sd">        data (training set).</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    D_dsg : ndarray</span>
+<span class="sd">        Secondary distance (DisSimGlobal) matrix.</span>
+<span class="sd">        </span>
+<span class="sd">    See also:</span>
+<span class="sd">    ---------</span>
+<span class="sd">    [4] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., &amp; </span>
+<span class="sd">    Radovanović, M. (2016). Flattening the density gradient for eliminating </span>
+<span class="sd">    spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI </span>
+<span class="sd">    Conference on Artificial Intelligence (AAAI ’16), 1659–1665. Retrieved from </span>
+<span class="sd">    http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12055/11787</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">n</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">test_set_mask</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">train_set_mask</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        
+    <span class="n">c</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">xq_c</span> <span class="o">=</span> <span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">D_dsg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">x_q</span> <span class="o">=</span> <span class="p">((</span><span class="n">X</span><span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="p">:])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">D_dsg</span><span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">q</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_q</span> <span class="o">-</span> <span class="n">xq_c</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">-</span> <span class="n">xq_c</span><span class="p">[</span><span class="n">q</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">D_dsg</span></div>
+
+<div class="viewcode-block" id="disSim_local"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.disSim_local">[docs]</a><span class="k">def</span> <span class="nf">disSim_local</span><span class="p">(</span><span class="n">X</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate dissimilarity based on local &#39;sample-wise centrality&#39; [5].</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    X : ndarray</span>
+<span class="sd">        - An (m x n) vector data matrix with n objects in an </span>
+<span class="sd">          m-dimensional feature space</span>
+<span class="sd">          </span>
+<span class="sd">    k : int</span>
+<span class="sd">        Neighborhood size used for determining the local centroids.</span>
+<span class="sd">          </span>
+<span class="sd">    test_set_mask : ndarray, optional (default: None)</span>
+<span class="sd">        Hold back data as a test set and perform centering on the remaining </span>
+<span class="sd">        data (training set).</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    D_dsl : ndarray</span>
+<span class="sd">        Secondary distance (DisSimLocal) matrix.</span>
+<span class="sd">        </span>
+<span class="sd">    See also:</span>
+<span class="sd">    ---------</span>
+<span class="sd">    [5] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., &amp; </span>
+<span class="sd">    Radovanović, M. (2016). Flattening the density gradient for eliminating </span>
+<span class="sd">    spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI </span>
+<span class="sd">    Conference on Artificial Intelligence (AAAI ’16), 1659–1665. Retrieved from </span>
+<span class="sd">    http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12055/11787</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">n</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">l2</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="c1"># Exclude self distances from kNN lists:</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span> 
+    <span class="n">c_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">test_set_mask</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">knn_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="p">])[</span><span class="mi">0</span><span class="p">:</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">c_k</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">[</span><span class="n">knn_idx</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># take all    </span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">knn_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:])[</span><span class="mi">0</span><span class="p">:</span><span class="n">k</span><span class="p">]</span>
+            <span class="n">c_k</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">knn_idx</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">c_k_xy</span> <span class="o">=</span> <span class="p">((</span><span class="n">X</span> <span class="o">-</span> <span class="n">c_k</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">disSim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+            <span class="n">x_y</span> <span class="o">=</span> <span class="p">((</span><span class="n">X</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">-</span> <span class="n">X</span><span class="p">[</span><span class="n">y</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="n">disSim</span><span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_y</span> <span class="o">-</span> <span class="n">c_k_xy</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">-</span> <span class="n">c_k_xy</span><span class="p">[</span><span class="n">y</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">disSim</span> <span class="o">+</span> <span class="n">disSim</span><span class="o">.</span><span class="n">T</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">disSim</span><span class="p">))</span></div>
+    
+    
+<span class="c1">###############################################################################</span>
+<span class="c1">#</span>
+<span class="c1"># DEPRECATED class</span>
+<span class="c1">#</span>
+<div class="viewcode-block" id="Centering"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.Centering">[docs]</a><span class="k">class</span> <span class="nc">Centering</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transform data (in vector space) by various &#39;centering&#39; approaches.&quot;&quot;&quot;</span>
+
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vectors</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dist</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> 
+                 <span class="n">is_distance_matrix</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">is_distance_matrix</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
+                
+<div class="viewcode-block" id="Centering.centering"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.Centering.centering">[docs]</a>    <span class="k">def</span> <span class="nf">centering</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distance_based</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: Please use Centering.centering() instead.&quot;</span><span class="p">,</span> 
+              <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;vector&#39;</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;distance&#39;</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distance_matrix</span>
+        <span class="k">return</span> <span class="n">centering</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Centering.weighted_centering"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.Centering.weighted_centering">[docs]</a>    <span class="k">def</span> <span class="nf">weighted_centering</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> 
+                           <span class="n">distance_metric</span><span class="o">=</span><span class="n">Distance</span><span class="o">.</span><span class="n">cosine</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: Please use Centering.weighted_centering() instead.&quot;</span><span class="p">,</span> 
+              <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">distance_metric</span> <span class="o">==</span> <span class="n">Distance</span><span class="o">.</span><span class="n">cosine</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;cosine&#39;</span>
+        <span class="k">elif</span> <span class="n">distance_metric</span> <span class="o">==</span> <span class="n">Distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;euclidean&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown distance metric {}.&quot;</span><span class="o">.</span>
+                             <span class="n">format</span><span class="p">(</span><span class="n">distance_metric</span><span class="o">.</span><span class="n">__str__</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="n">weighted_centering</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Centering.localized_centering"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.Centering.localized_centering">[docs]</a>    <span class="k">def</span> <span class="nf">localized_centering</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kappa</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">gamma</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> 
+                        <span class="n">distance_metric</span><span class="o">=</span><span class="n">Distance</span><span class="o">.</span><span class="n">cosine</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: Please use Centering.localized_centering() instead.&quot;</span><span class="p">,</span> 
+              <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">distance_metric</span> <span class="o">==</span> <span class="n">Distance</span><span class="o">.</span><span class="n">cosine</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;cosine&#39;</span>
+        <span class="k">elif</span> <span class="n">distance_metric</span> <span class="o">==</span> <span class="n">Distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">:</span>
+            <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;euclidean&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown distance metric {}.&quot;</span><span class="o">.</span>
+                             <span class="n">format</span><span class="p">(</span><span class="n">distance_metric</span><span class="o">.</span><span class="n">__str__</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="n">localized_centering</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> 
+                                   <span class="n">kappa</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Centering.disSim_global"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.Centering.disSim_global">[docs]</a>    <span class="k">def</span> <span class="nf">disSim_global</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: Please use Centering.disSim_glocal() instead.&quot;</span><span class="p">,</span> 
+              <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">disSim_global</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Centering.disSim_local"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Centering.Centering.disSim_local">[docs]</a>    <span class="k">def</span> <span class="nf">disSim_local</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: Please use Centering.disSim_local() instead.&quot;</span><span class="p">,</span> 
+              <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">disSim_local</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="p">)</span></div></div>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">47</span><span class="p">)</span>
+    <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">Centering</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Vectors: ............... </span><span class="se">\n</span><span class="s2">{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vectors</span><span class="p">))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Centering: ............. </span><span class="se">\n</span><span class="s2">{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">centering</span><span class="p">()))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Weighted centering: .... </span><span class="se">\n</span><span class="s2">{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">weighted_centering</span><span class="p">(</span><span class="mf">0.4</span><span class="p">)))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Localized centering: ... </span><span class="se">\n</span><span class="s2">{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">localized_centering</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DisSim (global): ....... </span><span class="se">\n</span><span class="s2">{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">disSim_global</span><span class="p">()))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DisSim (local): ........ </span><span class="se">\n</span><span class="s2">{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">disSim_local</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Roman Feldbauer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.3',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

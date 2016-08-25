@@ -1,0 +1,377 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>hub_toolbox.KnnClassification &mdash; hub-toolbox 2.3 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="hub-toolbox 2.3 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> hub-toolbox
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/matlab_vs_python.html">Which Hub Toolbox to choose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user/tutorial.html">Tutorial</a></li>
+</ul>
+<ul class="simple">
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">hub-toolbox</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>hub_toolbox.KnnClassification</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for hub_toolbox.KnnClassification</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the HUB TOOLBOX available at</span>
+<span class="sd">http://ofai.at/research/impml/projects/hubology.html</span>
+<span class="sd">Source code is available at</span>
+<span class="sd">https://github.com/OFAI/hub-toolbox-python3/</span>
+<span class="sd">The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.</span>
+
+<span class="sd">(c) 2011-2016, Dominik Schnitzer, Roman Feldbauer</span>
+<span class="sd">Austrian Research Institute for Artificial Intelligence (OFAI)</span>
+<span class="sd">Contact: &lt;roman.feldbauer@ofai.at&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.base</span> <span class="kn">import</span> <span class="n">issparse</span>
+
+<div class="viewcode-block" id="KnnClassification"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.KnnClassification.KnnClassification">[docs]</a><span class="k">class</span> <span class="nc">KnnClassification</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Perform k-nearest neighbor classification.&quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">isSimilarityMatrix</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="n">D</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">k</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span> <span class="o">=</span> <span class="n">isSimilarityMatrix</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="KnnClassification.perform_knn_classification"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.KnnClassification.KnnClassification.perform_knn_classification">[docs]</a>    <span class="k">def</span> <span class="nf">perform_knn_classification</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs k-nearest neighbor classification.</span>
+<span class="sd">        </span>
+<span class="sd">        Use the distance matrix D (NxN) and the classes and perform a </span>
+<span class="sd">        k-NN experiment. Ties are broken by the nearest neighbor.</span>
+<span class="sd">        The classification accuracy is returned in acc. </span>
+<span class="sd">        corr is a raw vector of the correctly classified items. </span>
+<span class="sd">        cmat is the confusion matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Why would there be a need for more than one k?</span>
+        <span class="n">k_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">)</span>
+            
+        <span class="n">acc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span> <span class="p">(</span><span class="n">k_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k_length</span><span class="p">)</span> <span class="p">)</span>
+        
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="n">cl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">))</span>
+        <span class="n">cmat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cl</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">cl</span><span class="p">))</span> <span class="p">)</span>
+        
+        <span class="n">classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cl</span><span class="p">)):</span>
+            <span class="n">classes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">==</span> <span class="n">cl</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span> <span class="o">=</span> <span class="n">idx</span>
+            
+        <span class="n">cl</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cl</span><span class="p">))</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">seed_class</span> <span class="o">=</span> <span class="n">classes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">):</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+            
+            <span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span>
+            
+            <span class="c1"># Randomize, in case there are several points of same distance</span>
+            <span class="c1"># (this is especially relevant for SNN rescaling)</span>
+            <span class="n">rp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">)</span> <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">rp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">rp</span><span class="p">)</span>
+            <span class="n">d2</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">rp</span><span class="p">]</span>
+            <span class="n">d2idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">d2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[::</span><span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span><span class="p">]</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">rp</span><span class="p">[</span><span class="n">d2idx</span><span class="p">]</span>      
+            
+            <span class="c1"># OLD code, non-randomized</span>
+            <span class="c1">#idx = np.argsort(row)</span>
+            
+            <span class="c1"># More than one k?</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k_length</span><span class="p">):</span>
+                <span class="n">nn_class</span> <span class="o">=</span> <span class="n">classes</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">[</span><span class="n">j</span><span class="p">]]]</span> <span class="c1">#smallest dist/highest sim</span>
+                <span class="n">cs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">nn_class</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+                <span class="n">max_cs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cs</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">cs</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+                
+                <span class="c1"># &quot;tie&quot;: use nearest neighbor</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_cs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">seed_class</span> <span class="o">==</span> <span class="n">nn_class</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                        <span class="n">acc</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span><span class="o">/</span><span class="n">n</span> 
+                        <span class="n">corr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">cmat</span><span class="p">[</span><span class="n">seed_class</span><span class="p">,</span> <span class="n">nn_class</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>       
+                <span class="c1"># majority vote</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">cl</span><span class="p">[</span><span class="n">max_cs</span><span class="p">]</span> <span class="o">==</span> <span class="n">seed_class</span><span class="p">:</span>
+                        <span class="n">acc</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span><span class="o">/</span><span class="n">n</span>
+                        <span class="n">corr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">cmat</span><span class="p">[</span><span class="n">seed_class</span><span class="p">,</span> <span class="n">cl</span><span class="p">[</span><span class="n">max_cs</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+                           
+        <span class="k">return</span> <span class="n">acc</span><span class="p">,</span> <span class="n">corr</span><span class="p">,</span> <span class="n">cmat</span></div>
+    
+<div class="viewcode-block" id="KnnClassification.perform_knn_classification_with_test_set"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.KnnClassification.KnnClassification.perform_knn_classification_with_test_set">[docs]</a>    <span class="k">def</span> <span class="nf">perform_knn_classification_with_test_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs k-nearest neighbor classification.</span>
+<span class="sd">        </span>
+<span class="sd">        Use the distance matrix D (NxN) and the classes and perform a </span>
+<span class="sd">        k-NN experiment. Ties are broken by the nearest neighbor.</span>
+<span class="sd">        The classification accuracy is returned in acc. </span>
+<span class="sd">        corr is a raw vector of the correctly classified items. </span>
+<span class="sd">        cmat is the confusion matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>        
+        <span class="c1"># Indices of training examples</span>
+        <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">test_set_mask</span><span class="p">)</span>
+        <span class="c1"># Why would there be a need for more than one k?</span>
+        <span class="n">k_length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">)</span>
+            
+        <span class="n">acc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span> <span class="p">(</span><span class="n">k_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">corr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k_length</span><span class="p">)</span> <span class="p">)</span>
+        
+        <span class="c1"># number of points to be classified</span>
+        <span class="c1">#n = np.size(self.D, 1)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">test_set_mask</span><span class="p">)</span>
+        
+        <span class="n">cl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">))</span>
+        <span class="n">cmat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cl</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">cl</span><span class="p">))</span> <span class="p">)</span>
+        
+        <span class="n">classes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cl</span><span class="p">)):</span>
+            <span class="n">classes</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">==</span> <span class="n">cl</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span> <span class="o">=</span> <span class="n">idx</span>
+            
+        <span class="n">cl</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cl</span><span class="p">))</span>
+        
+        <span class="c1"># Classify each point in test set</span>
+        <span class="c1">#for i in range(n):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">test_set_mask</span><span class="p">:</span>
+            <span class="n">seed_class</span> <span class="o">=</span> <span class="n">classes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">):</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">row</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span>
+            
+            <span class="c1"># Sort points in training set according to distance</span>
+            <span class="c1"># Randomize, in case there are several points of same distance</span>
+            <span class="c1"># (this is especially relevant for SNN rescaling)</span>
+            <span class="n">rp</span> <span class="o">=</span> <span class="n">train_set_mask</span>
+            <span class="n">rp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">rp</span><span class="p">)</span>
+            <span class="n">d2</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">rp</span><span class="p">]</span>
+            <span class="n">d2idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">d2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[::</span><span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span><span class="p">]</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">rp</span><span class="p">[</span><span class="n">d2idx</span><span class="p">]</span>      
+            
+            <span class="c1"># OLD code, non-randomized</span>
+            <span class="c1">#idx = np.argsort(row)</span>
+            
+            <span class="c1"># More than one k?</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k_length</span><span class="p">):</span>
+                <span class="n">nn_class</span> <span class="o">=</span> <span class="n">classes</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">[</span><span class="n">j</span><span class="p">]]]</span>
+                <span class="n">cs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">nn_class</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+                <span class="n">max_cs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cs</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">cs</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+                
+                <span class="c1"># &quot;tie&quot;: use nearest neighbor</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_cs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">seed_class</span> <span class="o">==</span> <span class="n">nn_class</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                        <span class="n">acc</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span><span class="o">/</span><span class="n">n</span> 
+                        <span class="n">corr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">cmat</span><span class="p">[</span><span class="n">seed_class</span><span class="p">,</span> <span class="n">nn_class</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>       
+                <span class="c1"># majority vote</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">cl</span><span class="p">[</span><span class="n">max_cs</span><span class="p">]</span> <span class="o">==</span> <span class="n">seed_class</span><span class="p">:</span>
+                        <span class="n">acc</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span><span class="o">/</span><span class="n">n</span>
+                        <span class="n">corr</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">cmat</span><span class="p">[</span><span class="n">seed_class</span><span class="p">,</span> <span class="n">cl</span><span class="p">[</span><span class="n">max_cs</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+                           
+        <span class="k">return</span> <span class="n">acc</span><span class="p">,</span> <span class="n">corr</span><span class="p">,</span> <span class="n">cmat</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Roman Feldbauer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.3',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,409 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>hub_toolbox.LocalScaling &mdash; hub-toolbox 2.3 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="hub-toolbox 2.3 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> hub-toolbox
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/matlab_vs_python.html">Which Hub Toolbox to choose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user/tutorial.html">Tutorial</a></li>
+</ul>
+<ul class="simple">
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">hub-toolbox</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>hub_toolbox.LocalScaling</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for hub_toolbox.LocalScaling</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the HUB TOOLBOX available at</span>
+<span class="sd">http://ofai.at/research/impml/projects/hubology.html</span>
+<span class="sd">Source code is available at</span>
+<span class="sd">https://github.com/OFAI/hub-toolbox-python3/</span>
+<span class="sd">The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.</span>
+
+<span class="sd">(c) 2011-2016, Dominik Schnitzer, Roman Feldbauer</span>
+<span class="sd">Austrian Research Institute for Artificial Intelligence (OFAI)</span>
+<span class="sd">Contact: &lt;roman.feldbauer@ofai.at&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.base</span> <span class="kn">import</span> <span class="n">issparse</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse.dok</span> <span class="kn">import</span> <span class="n">dok_matrix</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox</span> <span class="kn">import</span> <span class="n">Logging</span>
+
+<div class="viewcode-block" id="LocalScaling"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling">[docs]</a><span class="k">class</span> <span class="nc">LocalScaling</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Transform a distance matrix with Local Scaling.</span>
+<span class="sd">    </span>
+<span class="sd">    Transforms the given distance matrix into new one using local scaling [1]</span>
+<span class="sd">    with the given neighborhood radius k. There are two types of local</span>
+<span class="sd">    scaling methods implemented. The original one and NICDM, both reduce</span>
+<span class="sd">    hubness in distance spaces, similarly to Mutual Proximity.</span>
+<span class="sd">    </span>
+<span class="sd">    [1] Local and global scaling reduce hubs in space, </span>
+<span class="sd">    Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">scalingType</span><span class="o">=</span><span class="s1">&#39;nicdm&#39;</span><span class="p">,</span> <span class="n">isSimilarityMatrix</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Usage:</span>
+<span class="sd">        ls = local_scaling(D, k, scalingType) </span>
+<span class="sd">            - Applies local scaling to the distance</span>
+<span class="sd">             matrix D (NxN). The parameter k sets the neighborhood radius. </span>
+<span class="sd">        ls.perform_local_scaling()</span>
+<span class="sd">            - Return the scaled distance matrix.</span>
+<span class="sd">        </span>
+<span class="sd">        Possible types (scalingType parameter):</span>
+<span class="sd">          &#39;original&#39;: Original Local Scaling using the distance of the k&#39;th</span>
+<span class="sd">             nearest neighbor.</span>
+<span class="sd">          &#39;nicdm&#39;: Local Scaling using the average distance of the k nearest</span>
+<span class="sd">             neighbors.</span>
+<span class="sd">        Create an instance for local scaling. </span>
+<span class="sd">        Parameters:</span>
+<span class="sd">        k... neighborhood radius (DEFAULT = 7)</span>
+<span class="sd">        scalingType... local scaling algorithm [&#39;original&#39;, &#39;nicdm&#39;] (DEFAULT=&#39;nicdm&#39;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">Logging</span><span class="o">.</span><span class="n">ConsoleLogging</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">k</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scalingType</span> <span class="o">=</span> <span class="n">scalingType</span>
+        <span class="k">if</span> <span class="n">isSimilarityMatrix</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">scalingType</span><span class="o">==</span><span class="s1">&#39;nicdm&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;NICDM does not support sparse matrices.&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                                   <span class="s2">&quot;NICDM does not support sparse matrices.&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;NICDM does not support similarities. &quot;</span>
+                        <span class="s2">&quot;Distances will be calculated as D=1-S/S.max and used &quot;</span>
+                        <span class="s2">&quot;for NICDM scaling. Similarities are subsequently &quot;</span>
+                        <span class="s2">&quot;obtained by the same procedure S=1-D/D.max&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Similarity-based LS support is experimental.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span> <span class="o">=</span> <span class="n">isSimilarityMatrix</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span> 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Sparse matrix support for LS is experimental.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Sparse distance matrices are not supported.&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                               <span class="s2">&quot;Sparse distance matrices are not supported.&quot;</span><span class="p">)</span>    
+            
+<div class="viewcode-block" id="LocalScaling.perform_local_scaling"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.perform_local_scaling">[docs]</a>    <span class="k">def</span> <span class="nf">perform_local_scaling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Transform distance matrix using local scaling.&quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scalingType</span> <span class="o">==</span> <span class="s1">&#39;original&#39;</span><span class="p">:</span>
+            <span class="n">Dls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ls_k</span><span class="p">(</span><span class="n">test_set_mask</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">scalingType</span> <span class="o">==</span> <span class="s1">&#39;nicdm&#39;</span><span class="p">:</span>
+            <span class="n">Dls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ls_nicdm</span><span class="p">(</span><span class="n">test_set_mask</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Invalid local scaling type!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span>\
+                         <span class="s2">&quot;Use: </span><span class="se">\n</span><span class="s2">ls = LocalScaling(D, &#39;original&#39;|&#39;nicdm&#39;)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span>\
+                         <span class="s2">&quot;Dls = ls.perform_local_scaling()&quot;</span><span class="p">)</span>
+            <span class="n">Dls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+                
+        <span class="k">return</span> <span class="n">Dls</span></div>
+                
+<div class="viewcode-block" id="LocalScaling.ls_k"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.ls_k">[docs]</a>    <span class="k">def</span> <span class="nf">ls_k</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform local scaling (original), using the k-th nearest neighbor.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">test_set_mask</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>        
+        
+        <span class="n">length_D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">))</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">length_D</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length_D</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">):</span>
+                <span class="n">di</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="p">]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">di</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="p">]</span>
+            <span class="n">di</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span>
+            <span class="n">nn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">di</span><span class="p">)[::</span><span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span><span class="p">]</span>
+            <span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">di</span><span class="p">[</span><span class="n">nn</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="c1">#largest similarities or smallest distances</span>
+        
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">):</span>
+            <span class="n">Dls</span> <span class="o">=</span> <span class="n">dok_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Dls</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                    <span class="c1">#Dls[i, j] = np.exp(-self.D[i, j] / np.sqrt( r[i] * r[j] ))</span>
+                    <span class="n">Dls</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">r</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">Dls</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">r</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="p">)</span>
+                <span class="n">Dls</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dls</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">Dls</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Dls</span></div>
+        
+<div class="viewcode-block" id="LocalScaling.ls_nicdm"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.ls_nicdm">[docs]</a>    <span class="k">def</span> <span class="nf">ls_nicdm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Local scaling variant: Non-Iterative Contextual Dissimilarity Measure</span>
+<span class="sd">            This uses the mean over the k nearest neighbors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+         
+        <span class="c1">#=======================================================================</span>
+        <span class="c1"># if self.isSimilarityMatrix:</span>
+        <span class="c1">#     return self.ls_nicdm_sim(test_set_mask)</span>
+        <span class="c1"># </span>
+        <span class="c1">#=======================================================================</span>
+        <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">test_set_mask</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+             
+        <span class="n">length_D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">))</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">length_D</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length_D</span><span class="p">):</span>
+            <span class="n">di</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">di</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span>
+            <span class="n">di</span> <span class="o">=</span> <span class="n">di</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">]</span>
+            <span class="n">nn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">di</span><span class="p">)[::</span><span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span><span class="p">]</span>
+            <span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">di</span><span class="p">[</span><span class="n">nn</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">]])</span> <span class="c1"># largest sim. or smallest dist.</span>
+        <span class="n">rg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_geomean</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+         
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">Dnicdm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">),</span> <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">length_D</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">length_D</span><span class="p">):</span>
+                <span class="n">Dnicdm</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">rg</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span> <span class="n">r</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">r</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="p">)</span>
+                <span class="n">Dnicdm</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dnicdm</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+            <span class="n">Dnicdm</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">Dnicdm</span> <span class="o">/</span> <span class="n">Dnicdm</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> 
+         
+        <span class="k">return</span> <span class="n">Dnicdm</span></div>
+    
+    <span class="c1">#===========================================================================</span>
+    <span class="c1"># def ls_nicdm_sim(self, test_set_mask=None):</span>
+    <span class="c1">#     &quot;&quot;&quot;Local scaling variant: Non-Iterative Contextual Dissimilarity Measure</span>
+    <span class="c1">#         This uses the mean over the k nearest neighbors.</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#      </span>
+    <span class="c1">#     if test_set_mask is not None:</span>
+    <span class="c1">#         train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), test_set_mask)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         train_set_mask = np.ones(self.D.shape[0], np.bool)</span>
+    <span class="c1">#          </span>
+    <span class="c1">#     if self.isSimilarityMatrix:</span>
+    <span class="c1">#         self.D /= self.D.max()</span>
+    <span class="c1">#         </span>
+    <span class="c1">#     length_D = np.max(np.shape(self.D))</span>
+    <span class="c1">#     f = np.zeros((length_D, 1))</span>
+    <span class="c1">#     np.fill_diagonal(self.D, self.exclude)</span>
+    <span class="c1">#     for i in range(length_D):</span>
+    <span class="c1">#         si = self.D[i, train_set_mask]</span>
+    <span class="c1">#         #di[i] = self.exclude</span>
+    <span class="c1">#         nn = np.argsort(si)[::self.sort_order]</span>
+    <span class="c1">#         f[i] = np.mean(1-si[nn[0:self.k]]) # largest sim. or smallest dist.</span>
+    <span class="c1"># </span>
+    <span class="c1">#     fg = self.local_geomean(f)</span>
+    <span class="c1">#      </span>
+    <span class="c1">#     Snicdm = np.zeros(np.shape(self.D), dtype = self.D.dtype)</span>
+    <span class="c1">#     for i in range(length_D):</span>
+    <span class="c1">#         for j in range(i+1, length_D):</span>
+    <span class="c1">#             Snicdm[i, j] = 1 - (fg**2 * (1-self.D[i, j])) / ( f[i] * f[j] )</span>
+    <span class="c1">#             #Snicdm[i, j] = 1 - ((1-self.D[i, j]) * (f[i] * f[j])) / (fg**2) </span>
+    <span class="c1">#             Snicdm[j, i] = Snicdm[i, j]</span>
+    <span class="c1">#     </span>
+    <span class="c1">#     np.fill_diagonal(Snicdm, 1)</span>
+    <span class="c1">#      </span>
+    <span class="c1">#     return Snicdm</span>
+    <span class="c1">#===========================================================================</span>
+            
+<div class="viewcode-block" id="LocalScaling.local_geomean"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.local_geomean">[docs]</a>    <span class="k">def</span> <span class="nf">local_geomean</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span></div>
+        
+    
+<div class="viewcode-block" id="LocalScaling.warning"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.LocalScaling.LocalScaling.warning">[docs]</a>    <span class="k">def</span> <span class="nf">warning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">objs</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;WARNING: &quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">objs</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Roman Feldbauer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.3',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

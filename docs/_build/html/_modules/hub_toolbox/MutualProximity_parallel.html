@@ -1,0 +1,985 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>hub_toolbox.MutualProximity_parallel &mdash; hub-toolbox 2.3 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="hub-toolbox 2.3 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> hub-toolbox
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/matlab_vs_python.html">Which Hub Toolbox to choose</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../user/tutorial.html">Tutorial</a></li>
+</ul>
+<ul class="simple">
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">hub-toolbox</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>hub_toolbox.MutualProximity_parallel</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for hub_toolbox.MutualProximity_parallel</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This file is part of the HUB TOOLBOX available at</span>
+<span class="sd">http://ofai.at/research/impml/projects/hubology.html</span>
+<span class="sd">Source code is available at</span>
+<span class="sd">https://github.com/OFAI/hub-toolbox-python3/</span>
+<span class="sd">The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.</span>
+
+<span class="sd">(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer</span>
+<span class="sd">Austrian Research Institute for Artificial Intelligence (OFAI)</span>
+<span class="sd">Contact: &lt;roman.feldbauer@ofai.at&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.special</span> <span class="kn">import</span> <span class="n">gammainc</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">norm</span>
+<span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">issparse</span><span class="p">,</span> <span class="n">lil_matrix</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox</span> <span class="kn">import</span> <span class="n">IO</span><span class="p">,</span> <span class="n">Logging</span>
+
+<div class="viewcode-block" id="Distribution"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.Distribution">[docs]</a><span class="k">class</span> <span class="nc">Distribution</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">empiric</span> <span class="o">=</span> <span class="s1">&#39;empiric&#39;</span>
+    <span class="n">gaussi</span> <span class="o">=</span> <span class="s1">&#39;gaussi&#39;</span>
+    <span class="n">gammai</span> <span class="o">=</span> <span class="s1">&#39;gammai&#39;</span></div>
+
+<span class="k">def</span> <span class="nf">_get_weighted_batches</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">jobs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Define batches with increasing size to average the runtime for each</span>
+<span class="sd">    batch.</span>
+<span class="sd">    </span>
+<span class="sd">    Observation: MP gets faster while processing the distance matrix. This </span>
+<span class="sd">    approximately follows a linear function.</span>
+<span class="sd">    Idea: Give each row a weight w according to w(r) = 1 - r/n, where </span>
+<span class="sd">    r... row number, n... number of rows. Now each batch should get the same</span>
+<span class="sd">    weight bw := n/jobs, where jobs... number of processes. The equation to </span>
+<span class="sd">    solve is then sum[r=a..b]( 1-r/n ) = n / 2jobs. </span>
+<span class="sd">    Solving for b yields the formula used below. (The last batch may get</span>
+<span class="sd">    additional left-over rows).    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+     
+    <span class="n">batches</span> <span class="o">=</span> <span class="p">[]</span>    
+    <span class="n">a</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">jobs</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>  <span class="c1"># @UnusedVariable</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">jobs</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">jobs</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="o">*</span><span class="n">a</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">-</span><span class="mi">4</span><span class="o">*</span><span class="n">n</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">jobs</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># Each batch must contain at least 1 row</span>
+        <span class="n">batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">b</span> 
+    <span class="k">if</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">batches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">batches</span>
+
+<span class="k">def</span> <span class="nf">_worker</span><span class="p">(</span><span class="n">work_input</span><span class="p">,</span> <span class="n">work_output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A helper function for cv parallelization.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">func</span><span class="p">,</span> <span class="n">args</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="n">work_input</span><span class="o">.</span><span class="n">get</span><span class="p">,</span> <span class="s1">&#39;STOP&#39;</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">work_output</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="MutualProximity"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity">[docs]</a><span class="k">class</span> <span class="nc">MutualProximity</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Apply Mutual Proximity (MP) [1] on a distance matrix. The return value is</span>
+<span class="sd">    converted to a distance matrix again. The resulting distance matrix</span>
+<span class="sd">    should show lower hubness.</span>
+<span class="sd">    </span>
+<span class="sd">    Usage:</span>
+<span class="sd">      Dmp = mutual_proximity(D, type) - Applies MP on the distance matrix &#39;D&#39;</span>
+<span class="sd">         using the selected variant (&#39;type&#39;). The transformed distance matrix</span>
+<span class="sd">         is returned.</span>
+<span class="sd">    </span>
+<span class="sd">    Possible types:</span>
+<span class="sd">      &#39;empiric&#39;: Uses the Empirical distribution to perform Mutual Proximity.</span>
+<span class="sd">      &#39;gauss&#39;: (requires the Statistics Toolbox (the mvncdf() function)</span>
+<span class="sd">         Assumes that the distances are Gaussian distributed.</span>
+<span class="sd">      &#39;gaussi&#39;: Assumes that the distances are independently Gaussian</span>
+<span class="sd">         distributed. (fastest Variante)</span>
+<span class="sd">      &#39;gammai&#39;: Assumes that the distances follow a Gamma distribution and</span>
+<span class="sd">         are independently distributed.</span>
+<span class="sd">    </span>
+<span class="sd">    [1] Local and global scaling reduce hubs in space, </span>
+<span class="sd">    Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">isSimilarityMatrix</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">missing_values</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">tmp</span><span class="o">=</span><span class="s1">&#39;/tmp/&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="n">IO</span><span class="o">.</span><span class="n">copy_D_or_load_memmap</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">writeable</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">Logging</span><span class="o">.</span><span class="n">ConsoleLogging</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">isSimilarityMatrix</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span> <span class="o">=</span> <span class="n">isSimilarityMatrix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tmp</span> <span class="o">=</span> <span class="n">tmp</span>
+        <span class="k">if</span> <span class="n">missing_values</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="o">=</span> <span class="n">missing_values</span>
+        
+<div class="viewcode-block" id="MutualProximity.calculate_mutual_proximity"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity.calculate_mutual_proximity">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_mutual_proximity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">distrType</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">test_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> 
+                                   <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">sample_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">empspex</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> 
+                                   <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Apply MP on a distance matrix.&quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s1">&#39;Mutual proximity rescaling started.&#39;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="n">test_set_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">test_set_mask</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">train_set_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="n">distrType</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;No Mutual Proximity type given. &quot;</span>
+                             <span class="s2">&quot;Using: Distribution.empiric. &quot;</span>
+                             <span class="s2">&quot;For fast results use: Distribution.gaussi&quot;</span><span class="p">)</span>
+            <span class="n">Dmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp_empiric</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">empspex</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">distrType</span> <span class="o">==</span> <span class="n">Distribution</span><span class="o">.</span><span class="n">empiric</span><span class="p">:</span>
+                <span class="n">Dmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp_empiric</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">empspex</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">distrType</span> <span class="o">==</span> <span class="n">Distribution</span><span class="o">.</span><span class="n">gaussi</span><span class="p">:</span>
+                <span class="n">Dmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp_gaussi</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">distrType</span> <span class="o">==</span> <span class="n">Distribution</span><span class="o">.</span><span class="n">gammai</span><span class="p">:</span>
+                <span class="n">Dmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp_gammai</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Valid Mutual Proximity type missing!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span>\
+                             <span class="s2">&quot;Use: </span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span>\
+                             <span class="s2">&quot;mp = MutualProximity(D, Distribution.empiric|&quot;</span><span class="o">+</span>\
+                             <span class="s2">&quot;Distribution.gaussi|&quot;</span><span class="o">+</span>\
+                             <span class="s2">&quot;Distribution.gammi)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">+</span>\
+                             <span class="s2">&quot;Dmp = mp.calculate_mutual_proximity()&quot;</span><span class="p">)</span>
+                <span class="n">Dmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+       
+        <span class="k">return</span> <span class="n">Dmp</span></div>
+         
+    <span class="k">def</span> <span class="nf">_partial_mp_empiric_sparse_exact</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">verbose</span><span class="p">):</span>
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">((</span><span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;MP_empiric_sparse_exact: {} of {}. On {}.&quot;</span>
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">current_process</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>  <span class="c1"># @UndefinedVariable</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                <span class="n">dI</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+                <span class="n">dJ</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+                 
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                    <span class="n">sIJ_intersect</span> <span class="o">=</span> <span class="p">((</span><span class="n">dI</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dJ</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                    <span class="n">sIJ_overlap</span> <span class="o">=</span> <span class="n">sIJ_intersect</span> <span class="o">/</span> <span class="n">n</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sIJ_intersect</span> <span class="o">=</span> <span class="p">((</span><span class="n">dI</span> <span class="o">&gt;</span> <span class="n">d</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dJ</span> <span class="o">&gt;</span> <span class="n">d</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                    <span class="n">sIJ_overlap</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">sIJ_intersect</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">sIJ_overlap</span>
+                <span class="c1">#need to mirror later!!</span>
+        <span class="n">filenamewords</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">str</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="s1">&#39;triu&#39;</span><span class="p">]</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmp</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filenamewords</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;MP_empiric_sparse_exact: Saving batch {}-{} to {}. On {}.&quot;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">f</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">current_process</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>  <span class="c1"># @UndefinedVariable</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">Dmp</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">Dmp</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_partial_mp_empiric_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">verbose</span><span class="p">):</span>
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">lil_matrix</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">((</span><span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;MP_empiric_sparse: {} of {}. On {}.&quot;</span>
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">current_process</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>  <span class="c1"># @UndefinedVariable</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">d</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> 
+                    <span class="c1">#nnz = np.max([self.D[b].nnz, self.D[j].nnz])</span>
+                    <span class="n">dI</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+                    <span class="n">dJ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+                    <span class="c1"># non-zeros elements</span>
+                    <span class="n">nz</span> <span class="o">=</span> <span class="p">(</span><span class="n">dI</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dJ</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="c1"># logical AND or OR here?!</span>
+                    <span class="c1"># number of non-zero elements</span>
+                    <span class="n">nnz</span> <span class="o">=</span> <span class="n">nz</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                    
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                        <span class="n">sIJ_intersect</span> <span class="o">=</span> <span class="p">(</span><span class="n">nz</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dI</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dJ</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                        <span class="n">sIJ_overlap</span> <span class="o">=</span> <span class="n">sIJ_intersect</span> <span class="o">/</span> <span class="n">nnz</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">sIJ_intersect</span> <span class="o">=</span> <span class="p">(</span><span class="n">nz</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dI</span> <span class="o">&gt;</span> <span class="n">d</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dJ</span> <span class="o">&gt;</span> <span class="n">d</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                        <span class="n">sIJ_overlap</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">sIJ_intersect</span> <span class="o">/</span> <span class="n">nnz</span><span class="p">)</span>
+                    <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">sIJ_overlap</span>
+                    <span class="c1"># need to mirror later</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">pass</span> <span class="c1"># skip zero entries</span>
+        
+        <span class="c1">#=======================================================================</span>
+        <span class="c1"># filenamewords = [str(batch[0]), str(batch[-1]), &#39;triu&#39;]</span>
+        <span class="c1"># f = self.tmp + &#39;_&#39;.join(filenamewords)</span>
+        <span class="c1"># self.log.message(&quot;MP_empiric_sparse: Saving batch {}-{} to {}. On {}.&quot;</span>
+        <span class="c1">#                 .format(batch[0], batch[-1], f, mp.current_process().name), flush=True)  # @UndefinedVariable</span>
+        <span class="c1"># np.save(f, Dmp)</span>
+        <span class="c1">#=======================================================================</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">Dmp</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="MutualProximity.mp_empiric_sparse"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_empiric_sparse">[docs]</a>    <span class="k">def</span> <span class="nf">mp_empiric_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">empspex</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">empspex</span><span class="p">:</span>
+            <span class="n">Dmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Dmp</span> <span class="o">=</span> <span class="n">lil_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            
+        <span class="c1"># Parallelization</span>
+        <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># take all cpus</span>
+            <span class="n">NUMBER_OF_PROCESSES</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>  <span class="c1"># @UndefinedVariable</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">NUMBER_OF_PROCESSES</span> <span class="o">=</span> <span class="n">n_jobs</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">batches</span> <span class="o">=</span> <span class="n">_get_weighted_batches</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">NUMBER_OF_PROCESSES</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batches</span><span class="p">):</span>
+            <span class="n">matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="c1">#.copy()</span>
+            <span class="k">if</span> <span class="n">empspex</span><span class="p">:</span>
+                <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_partial_mp_empiric_sparse_exact</span><span class="p">,</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)))</span>   
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_partial_mp_empiric_sparse</span><span class="p">,</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)))</span>
+        
+        <span class="n">task_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>     <span class="c1"># @UndefinedVariable</span>
+        <span class="n">done_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>     <span class="c1"># @UndefinedVariable</span>
+        
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+            <span class="n">task_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+            
+        <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">NUMBER_OF_PROCESSES</span><span class="p">):</span>  <span class="c1"># @UnusedVariable</span>
+            <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">_worker</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">task_queue</span><span class="p">,</span> <span class="n">done_queue</span><span class="p">)))</span> <span class="c1"># @UndefinedVariable</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Starting {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">processes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+            <span class="n">processes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>  
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)):</span>  <span class="c1"># @UnusedVariable</span>
+            <span class="n">rows</span><span class="p">,</span> <span class="n">Dmp_part</span> <span class="o">=</span> <span class="n">done_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">task_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s1">&#39;STOP&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Merging submatrix {} (rows {}..{})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rows</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">Dmp</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">Dmp_part</span>
+                        
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+
+        <span class="c1">#=======================================================================</span>
+        <span class="c1"># import os, datetime</span>
+        <span class="c1"># time = datetime.datetime.strftime(datetime.datetime.now(), &#39;%Y-%m-%d-%H-%M-%S&#39;)</span>
+        <span class="c1"># folder = self.tmp + &#39;feldbauer/hubPDBs2/&#39;</span>
+        <span class="c1"># if empspex:</span>
+        <span class="c1">#     filename = &#39;D_mpempspex_triu_&#39;+time</span>
+        <span class="c1"># else:</span>
+        <span class="c1">#     filename = &#39;D_mpemp_triu_&#39;+time</span>
+        <span class="c1"># os.makedirs(folder, exist_ok=True)</span>
+        <span class="c1"># if verbose:</span>
+        <span class="c1">#     self.log.message(&quot;Saving Dmp upper to {} as {}.npy&quot;.format(folder, filename), flush=True)</span>
+        <span class="c1"># np.save(folder + filename, Dmp)</span>
+        <span class="c1">#=======================================================================</span>
+        
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Mirroring distance matrix&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">Dmp</span> <span class="o">+=</span> <span class="n">Dmp</span><span class="o">.</span><span class="n">T</span>
+    
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Setting self distances&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                
+            <span class="k">if</span> <span class="n">empspex</span><span class="p">:</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">Dmp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span><span class="p">)</span> <span class="c1">#need to set self values</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                    <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span>
+            
+        <span class="k">if</span> <span class="n">empspex</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Dmp</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Dmp</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span></div>
+                    
+<div class="viewcode-block" id="MutualProximity.mp_empiric"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_empiric">[docs]</a>    <span class="k">def</span> <span class="nf">mp_empiric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">empspex</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute Mutual Proximity distances with empirical data (slow).&quot;&quot;&quot;</span>   
+        <span class="c1">#TODO implement train_set_mask!</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;MP empiric does not support train/test splits yet.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp_empiric_sparse</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">empspex</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ensure correct self distances (NOT done for sparse matrices!)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;MP empiric does not support parallel execution &quot;</span>
+                             <span class="s2">&quot;for dense matrices at the moment. &quot;</span>
+                             <span class="s2">&quot;Continuing with 1 process.&quot;</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">Dmp_list</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)]</span>
+         
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">((</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="n">n</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;MP_empiric: {} of {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="c1"># Select only finite distances for MP</span>
+            <span class="n">j_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+            <span class="n">j_len</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">j_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+             
+            <span class="n">dI</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:],</span> <span class="p">(</span><span class="n">j_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">dJ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">][:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+             
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                <span class="n">sIJ_intersect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">dI</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dJ</span> <span class="o">&lt;=</span> <span class="n">d</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">sIJ_overlap</span> <span class="o">=</span> <span class="n">sIJ_intersect</span> <span class="o">/</span> <span class="n">n</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sIJ_intersect</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">dI</span> <span class="o">&gt;</span> <span class="n">d</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dJ</span> <span class="o">&gt;</span> <span class="n">d</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">sIJ_overlap</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">sIJ_intersect</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
+            <span class="n">Dmp_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">sIJ_overlap</span>
+                 
+            <span class="n">Dmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">j_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dmp_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dmp_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                    <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span>
+            
+        <span class="k">return</span> <span class="n">Dmp</span></div>
+    
+    <span class="k">def</span> <span class="nf">_partial_mp_gaussi_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sd</span><span class="p">,</span> <span class="n">verbose</span><span class="p">):</span>
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">lil_matrix</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        
+        <span class="c1">#non-vectorized code</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">((</span><span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="o">==</span><span class="n">n</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;MP_gaussi_sparse: {} of {}. On {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">current_process</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>  <span class="c1"># @UndefinedVariable</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">matrix</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>       
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                        <span class="n">p1</span> <span class="o">=</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">mu</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">sd</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+                        <span class="n">p2</span> <span class="o">=</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">mu</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">sd</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                        <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">p1</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="n">mu</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">sd</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+                        <span class="n">p2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">matrix</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">b</span><span class="p">],</span> <span class="n">mu</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">sd</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                        <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                                        
+        <span class="c1">#=======================================================================</span>
+        <span class="c1"># #non-vectorized code</span>
+        <span class="c1"># for i in range(n):</span>
+        <span class="c1">#     if verbose and ((i+1)%1000 == 0 or i+1==n):</span>
+        <span class="c1">#         self.log.message(&quot;MP_gaussi: {} of {}.&quot;</span>
+        <span class="c1">#                          .format(i+1, n), flush=True)</span>
+        <span class="c1">#     for j in range(i+1, n):</span>
+        <span class="c1">#         if self.D[i, j] &gt; 0:       </span>
+        <span class="c1">#             if self.isSimilarityMatrix:</span>
+        <span class="c1">#                 p1 = norm.cdf(self.D[i, j], mu[i], sd[i])</span>
+        <span class="c1">#                 p2 = norm.cdf(self.D[j, i], mu[j], sd[j])</span>
+        <span class="c1">#                 Dmp[i, j] = (p1 * p2).ravel()</span>
+        <span class="c1">#             else:</span>
+        <span class="c1">#                 p1 = 1 - norm.cdf(self.D[i, j], mu[i], sd[i])</span>
+        <span class="c1">#                 p2 = 1 - norm.cdf(self.D[j, i], mu[j], sd[j])</span>
+        <span class="c1">#                 Dmp[i, j] = (1 - p1 * p2).ravel()</span>
+        <span class="c1">#             Dmp[j, i] = Dmp[i, j]</span>
+        <span class="c1">#=======================================================================</span>
+        
+        <span class="k">return</span> <span class="n">batch</span><span class="p">,</span> <span class="n">Dmp</span>
+        
+        
+<div class="viewcode-block" id="MutualProximity.mp_gaussi_sparse"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gaussi_sparse">[docs]</a>    <span class="k">def</span> <span class="nf">mp_gaussi_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="c1"># mean, variance WITH zero values:</span>
+            <span class="kn">from</span> <span class="nn">sklearn.utils.sparsefuncs_fast</span> <span class="kn">import</span> <span class="n">csr_mean_variance_axis0</span>  <span class="c1"># @UnresolvedImport</span>
+            <span class="n">mu</span><span class="p">,</span> <span class="n">va</span> <span class="o">=</span> <span class="n">csr_mean_variance_axis0</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># mean, variance WITHOUT zero values (missing values)</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">getnnz</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">X</span><span class="o">.</span><span class="n">data</span> <span class="o">**=</span> <span class="mi">2</span>
+            <span class="n">E1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">X</span><span class="o">.</span><span class="n">getnnz</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">del</span> <span class="n">X</span>
+            <span class="n">va</span> <span class="o">=</span> <span class="n">E1</span> <span class="o">-</span> <span class="n">mu</span><span class="o">**</span><span class="mi">2</span>
+            <span class="k">del</span> <span class="n">E1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;MP only supports missing values as zeros. Aborting.&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">sd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">va</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">va</span>
+                
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">lil_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        
+        <span class="c1"># Parallelization</span>
+        <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># take all cpus</span>
+            <span class="n">NUMBER_OF_PROCESSES</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>  <span class="c1"># @UndefinedVariable</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">NUMBER_OF_PROCESSES</span> <span class="o">=</span> <span class="n">n_jobs</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">batches</span> <span class="o">=</span> <span class="n">_get_weighted_batches</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">NUMBER_OF_PROCESSES</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batches</span><span class="p">):</span>
+            <span class="n">matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="c1">#.copy()</span>
+            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_partial_mp_gaussi_sparse</span><span class="p">,</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sd</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)))</span>   
+        
+        <span class="n">task_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>     <span class="c1"># @UndefinedVariable</span>
+        <span class="n">done_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>     <span class="c1"># @UndefinedVariable</span>
+        
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+            <span class="n">task_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+            
+        <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">NUMBER_OF_PROCESSES</span><span class="p">):</span>  <span class="c1"># @UnusedVariable</span>
+            <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">_worker</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">task_queue</span><span class="p">,</span> <span class="n">done_queue</span><span class="p">)))</span> <span class="c1"># @UndefinedVariable</span>
+            <span class="n">processes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>  
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)):</span>  <span class="c1"># @UnusedVariable</span>
+            <span class="n">rows</span><span class="p">,</span> <span class="n">Dmp_part</span> <span class="o">=</span> <span class="n">done_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">task_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s1">&#39;STOP&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Merging submatrix {} (rows {}..{})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rows</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">Dmp</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">Dmp_part</span>
+         
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">Dmp</span><span class="o">.</span><span class="n">tolil</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Mirroring distance matrix&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">Dmp</span> <span class="o">+=</span> <span class="n">Dmp</span><span class="o">.</span><span class="n">T</span>
+        
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Setting self distances&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Dmp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Converting to CSR matrix&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Dmp</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span></div>
+
+        <span class="c1"># vectorized code, does not ignore zeros</span>
+        <span class="c1">#=======================================================================</span>
+        <span class="c1"># for i in range(n):</span>
+        <span class="c1">#     if verbose and ((i+1)%1000 == 0 or i+1==n):</span>
+        <span class="c1">#         self.log.message(&quot;MP_gaussi: {} of {}.&quot;</span>
+        <span class="c1">#                          .format(i+1, n), flush=True)</span>
+        <span class="c1">#     j_idx = np.arange(i+1, n)</span>
+        <span class="c1">#     #j_len = np.size(j_idx)</span>
+        <span class="c1">#     </span>
+        <span class="c1">#     Dij = self.D[i, j_idx].toarray().ravel() #Extract dense rows temporarily</span>
+        <span class="c1">#     Dji = self.D[j_idx, i].toarray().ravel() #for vectorization below.</span>
+        <span class="c1">#     </span>
+        <span class="c1">#     p1 = norm.cdf(Dij, mu[i], sd[i]) # mu, sd broadcasted</span>
+        <span class="c1">#     p1[Dij==0] = 0</span>
+        <span class="c1">#     del Dij</span>
+        <span class="c1">#     p2 = norm.cdf(Dji, </span>
+        <span class="c1">#                   mu[j_idx], </span>
+        <span class="c1">#                   sd[j_idx])</span>
+        <span class="c1">#     p2[Dji==0] = 0</span>
+        <span class="c1">#     del Dji</span>
+        <span class="c1">#     #del mu, sd # with del mu, sd, error in line with mu broadcasting</span>
+        <span class="c1">#     tmp = (p1 * p2).ravel()</span>
+        <span class="c1">#     Dmp[i, i] = self.self_value</span>
+        <span class="c1">#     Dmp[i, j_idx] = tmp            </span>
+        <span class="c1">#     Dmp[j_idx, i] = tmp[:, np.newaxis]   </span>
+        <span class="c1">#     del tmp, j_idx</span>
+        <span class="c1">#=======================================================================</span>
+
+<div class="viewcode-block" id="MutualProximity.mp_gaussi"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gaussi">[docs]</a>    <span class="k">def</span> <span class="nf">mp_gaussi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> 
+                  <span class="n">sample_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute Mutual Proximity modeled with independent Gaussians (fast). </span>
+<span class="sd">    </span>
+<span class="sd">        Set sample_size=SIZE to estimate Gaussian distribution from SIZE </span>
+<span class="sd">        samples. Default sample_size=0: use all points.&quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="n">n_jobs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;MP gaussi does not support parallelization so far.&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Similarity-based I.Gaussian MP support is still experimental.&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">issparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">):</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="c1"># need to set self values later on the fly</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp_gaussi_sparse</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;MP gaussi does not support parallel execution for &quot;</span>
+                         <span class="s2">&quot;dense matrices atm. Continuing with 1 process.&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                
+        <span class="c1"># Calculate mean and std</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s1">&#39;Calculating distribution parameters.&#39;</span>
+                            <span class="s1">&#39;Number of samples for parameter estimation: {}&#39;</span><span class="o">.</span>
+                            <span class="n">format</span><span class="p">(</span><span class="n">sample_size</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;MP gaussi does not support missing value handling&quot;</span>
+                             <span class="s2">&quot; for dense matrices atm.&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sample_size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">samples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="n">sample_size</span><span class="p">]</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">samples</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">sd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">samples</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">sd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>             
+    
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">((</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="o">==</span><span class="n">n</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;MP_gaussi: {} of {}.&quot;</span>
+                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">j_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+            <span class="n">j_len</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">j_idx</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                <span class="n">p1</span> <span class="o">=</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">],</span> \
+                              <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">mu</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j_len</span><span class="p">)),</span> \
+                              <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">sd</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j_len</span><span class="p">)))</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> \
+                              <span class="n">mu</span><span class="p">[</span><span class="n">j_idx</span><span class="p">],</span> \
+                              <span class="n">sd</span><span class="p">[</span><span class="n">j_idx</span><span class="p">])</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">p1</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">],</span> \
+                                  <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">mu</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j_len</span><span class="p">)),</span> \
+                                  <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">sd</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j_len</span><span class="p">)))</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> \
+                                  <span class="n">mu</span><span class="p">[</span><span class="n">j_idx</span><span class="p">],</span> \
+                                  <span class="n">sd</span><span class="p">[</span><span class="n">j_idx</span><span class="p">])</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                
+            <span class="n">Dmp</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span>
+    
+        <span class="k">return</span> <span class="n">Dmp</span></div>
+
+    <span class="k">def</span> <span class="nf">_partial_mp_gammai_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">verbose</span><span class="p">):</span>
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">lil_matrix</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">((</span><span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="o">==</span><span class="n">n</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span> <span class="ow">or</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;MP_gammai_sparse: {} of {}. On {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">batch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">current_process</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>  <span class="c1"># @UndefinedVariable</span>
+            <span class="n">j_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">b</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+            <span class="n">j_len</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">j_idx</span><span class="p">)</span>
+             
+            <span class="k">if</span> <span class="n">j_idx</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span> <span class="c1"># nothing to do in the last row</span>
+            <span class="c1">#Dij = matrix[b, j_idx].toarray().ravel() #Extract dense rows temporarily</span>
+            <span class="c1">#Dji = matrix[j_idx, b].toarray().ravel() #for vectorization below.</span>
+            
+            <span class="c1"># avoiding fancy indexing for efficiency reasons</span>
+            <span class="n">Dij</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">j_idx</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="c1">#Extract dense rows temporarily</span>
+            <span class="n">Dji</span> <span class="o">=</span> <span class="n">matrix</span><span class="p">[</span><span class="n">j_idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">j_idx</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="c1">#for vectorization below.</span>
+            
+            <span class="n">p1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_gamcdf</span><span class="p">(</span><span class="n">Dij</span><span class="p">,</span> \
+                                   <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">j_len</span><span class="p">),</span> <span class="c1">#(1, j_len)), \</span>
+                                   <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">B</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">j_len</span><span class="p">))</span> <span class="c1">#(1, j_len)))</span>
+            <span class="k">del</span> <span class="n">Dij</span>
+            
+            <span class="n">p2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_gamcdf</span><span class="p">(</span><span class="n">Dji</span><span class="p">,</span> 
+                                   <span class="n">A</span><span class="p">[</span><span class="n">j_idx</span><span class="p">],</span> 
+                                   <span class="n">B</span><span class="p">[</span><span class="n">j_idx</span><span class="p">])</span>
+            <span class="k">del</span> <span class="n">Dji</span>
+
+            <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span> 
+            <span class="c1">#need to mirror later!!   </span>
+        
+        <span class="k">return</span> <span class="n">batch</span><span class="p">,</span> <span class="n">Dmp</span>
+
+<div class="viewcode-block" id="MutualProximity.mp_gammai_sparse"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gammai_sparse">[docs]</a>    <span class="k">def</span> <span class="nf">mp_gammai_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># TODO implement train_test split</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="c1"># mean, variance WITH zero values:</span>
+            <span class="kn">from</span> <span class="nn">sklearn.utils.sparsefuncs_fast</span> <span class="kn">import</span> <span class="n">csr_mean_variance_axis0</span>  <span class="c1"># @UnresolvedImport</span>
+            <span class="n">mu</span><span class="p">,</span> <span class="n">va</span> <span class="o">=</span> <span class="n">csr_mean_variance_axis0</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># mean, variance WITHOUT zero values (missing values)</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">getnnz</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">X</span><span class="o">.</span><span class="n">data</span> <span class="o">**=</span> <span class="mi">2</span>
+            <span class="n">E1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">X</span><span class="o">.</span><span class="n">getnnz</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">del</span> <span class="n">X</span>
+            <span class="n">va</span> <span class="o">=</span> <span class="n">E1</span> <span class="o">-</span> <span class="n">mu</span><span class="o">**</span><span class="mi">2</span>
+            <span class="k">del</span> <span class="n">E1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;MP only supports missing values as zeros. Aborting.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="n">A</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">va</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">va</span> <span class="o">/</span> <span class="n">mu</span>
+        <span class="k">del</span> <span class="n">mu</span><span class="p">,</span> <span class="n">va</span>
+        <span class="n">A</span><span class="p">[</span><span class="n">A</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">B</span><span class="p">[</span><span class="n">B</span><span class="o">&lt;=</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">lil_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="c1"># Parallelization</span>
+        <span class="k">if</span> <span class="n">n_jobs</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># take all cpus</span>
+            <span class="n">NUMBER_OF_PROCESSES</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>  <span class="c1"># @UndefinedVariable</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">NUMBER_OF_PROCESSES</span> <span class="o">=</span> <span class="n">n_jobs</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">batches</span> <span class="o">=</span> <span class="n">_get_weighted_batches</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">NUMBER_OF_PROCESSES</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batches</span><span class="p">):</span>
+            <span class="n">matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="c1">#.copy() # no copy necessary!</span>
+            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_partial_mp_gammai_sparse</span><span class="p">,</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)))</span>   
+        
+        <span class="n">task_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>     <span class="c1"># @UndefinedVariable</span>
+        <span class="n">done_queue</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>     <span class="c1"># @UndefinedVariable</span>
+        
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+            <span class="n">task_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+            
+        <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">NUMBER_OF_PROCESSES</span><span class="p">):</span>  <span class="c1"># @UnusedVariable</span>
+            <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">_worker</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">task_queue</span><span class="p">,</span> <span class="n">done_queue</span><span class="p">)))</span> <span class="c1"># @UndefinedVariable</span>
+            <span class="n">processes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>  
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)):</span>  <span class="c1"># @UnusedVariable</span>
+            <span class="n">rows</span><span class="p">,</span> <span class="n">Dmp_part</span> <span class="o">=</span> <span class="n">done_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="n">task_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s1">&#39;STOP&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Merging submatrix {} (rows {}..{})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">rows</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rows</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">Dmp</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">Dmp_part</span>
+            
+        <span class="c1">#=======================================================================</span>
+        <span class="c1"># for i in range(NUMBER_OF_PROCESSES):  # @UnusedVariable</span>
+        <span class="c1">#     if verbose:</span>
+        <span class="c1">#         self.log.message(&quot;Finalizing MP process {}&quot;.format(i), flush=True)</span>
+        <span class="c1">#     task_queue.put(&#39;STOP&#39;)</span>
+        <span class="c1">#=======================================================================</span>
+         
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        
+        <span class="c1">#=======================================================================</span>
+        <span class="c1"># import os</span>
+        <span class="c1"># folder = &#39;/tmp/feldbauer/hubPDBs2/&#39;</span>
+        <span class="c1"># filename = &#39;D_mpgammai_triu&#39;</span>
+        <span class="c1"># os.makedirs(folder, exist_ok=True)</span>
+        <span class="c1"># from scipy import io</span>
+        <span class="c1"># if verbose:</span>
+        <span class="c1">#     self.log.message(&quot;Saving Dmp upper to {} as {}&quot;.format(folder, filename), flush=True)</span>
+        <span class="c1"># io.mmwrite(folder + filename, Dmp)</span>
+        <span class="c1">#=======================================================================</span>
+        
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">Dmp</span><span class="o">.</span><span class="n">tolil</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Mirroring distance matrix&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">Dmp</span> <span class="o">+=</span> <span class="n">Dmp</span><span class="o">.</span><span class="n">T</span>
+        
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Setting self distances&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Dmp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;Converting to CSR matrix&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Dmp</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="MutualProximity.mp_gammai"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gammai">[docs]</a>    <span class="k">def</span> <span class="nf">mp_gammai</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_set_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute Mutual Proximity modeled with independent Gamma distributions.&quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">issparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">):</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mp_gammai_sparse</span><span class="p">(</span><span class="n">train_set_mask</span><span class="p">,</span> <span class="n">verbose</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="n">n_jobs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;MP gammai sparse only support similarities atm.&#39;</span>
+                               <span class="s1">&#39; Found distance matrix. Aborting.&#39;</span><span class="p">)</span>
+                <span class="k">return</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;MP gammai does not support parallel execution for &quot;</span>
+                         <span class="s2">&quot;dense matrices at the moment. Continuing with 1 process.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;MP gammai does not support missing value handling&quot;</span>
+                             <span class="s2">&quot;for dense matrices atm.&quot;</span><span class="p">)</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">va</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">train_set_mask</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="p">(</span><span class="n">mu</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">va</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">va</span> <span class="o">/</span> <span class="n">mu</span>
+        
+        <span class="n">Dmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="p">((</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="mi">1000</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="o">==</span><span class="n">n</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">message</span><span class="p">(</span><span class="s2">&quot;MP_gammai: {} of {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">flush</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">j_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+            <span class="n">j_len</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">j_idx</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isSimilarityMatrix</span><span class="p">:</span>
+                <span class="n">p1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_gamcdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">],</span> \
+                                       <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j_len</span><span class="p">)),</span> \
+                                       <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">B</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j_len</span><span class="p">)))</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_gamcdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> 
+                                       <span class="n">A</span><span class="p">[</span><span class="n">j_idx</span><span class="p">],</span> 
+                                       <span class="n">B</span><span class="p">[</span><span class="n">j_idx</span><span class="p">])</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_value</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">p1</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_gamcdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">],</span> \
+                                           <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j_len</span><span class="p">)),</span> \
+                                           <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">B</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j_len</span><span class="p">)))</span>
+                <span class="n">p2</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_gamcdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> 
+                                           <span class="n">A</span><span class="p">[</span><span class="n">j_idx</span><span class="p">],</span> 
+                                           <span class="n">B</span><span class="p">[</span><span class="n">j_idx</span><span class="p">])</span>
+                <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+                
+            <span class="n">Dmp</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dmp</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span>               
+        
+        <span class="k">return</span> <span class="n">Dmp</span></div>
+    
+<div class="viewcode-block" id="MutualProximity.local_gamcdf"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.MutualProximity_parallel.MutualProximity.local_gamcdf">[docs]</a>    <span class="k">def</span> <span class="nf">local_gamcdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">[</span><span class="n">a</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">b</span><span class="p">[</span><span class="n">b</span><span class="o">&lt;=</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">x</span><span class="p">[</span><span class="n">x</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="c1"># don&#39;t calculate gamcdf for missing values</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mv</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">nz</span> <span class="o">=</span> <span class="n">x</span><span class="o">&gt;</span><span class="mi">0</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">nz</span><span class="p">]</span> <span class="o">/</span> <span class="n">b</span><span class="p">[</span><span class="n">nz</span><span class="p">]</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">p</span><span class="p">[</span><span class="n">nz</span><span class="p">]</span> <span class="o">=</span> <span class="n">gammainc</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="n">nz</span><span class="p">],</span> <span class="n">z</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">x</span> <span class="o">/</span> <span class="n">b</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">gammainc</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span></div></div>
+    
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Test mp empiric similarity sparse sequential &amp; parallel implementations&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">scipy.sparse</span> <span class="kn">import</span> <span class="n">rand</span><span class="p">,</span> <span class="n">csr_matrix</span>
+    <span class="c1">#do = &#39;random&#39;</span>
+    <span class="n">do</span> <span class="o">=</span> <span class="s1">&#39;dexter&#39;</span>
+    <span class="k">if</span> <span class="n">do</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">rand</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="s1">&#39;csr&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="mi">42</span><span class="p">)</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">D</span><span class="o">.</span><span class="n">toarray</span><span class="p">())</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">D</span> <span class="o">+</span> <span class="n">D</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">do</span> <span class="o">==</span> <span class="s1">&#39;dexter&#39;</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">hub_toolbox</span> <span class="kn">import</span> <span class="n">HubnessAnalysis</span><span class="p">,</span> <span class="n">KnnClassification</span>
+        <span class="n">D</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">HubnessAnalysis</span><span class="o">.</span><span class="n">HubnessAnalysis</span><span class="p">()</span><span class="o">.</span><span class="n">load_dexter</span><span class="p">()</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">D</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">KnnClassification</span><span class="o">.</span><span class="n">KnnClassification</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+        <span class="n">acc</span><span class="p">,</span> <span class="n">corr</span><span class="p">,</span> <span class="n">cmat</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">perform_knn_classification</span><span class="p">()</span>
+        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">k-NN accuracy:&#39;</span><span class="p">,</span> <span class="n">acc</span><span class="p">)</span>
+    <span class="kn">from</span> <span class="nn">hub_toolbox</span> <span class="kn">import</span> <span class="n">Hubness</span> 
+    <span class="c1">#from hub_toolbox import MutualProximity as MutProx</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Hubness</span><span class="o">.</span><span class="n">Hubness</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+    <span class="n">Sn</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">calculate_hubness</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Hubness:&quot;</span><span class="p">,</span> <span class="n">Sn</span><span class="p">)</span>
+    
+    <span class="c1">#===========================================================================</span>
+    <span class="c1"># mp1 = MutProx.MutualProximity(D, True)</span>
+    <span class="c1"># Dmp1 = mp1.calculate_mutual_proximity(MutProx.Distribution.gammai, None, True, False, 0, None, empspex=False)</span>
+    <span class="c1"># h = Hubness.Hubness(Dmp1, 5, True)</span>
+    <span class="c1"># Sn, _, _ = h.calculate_hubness()</span>
+    <span class="c1"># print(&quot;Hubness (sequential):&quot;, Sn)</span>
+    <span class="c1">#===========================================================================</span>
+    
+    <span class="n">mp2</span> <span class="o">=</span> <span class="n">MutualProximity</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">isSimilarityMatrix</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">missing_values</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">Dmp2</span> <span class="o">=</span> <span class="n">mp2</span><span class="o">.</span><span class="n">calculate_mutual_proximity</span><span class="p">(</span><span class="n">Distribution</span><span class="o">.</span><span class="n">gammai</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">empspex</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Hubness</span><span class="o">.</span><span class="n">Hubness</span><span class="p">(</span><span class="n">Dmp2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">isSimilarityMatrix</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">Sn</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">calculate_hubness</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">do</span> <span class="o">==</span> <span class="s1">&#39;dexter&#39;</span><span class="p">:</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">KnnClassification</span><span class="o">.</span><span class="n">KnnClassification</span><span class="p">(</span><span class="n">Dmp2</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+        <span class="n">acc</span><span class="p">,</span> <span class="n">corr</span><span class="p">,</span> <span class="n">cmat</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">perform_knn_classification</span><span class="p">()</span>
+        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">k-NN accuracy:&#39;</span><span class="p">,</span> <span class="n">acc</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Hubness (parallel):&quot;</span><span class="p">,</span> <span class="n">Sn</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">Dmp2</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">Dmp2</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">Dmp2</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+    
+    <span class="c1">#print(&quot;Summed differences in the scaled matrices:&quot;, (Dmp1-Dmp2).sum())</span>
+    <span class="c1">#print(&quot;D&quot;, D)</span>
+    <span class="c1">#print(&quot;Dmp1&quot;, Dmp1)</span>
+    <span class="c1">#print(&quot;Dmp2&quot;, Dmp2)</span>
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Roman Feldbauer.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'2.3',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

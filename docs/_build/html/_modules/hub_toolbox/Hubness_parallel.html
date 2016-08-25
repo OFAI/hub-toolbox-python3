@@ -161,8 +161,8 @@
 <span class="sd">    neighbor count, i.e. how often does a point occur in the k-nearest </span>
 <span class="sd">    neighbor lists of other points).</span>
 <span class="sd">    </span>
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
 <span class="sd">    D : ndarray</span>
 <span class="sd">        The n x n symmetric distance (similarity) matrix.</span>
 <span class="sd">    </span>
@@ -179,8 +179,8 @@
 <span class="sd">        Number of parallel processes spawned for hubness calculation.</span>
 <span class="sd">        Default value (-1): number of available CPUs.</span>
 <span class="sd">        </span>
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
 <span class="sd">    S_k : float</span>
 <span class="sd">        Hubness (skewness of k-occurence distribution)</span>
 <span class="sd">    D_k : ndarray</span>
@@ -188,8 +188,8 @@
 <span class="sd">    N_k : ndarray</span>
 <span class="sd">        k-occurence list    </span>
 <span class="sd">    </span>
-<span class="sd">    See also:</span>
-<span class="sd">    ---------</span>
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
 <span class="sd">    [1] Radovanović, M., Nanopoulos, A., &amp; Ivanović, M. (2010). </span>
 <span class="sd">    Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data. </span>
 <span class="sd">    Journal of Machine Learning Research, 11, 2487–2531. Retrieved from </span>
@@ -339,10 +339,10 @@
         <span class="k">return</span> <span class="n">hubness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">debug</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">)</span>   </div></div>
         
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">hub_toolbox</span> <span class="kn">import</span> <span class="n">HubnessAnalysis</span> <span class="k">as</span> <span class="n">ha</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">ha</span><span class="o">.</span><span class="n">HubnessAnalysis</span><span class="p">()</span>
-    <span class="n">hub</span> <span class="o">=</span> <span class="n">Hubness</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">D</span><span class="p">)</span>
-    <span class="n">Sn</span><span class="p">,</span> <span class="n">Dk</span><span class="p">,</span> <span class="n">Nk</span> <span class="o">=</span> <span class="n">hub</span><span class="o">.</span><span class="n">calculate_hubness</span><span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Simple test case&quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">hub_toolbox.HubnessAnalysis</span> <span class="kn">import</span> <span class="n">load_dexter</span>
+    <span class="n">D</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">load_dexter</span><span class="p">()</span>
+    <span class="n">Sn</span><span class="p">,</span> <span class="n">Dk</span><span class="p">,</span> <span class="n">Nk</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
     <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Hubness =&quot;</span><span class="p">,</span> <span class="n">Sn</span><span class="p">)</span>
 </pre></div>
 

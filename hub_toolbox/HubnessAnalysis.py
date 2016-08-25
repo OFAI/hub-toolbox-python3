@@ -65,27 +65,29 @@ class HubnessAnalysis():
     For more detailed analyses (optimizing parameters, using similarity data, 
     etc.) please use the individual modules.
     
-    Usage:
-        hub = HubnessAnalysis()
-        hub.analyse_hubness()
-            - Load the example data set and perform a quick hubness analysis 
-            with some of the functions provided in this toolbox.
-
-        hub = HubnessAnalysis(D, classes, vectors)
-        hub.analyse_hubness()
-             - Use the distance matrix D (NxN) together with an optional 
-             class labels vector (classes) and the original (optional) 
-             data vectors (vectors) to perform a full hubness analysis.
-             - Please consult the docstring of this method for additional 
-             parameters (e.g. k-occurence, k-NN)
+    Examples
+    --------
+    # Load the example data set and perform a quick hubness analysis 
+    # with some of the functions provided in this toolbox.
+    >>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
+    >>> hub = HubnessAnalysis()
+    >>> hub.analyse_hubness()
+    
+    # Use the distance matrix D (NxN) together with an optional 
+    # class labels vector (classes) and the original (optional) 
+    # data vectors (vectors) to perform a full hubness analysis.
+    >>> hub = HubnessAnalysis(D, classes, vectors)
+    >>> hub.analyse_hubness()
+    # Please consult the docstring of this method for additional 
+    # parameters (e.g. k-occurence, k-NN)
     """
 
     def __init__(self, D:np.ndarray=None, classes:np.ndarray=None, 
                  vectors:np.ndarray=None, metric:str='distance'):
         """Initialize a quick hubness analysis.
         
-        Parameters:
-        -----------
+        Parameters
+        ----------
         D : ndarray, optional (default: None)
             The n x n symmetric distance (similarity) matrix.
             Default: load example dataset (dexter).
@@ -154,11 +156,12 @@ class HubnessAnalysis():
                         print_results=True, verbose:int=0):
         """Analyse hubness in original data and rescaled distances.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         experiments : str, optional
             Define which experiments to perform. Please provide a string of 
             comma separated values chosen from the following options:
+            
             - "orig" : Original, primary distances
             - "mp" : Mutual Proximity (empiric)
             - "mp_gauss" : Mutual Proximity (Gaussians)
@@ -185,9 +188,9 @@ class HubnessAnalysis():
         verbose : int, optional (default: 0)
             Increasing output verbosity
 
-        Returns:
-        --------
-        self (and optionally prints results to stdout)
+        Returns
+        -------
+        self : optionally prints results to stdout
         """
         experiments = experiments.split(',')
         if self.vectors is not None:
@@ -222,8 +225,8 @@ class HubnessAnalysis():
     def print_analysis_report(self, experiment=None, report_nr:int=0):
         """Print a report of the performed hubness analysis.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         experiment : HubnessExperiment, optional (default: None)
             If given, report only this experiment. Otherwise, report all 
             experiments of this analysis.
@@ -231,8 +234,8 @@ class HubnessAnalysis():
         report_nr : int, optional (default: 0)
             Method only prints headline for first report
 
-        Returns:
-        --------
+        Returns
+        -------
         None : Output is printed to stdout
         """
         if experiment is not None:

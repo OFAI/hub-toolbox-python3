@@ -27,12 +27,13 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
                         trafo:str='var'):
     """Calculate intrinsic dimension based on the MLE by Levina and Bickel [1].
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     X : ndarray
         - An (m x n) vector data matrix with n objects in an 
-        m-dimensional feature space 
+          m-dimensional feature space 
         - An (n x n) distance matrix.
+        
         NOTE: The type must be defined via parameter 'metric'!
         
     k1 : int, optional (default: 6)
@@ -46,19 +47,21 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
     
     metric : {'vector', 'distance'}, optional (default: 'vector')
         Determine data type of 'X'. 
+        
         NOTE: the MLE was derived for euclidean distances. Using 
         other dissimilarity measures may lead to undefined results.
         
     trafo : {None, 'std', 'var'}, optional (default: 'var')
         Transform vector data. 
+        
         - None: no transformation
         - 'std': standardization 
         - 'var': subtract mean, divide by variance (default behavior of 
-                 Laurens van der Maaten's DR toolbox; most likely for other 
-                 ID/DR techniques).
+          Laurens van der Maaten's DR toolbox; most likely for other 
+          ID/DR techniques).
     
-    See also:
-    ---------
+    See also
+    --------
     [1] Levina, E., & Bickel, P. (2004). Maximum likelihood estimation of 
     intrinsic dimension. Advances in Neural Information …, 17, 777–784. 
     http://doi.org/10.2307/2335172

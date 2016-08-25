@@ -146,32 +146,30 @@
 <span class="sd">Contact: &lt;roman.feldbauer@ofai.at&gt;</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">scipy.spatial.distance</span> <span class="kn">import</span> <span class="n">cdist</span>
-<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 
 <div class="viewcode-block" id="cosine_distance"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Distances.cosine_distance">[docs]</a><span class="k">def</span> <span class="nf">cosine_distance</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calculate the cosine distance between all pairs of vectors in X.&quot;&quot;&quot;</span>
     <span class="n">xn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">X</span> <span class="o">=</span> <span class="n">X</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">xn</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="n">D</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="p">)</span>
-    <span class="n">D</span><span class="p">[</span><span class="n">D</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">D</span><span class="p">[</span><span class="n">D</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">triu</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
     <span class="k">return</span> <span class="n">D</span></div>
 
 <div class="viewcode-block" id="euclidean_distance"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Distances.euclidean_distance">[docs]</a><span class="k">def</span> <span class="nf">euclidean_distance</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calculate the euclidean distances between all pairs of vectors in X.&quot;&quot;&quot;</span>
-
     <span class="n">D</span> <span class="o">=</span> <span class="n">cdist</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="s1">&#39;euclidean&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">D</span></div>
 
 <span class="c1"># DEPRECATED</span>
 <div class="viewcode-block" id="Distance"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.Distances.Distance">[docs]</a><span class="k">class</span> <span class="nc">Distance</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Enum for distance metrics.&quot;&quot;&quot;</span>
-    
     <span class="n">cosine</span> <span class="o">=</span> <span class="s1">&#39;cosine&#39;</span>
     <span class="n">euclidean</span> <span class="o">=</span> <span class="s1">&#39;euclidean&#39;</span>
-    <span class="n">skl</span> <span class="o">=</span> <span class="s1">&#39;skl&#39;</span>   </div>
+    <span class="n">skl</span> <span class="o">=</span> <span class="s1">&#39;skl&#39;</span></div>
 </pre></div>
 
            </div>

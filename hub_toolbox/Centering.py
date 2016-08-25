@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-This file is part of the HUB TOOLBOX available at\n
-http://ofai.at/research/impml/projects/hubology.html\n
-Source code is available at https://github.com/OFAI/hub-toolbox-python3/\n
-The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.\n
-\n
-(c) 2015-2016, Roman Feldbauer\n
-Austrian Research Institute for Artificial Intelligence (OFAI)\n
+This file is part of the HUB TOOLBOX available at
+http://ofai.at/research/impml/projects/hubology.html
+Source code is available at https://github.com/OFAI/hub-toolbox-python3/
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
+
+(c) 2015-2016, Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
@@ -36,7 +36,8 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
         - An (n x n) distance matrix of form K = X(X.T), if X is an (n x m) 
           matrix; and of form K = (X.T)X, if X is an (m x n) matrix, 
           where X.T denotes the transpose of X.
-          NOTE: The type must be defined via parameter 'metric'!
+        
+        NOTE: The type must be defined via parameter 'metric'!
         
     metric : {'vector', 'distance'}, optional (Default: 'vector')
         Define, whether 'X' is vector data or a distance matrix.
@@ -48,6 +49,7 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
     Returns
     ------- 
     X_cent : ndarray
+    
         - Centered vectors, when given vector data
         - Centered gram matrix, when given distance data.
         
@@ -94,18 +96,19 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
     X : ndarray
         An (m x n) vector data matrix with n objects in an 
         m-dimensional feature space 
-        
+    
     metric : {'cosine', 'euclidean'}, optional (default: 'cosine')
         Distance measure used to place more weight on objects that are more 
         likely to become hubs. (Defined for 'cosine' in [2], 'euclidean' does 
         not make much sense and might be removed in the future).
-        
+    
     gamma : float, optional (default: 1.0)
         Controls how much we emphasize the weighting effect
+        
         - gamma=0: equivalent to normal centering
         - gamma>0: move origin closer to objects with larger similarity 
           to other objects
-        
+    
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 
         data (training set).

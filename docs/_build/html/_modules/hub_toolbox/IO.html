@@ -146,15 +146,54 @@
 <span class="sd">Contact: &lt;roman.feldbauer@ofai.at&gt;</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">sparse</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">sparse</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.Distances</span> <span class="kn">import</span> <span class="n">cosine_distance</span>
+
+<div class="viewcode-block" id="load_dexter"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.load_dexter">[docs]</a><span class="k">def</span> <span class="nf">load_dexter</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Load the example data set (dexter).</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    D : ndarray</span>
+<span class="sd">        Distance matrix</span>
+<span class="sd">    classes : ndarray</span>
+<span class="sd">        Class label vector</span>
+<span class="sd">    vectors : ndarray</span>
+<span class="sd">        Vector data matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">300</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="mi">20000</span>
+    
+    <span class="c1"># Read class labels</span>
+    <span class="n">classes_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span> <span class="o">+</span>\
+        <span class="s1">&#39;/example_datasets/dexter_train.labels&#39;</span>
+    <span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">classes_file</span><span class="p">)</span>  
+
+    <span class="c1"># Read data</span>
+    <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">dim</span><span class="p">))</span>
+    <span class="n">data_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span> <span class="o">+</span> \
+        <span class="s1">&#39;/example_datasets/dexter_train.data&#39;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">data_file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">fid</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>       
+    <span class="n">row</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="c1"># line now contains pairs of dim:val</span>
+        <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">col</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">word</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+            <span class="n">vectors</span><span class="p">[</span><span class="n">row</span><span class="p">][</span><span class="nb">int</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="n">row</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+    <span class="c1"># Calc distance</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="n">cosine_distance</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">D</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">vectors</span></div>
 
 <div class="viewcode-block" id="copy_D_or_load_memmap"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.copy_D_or_load_memmap">[docs]</a><span class="k">def</span> <span class="nf">copy_D_or_load_memmap</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">writeable</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;DEPRECATED. Return a deep copy of a numpy array (if D is an ndarray), </span>
 <span class="sd">    otherwise return a read-only memmap (if D is a path).&quot;&quot;&quot;</span>
-    
     <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: memmap support will be dropped completely.&quot;</span><span class="p">,</span> 
           <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">):</span>
@@ -162,11 +201,6 @@
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
         <span class="n">newD</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">D</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
     <span class="k">elif</span> <span class="n">sparse</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
-        <span class="c1">#=======================================================================</span>
-        <span class="c1"># log = Logging.ConsoleLogging()</span>
-        <span class="c1"># log.warning(&quot;Not all classes of the hub toolbox support sparse matrices&quot;</span>
-        <span class="c1">#             &quot; as of now. This is work-in-progress.&quot;)</span>
-        <span class="c1">#=======================================================================</span>
         <span class="n">newD</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">D</span><span class="p">):</span>
@@ -187,27 +221,45 @@
 <div class="viewcode-block" id="matrix_split"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.matrix_split">[docs]</a><span class="k">def</span> <span class="nf">matrix_split</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">elem_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">nr_matrices</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Determine how to split a matrix that does not fit into memory. </span>
 <span class="sd">    </span>
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
-<span class="sd">    rows, cols  ... Shape of matrix that should be split.</span>
-<span class="sd">    elem_size   ... memory requirement per matrix element in bytes. E.g. 8 bytes for float64</span>
-<span class="sd">    nr_matrices ... How many times must the split matrix fit into memory?</span>
-<span class="sd">                    This depends on the subsequent operations. \n</span>
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
-<span class="sd">    nr_batches ... number of submatrices</span>
-<span class="sd">    nr_rows    ... number of rows per submatrix. \n</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rows, cols : int </span>
+<span class="sd">        Shape of matrix that should be split.</span>
+<span class="sd">    elem_size : int </span>
+<span class="sd">        memory requirement per matrix element in bytes. E.g. 8 bytes for float64</span>
+<span class="sd">    nr_matrices : int </span>
+<span class="sd">        How many times must the split matrix fit into memory?</span>
+<span class="sd">        This depends on the subsequent operations. \n</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    nr_batches : int</span>
+<span class="sd">        number of submatrices</span>
+<span class="sd">    nr_rows : int</span>
+<span class="sd">        number of rows per submatrix. \n</span>
 <span class="sd">    </span>
-<span class="sd">    Notes:</span>
-<span class="sd">    ------ </span>
-<span class="sd">    1) Submatrices always contain all columns per row. </span>
-<span class="sd">    2) The last batch will usually have less rows than nr_rows</span>
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">        - Submatrices always contain all columns per row. </span>
+<span class="sd">        - The last batch will usually have less rows than nr_rows</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">free_mem</span> <span class="o">=</span> <span class="n">FreeMemLinux</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">user_free</span>        
-    <span class="n">max_rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">free_mem</span> <span class="o">/</span> <span class="n">cols</span> <span class="o">/</span> <span class="n">elem_size</span><span class="p">)</span> 
-    <span class="n">nr_rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_rows</span> <span class="o">/</span> <span class="n">nr_matrices</span><span class="p">)</span> 
+    <span class="n">free_mem</span> <span class="o">=</span> <span class="n">FreeMemLinux</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">user_free</span>
+    <span class="n">max_rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">free_mem</span> <span class="o">/</span> <span class="n">cols</span> <span class="o">/</span> <span class="n">elem_size</span><span class="p">)</span>
+    <span class="n">nr_rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_rows</span> <span class="o">/</span> <span class="n">nr_matrices</span><span class="p">)</span>
     <span class="n">nr_batches</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">rows</span> <span class="o">/</span> <span class="n">nr_rows</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">nr_batches</span><span class="p">,</span> <span class="n">nr_rows</span></div>
+
+<div class="viewcode-block" id="random_sparse_matrix"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.random_sparse_matrix">[docs]</a><span class="k">def</span> <span class="nf">random_sparse_matrix</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a random sparse similarity matrix.</span>
+<span class="sd">    </span>
+<span class="sd">    Values are bounded by [0, 1]. Diagonal is all ones. The final density is</span>
+<span class="sd">    approximately 2*density.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">density</span><span class="p">,</span> <span class="s1">&#39;csr&#39;</span><span class="p">)</span>
+    <span class="n">S</span> <span class="o">+=</span> <span class="n">S</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">S</span> <span class="o">/=</span> <span class="n">S</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">S</span> <span class="o">-=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">S</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">S</span> <span class="o">+=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">diags</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">size</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">S</span></div>
 
 <div class="viewcode-block" id="FreeMemLinux"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IO.FreeMemLinux">[docs]</a><span class="k">class</span> <span class="nc">FreeMemLinux</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Non-cross platform way to get free memory on Linux. </span>

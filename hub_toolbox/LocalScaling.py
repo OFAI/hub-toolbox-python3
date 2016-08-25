@@ -28,8 +28,8 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     scaling methods implemented. The original one and NICDM, both reduce
     hubness in distance spaces, similarly to Mutual Proximity.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     D : ndarray or csr_matrix
         The n x n symmetric distance (similarity) matrix.
     
@@ -38,20 +38,22 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix.
+        
         NOTE: self similarities in sparse D_ls are set to np.inf
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
+        
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set. 
         
-    Returns:
-    --------
+    Returns
+    -------
     D_ls : ndarray
         Secondary distance LocalScaling matrix.
     
-    See also:
-    ---------
+    References
+    ----------
     [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.
@@ -130,8 +132,8 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     contextual dissimilarity measure, both reduce hubness in distance spaces, 
     similarly to Mutual Proximity.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     D : ndarray
         The n x n symmetric distance (similarity) matrix.
     
@@ -143,16 +145,17 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
+        
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set. 
         
-    Returns:
-    --------
+    Returns
+    -------
     D_nicdm : ndarray
         Secondary distance NICDM matrix.
     
-    See also:
-    ---------
+    References
+    ----------
     [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.

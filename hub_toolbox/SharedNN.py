@@ -23,8 +23,8 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     neighbors of two objects. SNN approaches try to symmetrize nearest neighbor 
     relations using only rank and not distance information [2].
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     D : np.ndarray
         The n x n symmetric distance (similarity) matrix.
         
@@ -34,13 +34,13 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether the matrix 'D' is a distance or similarity matrix
 
-    Returns:
-    --------
+    Returns
+    -------
     D_snn : ndarray
         Secondary distance SNN matrix
         
-    See also:
-    ---------    
+    References
+    ---------- 
     [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure 
     based on shared near neighbors,” IEEE Transactions on Computers, 
     vol. 22, pp. 1025–1034, 1973.

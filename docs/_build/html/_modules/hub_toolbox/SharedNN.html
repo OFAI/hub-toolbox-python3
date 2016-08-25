@@ -146,8 +146,8 @@
 <span class="sd">Contact: &lt;roman.feldbauer@ofai.at&gt;</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <div class="viewcode-block" id="shared_nearest_neighbors"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.SharedNN.shared_nearest_neighbors">[docs]</a><span class="k">def</span> <span class="nf">shared_nearest_neighbors</span><span class="p">(</span><span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transform distance matrix using shared nearest neighbors [1].</span>
@@ -156,8 +156,8 @@
 <span class="sd">    neighbors of two objects. SNN approaches try to symmetrize nearest neighbor </span>
 <span class="sd">    relations using only rank and not distance information [2].</span>
 <span class="sd">    </span>
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
 <span class="sd">    D : np.ndarray</span>
 <span class="sd">        The n x n symmetric distance (similarity) matrix.</span>
 <span class="sd">        </span>
@@ -167,13 +167,13 @@
 <span class="sd">    metric : {&#39;distance&#39;, &#39;similarity&#39;}, optional (default: &#39;distance&#39;)</span>
 <span class="sd">        Define, whether the matrix &#39;D&#39; is a distance or similarity matrix</span>
 
-<span class="sd">    Returns:</span>
-<span class="sd">    --------</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
 <span class="sd">    D_snn : ndarray</span>
 <span class="sd">        Secondary distance SNN matrix</span>
 <span class="sd">        </span>
-<span class="sd">    See also:</span>
-<span class="sd">    ---------    </span>
+<span class="sd">    References</span>
+<span class="sd">    ---------- </span>
 <span class="sd">    [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure </span>
 <span class="sd">    based on shared near neighbors,” IEEE Transactions on Computers, </span>
 <span class="sd">    vol. 22, pp. 1025–1034, 1973.</span>
@@ -186,40 +186,50 @@
     <span class="k">if</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Distance/similarity matrix is not quadratic.&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;distance&#39;</span><span class="p">:</span>
+        <span class="n">self_value</span> <span class="o">=</span> <span class="mf">0.</span>
         <span class="n">sort_order</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">exclude</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
     <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span>
+        <span class="n">self_value</span> <span class="o">=</span> <span class="mf">1.</span>
         <span class="n">sort_order</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">exclude</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Parameter &#39;metric&#39; must be &quot;</span>
                          <span class="s2">&quot;&#39;distance&#39; or &#39;similarity&#39;.&quot;</span><span class="p">)</span>
-    <span class="c1"># need to copy matrix, because it is modified later</span>
-    <span class="n">self_D</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     
-    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">self_D</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">self_D</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+    <span class="n">distance</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="n">exclude</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">distance</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">knn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+    
+    <span class="c1"># find nearest neighbors for each point</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-        <span class="n">di</span> <span class="o">=</span> <span class="n">self_D</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
-        <span class="n">di</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="n">di</span> <span class="o">=</span> <span class="n">distance</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
         <span class="n">nn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">di</span><span class="p">)[::</span><span class="n">sort_order</span><span class="p">]</span>
-        <span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">nn</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">k</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
-        
-    <span class="n">D_snn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">self_D</span><span class="p">)</span>
+        <span class="n">knn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">nn</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">k</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">True</span>
+    
+    <span class="n">D_snn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">distance</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-        <span class="n">zi</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
-        <span class="n">j_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">knn_i</span> <span class="o">=</span> <span class="n">knn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">j_idx</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
         
         <span class="c1"># using broadcasting</span>
-        <span class="n">Dij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">zi</span><span class="p">,</span> <span class="n">z</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="p">:]),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">Dij</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">knn_i</span><span class="p">,</span> <span class="n">knn</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="p">:]),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;distance&#39;</span><span class="p">:</span>
+            <span class="n">D_snn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">Dij</span> <span class="o">/</span> <span class="n">k</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># metric == &#39;similarity&#39;:</span>
+            <span class="n">D_snn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dij</span> <span class="o">/</span> <span class="n">k</span>
         
-        <span class="n">D_snn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">Dij</span> <span class="o">/</span> <span class="n">k</span>
-        <span class="n">D_snn</span><span class="p">[</span><span class="n">j_idx</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">D_snn</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j_idx</span><span class="p">]</span>
-
+    <span class="n">D_snn</span> <span class="o">+=</span> <span class="n">D_snn</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">D_snn</span><span class="p">,</span> <span class="n">self_value</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">D_snn</span></div>
 
 <div class="viewcode-block" id="SharedNN"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.SharedNN.SharedNN">[docs]</a><span class="k">class</span> <span class="nc">SharedNN</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; DEPRECATED class.&quot;&quot;&quot;</span>
-    
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">isSimilarityMatrix</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;DEPRECATED&quot;&quot;&quot;</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: Please use SharedNN.shared_nearest_neighbors() &quot;</span>
+              <span class="s2">&quot;instead.&quot;</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">k</span> <span class="o">=</span> <span class="n">k</span>
         <span class="k">if</span> <span class="n">isSimilarityMatrix</span><span class="p">:</span>
@@ -229,9 +239,6 @@
         
 <div class="viewcode-block" id="SharedNN.perform_snn"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.SharedNN.SharedNN.perform_snn">[docs]</a>    <span class="k">def</span> <span class="nf">perform_snn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Transform distance matrix using shared nearest neighbor.&quot;&quot;&quot;</span>
-        
-        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;DEPRECATED: Please use SharedNN.shared_nearest_neighbors() &quot;</span>
-              <span class="s2">&quot;instead.&quot;</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_order</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;similarity&#39;</span>
         <span class="k">else</span><span class="p">:</span>

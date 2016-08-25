@@ -22,8 +22,8 @@ from hub_toolbox.Distances import cosine_distance
 def load_dexter():
     """Load the example data set (dexter).
     
-    Returns:
-    --------
+    Returns
+    -------
     D : ndarray
         Distance matrix
     classes : ndarray
@@ -88,21 +88,27 @@ def copy_D_or_load_memmap(D, writeable=False):
 def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
     """Determine how to split a matrix that does not fit into memory. 
     
-    Parameters:
-    -----------
-    rows, cols  ... Shape of matrix that should be split.
-    elem_size   ... memory requirement per matrix element in bytes. E.g. 8 bytes for float64
-    nr_matrices ... How many times must the split matrix fit into memory?
-                    This depends on the subsequent operations. \n
-    Returns:
-    --------
-    nr_batches ... number of submatrices
-    nr_rows    ... number of rows per submatrix. \n
+    Parameters
+    ----------
+    rows, cols : int 
+        Shape of matrix that should be split.
+    elem_size : int 
+        memory requirement per matrix element in bytes. E.g. 8 bytes for float64
+    nr_matrices : int 
+        How many times must the split matrix fit into memory?
+        This depends on the subsequent operations. \n
     
-    Notes:
-    ------ 
-    1) Submatrices always contain all columns per row. 
-    2) The last batch will usually have less rows than nr_rows
+    Returns
+    -------
+    nr_batches : int
+        number of submatrices
+    nr_rows : int
+        number of rows per submatrix.
+    
+    Notes
+    -----
+        - Submatrices always contain all columns per row. 
+        - The last batch will usually have less rows than nr_rows
     """
     free_mem = FreeMemLinux(unit='k').user_free
     max_rows = int(free_mem / cols / elem_size)

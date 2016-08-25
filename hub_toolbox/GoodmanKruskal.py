@@ -33,8 +33,8 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
         
     gamma is bounded to [-1, 1], where larger values indicate better clustering.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     D : ndarray
         The n x n symmetric distance (similarity) matrix.
     
@@ -43,9 +43,9 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether the matrix 'D' is a distance or similarity matrix
-
-    Returns:
-    --------
+    
+    Returns
+    -------
     gamma : float
         Goodman-Kruskal index in [-1, 1] (higher=better)
     """
@@ -145,8 +145,8 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     gamma is bounded to [-1, 1], where larger values indicate better 
     clustering.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     S : csr_matrix
         The n x n symmetric similarity matrix.
     
@@ -155,8 +155,9 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     
     metric : {'similarity', 'distance'}, optional (default: 'similarity')
         Define, whether the matrix 'D' is a distance or similarity matrix.
+        
         NOTE: 'distance' is used for debugging purposes only. Use standard
-              goodman_kruskal_index function for distance matrices.
+        goodman_kruskal_index function for distance matrices.
               
     zero_mv : boolean, optional (default: False)
         Treat zeros as missing values, i.e. tuples with any zero
@@ -165,16 +166,17 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     heuristic : {None, 'equal_sim'}, optional (default: None)
         * None - Exact GK
         * 'equal_sim' - omit expensive search for equal similarities
-                        Useful, when no/few equal similarites are expected.
-                        Do NOT use in case of SharedNN matrices!
-                        NOTE: Equal zero similarities are still considered
-                              when using this heuristic.
+          Useful, when no/few equal similarites are expected.
+          Do NOT use in case of SharedNN matrices!
+                        
+        NOTE: Equal zero similarities are still considered
+        when using the heuristic.
     
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
 
-    Returns:
-    --------
+    Returns
+    -------
     gamma : float
         Goodman-Kruskal index in [-1, 1] (higher=better)
     """

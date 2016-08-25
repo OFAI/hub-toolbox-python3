@@ -32,18 +32,20 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     the empiric data distribution (EXACT, rather SLOW). The resulting 
     secondary distance/similarity matrix should show lower hubness.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     D : ndarray or csr_matrix
         - ndarray: The n x n symmetric distance or similarity matrix.
         - csr_matrix: The n x n symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix.
+        
         NOTE: In case of sparse D, only 'similarity' is supported.
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
+        
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set. 
         
@@ -52,15 +54,16 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
         
     n_jobs : int, optional (default: -1)
         Number of parallel processes to be used.
+        
         NOTE: set n_jobs=-1 to use all CPUs
         
-    Returns:
-    --------
+    Returns
+    -------
     D_mp : ndarray
         Secondary distance MP empiric matrix.
     
-    See also:
-    ---------
+    References
+    ----------
     [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.
@@ -207,39 +210,42 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     variant assumes independent normal distributions (FAST).
     The resulting second. distance/similarity matrix should show lower hubness.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     D : ndarray or csr_matrix
         - ndarray: The n x n symmetric distance or similarity matrix.
         - csr_matrix: The n x n symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix.
-        NOTE: In case of sparse D, only 'similarity' is supported.
         
+        NOTE: In case of sparse D, only 'similarity' is supported.
+    
     sample_size : int, optional (default: 0)
         Define sample size from which Gauss parameters are estimated.
         Use all data when set to 0.
-        
+    
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
+        
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set. 
-        
+    
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
     
     n_jobs : int, optional (default: -1)
         Number of parallel processes to be used.
+        
         NOTE: set n_jobs=-1 to use all CPUs
     
-    Returns:
-    --------
+    Returns
+    -------
     D_mp : ndarray
         Secondary distance MP gaussi matrix.
     
-    See also:
-    ---------
+    References
+    ----------
     [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.
@@ -400,18 +406,20 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     variant assumes independent Gamma distributed distances (FAST).
     The resulting second. distance/similarity matrix should show lower hubness.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     D : ndarray or csr_matrix
         - ndarray: The n x n symmetric distance or similarity matrix.
         - csr_matrix: The n x n symmetric similarity matrix.
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix 'D' is a distance or similarity matrix.
+        
         NOTE: In case of sparse D, only 'similarity' is supported.
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
+        
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set. 
         
@@ -420,15 +428,16 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
         
     n_jobs : int, optional (default: -1)
         Number of parallel processes to be used.
+        
         NOTE: set n_jobs=-1 to use all CPUs
         
-    Returns:
-    --------
+    Returns
+    -------
     D_mp : ndarray
         Secondary distance MP gammai matrix.
     
-    See also:
-    ---------
+    References
+    ----------
     [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
     Local and global scaling reduce hubs in space. The Journal of Machine 
     Learning Research, 13(1), 2871–2902.

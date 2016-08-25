@@ -28,8 +28,8 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     neighbor count, i.e. how often does a point occur in the k-nearest 
     neighbor lists of other points).
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     D : ndarray
         The n x n symmetric distance (similarity) matrix.
     
@@ -46,8 +46,8 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         Number of parallel processes spawned for hubness calculation.
         Default value (-1): number of available CPUs.
         
-    Returns:
-    --------
+    Returns
+    -------
     S_k : float
         Hubness (skewness of k-occurence distribution)
     D_k : ndarray
@@ -55,8 +55,8 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     N_k : ndarray
         k-occurence list    
     
-    See also:
-    ---------
+    See also
+    --------
     [1] Radovanović, M., Nanopoulos, A., & Ivanović, M. (2010). 
     Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data. 
     Journal of Machine Learning Research, 11, 2487–2531. Retrieved from 

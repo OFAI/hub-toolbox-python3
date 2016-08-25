@@ -138,8 +138,7 @@
 <span id="hub-toolbox-centering-module"></span><h2>hub_toolbox.Centering module<a class="headerlink" href="#module-hub_toolbox.Centering" title="Permalink to this headline">¶</a></h2>
 <p>This file is part of the HUB TOOLBOX available at
 <a class="reference external" href="http://ofai.at/research/impml/projects/hubology.html">http://ofai.at/research/impml/projects/hubology.html</a>
-Source code is available at
-<a class="reference external" href="https://github.com/OFAI/hub-toolbox-python3/">https://github.com/OFAI/hub-toolbox-python3/</a>
+Source code is available at <a class="reference external" href="https://github.com/OFAI/hub-toolbox-python3/">https://github.com/OFAI/hub-toolbox-python3/</a>
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.</p>
 <p>(c) 2015-2016, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
@@ -156,14 +155,14 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 </dd></dl>
 
 <dl class="method">
-<dt id="hub_toolbox.Centering.Centering.disSim_global">
-<code class="descname">disSim_global</code><span class="sig-paren">(</span><em>test_set_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#Centering.disSim_global"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.Centering.disSim_global" title="Permalink to this definition">¶</a></dt>
+<dt id="hub_toolbox.Centering.Centering.dis_sim_global">
+<code class="descname">dis_sim_global</code><span class="sig-paren">(</span><em>test_set_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#Centering.dis_sim_global"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.Centering.dis_sim_global" title="Permalink to this definition">¶</a></dt>
 <dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="hub_toolbox.Centering.Centering.disSim_local">
-<code class="descname">disSim_local</code><span class="sig-paren">(</span><em>k</em>, <em>test_set_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#Centering.disSim_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.Centering.disSim_local" title="Permalink to this definition">¶</a></dt>
+<dt id="hub_toolbox.Centering.Centering.dis_sim_local">
+<code class="descname">dis_sim_local</code><span class="sig-paren">(</span><em>k</em>, <em>test_set_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#Centering.dis_sim_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.Centering.dis_sim_local" title="Permalink to this definition">¶</a></dt>
 <dd><p>DEPRECATED</p>
 </dd></dl>
 
@@ -183,175 +182,218 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 
 <dl class="function">
 <dt id="hub_toolbox.Centering.centering">
-<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">centering</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>metric: str</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#centering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.centering" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">centering</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>metric: str='vector'</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#centering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.centering" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform  centering, i.e. shift the origin to the data centroid.</p>
 <p>Centering of vector data X with n objects in an m-dimensional feature space.
 The mean of each feature is calculated and subtracted from each point [1].
 In distance based mode, it must be checked upstream, that the distance
 matrix is a gram matrix as described below!</p>
-<dl class="docutils">
-<dt>X <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><ul class="first simple">
-<li>An (m x n) vector data matrix with n objects in an</li>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> (<em>ndarray</em>) &#8211; <ul>
+<li>An (m x n) vector data matrix with n objects in an
+m-dimensional feature space</li>
+<li>An (n x n) distance matrix of form K = X(X.T), if X is an (n x m)
+matrix; and of form K = (X.T)X, if X is an (m x n) matrix,
+where X.T denotes the transpose of X.</li>
 </ul>
-<p class="last">m-dimensional feature space 
-- An (n x n) distance matrix of form K = X(X.T), if X is an (n x m) 
-matrix; and of form K = (X.T)X, if X is an (m x n) matrix, 
-where X.T denotes the transpose of X.
-NOTE: The type must be defined via parameter &#8216;metric&#8217;!</p>
-</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;vector&#8217;, &#8216;distance&#8217;}</span></dt>
-<dd>Define, whether &#8216;X&#8217; is vector data or a distance matrix.</dd>
-<dt>test_set_mask <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, optional (default: None)</span></dt>
-<dd>Hold back data as a test set and perform centering on the remaining 
-data (training set).</dd>
-</dl>
-<dl class="docutils">
-<dt>X_cent <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><ul class="first last simple">
+<p>NOTE: The type must be defined via parameter &#8216;metric&#8217;!</p>
+</li>
+<li><strong>metric</strong> (<em>{'vector', 'distance'}, optional (Default: 'vector')</em>) &#8211; Define, whether &#8216;X&#8217; is vector data or a distance matrix.</li>
+<li><strong>test_set_mask</strong> (<em>ndarray, optional (default: None)</em>) &#8211; Hold back data as a test set and perform centering on the remaining
+data (training set).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><p><strong>X_cent</strong> &#8211;</p>
+<ul class="simple">
 <li>Centered vectors, when given vector data</li>
 <li>Centered gram matrix, when given distance data.</li>
 </ul>
-</dd>
-</dl>
-<p>[1] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., &amp; Fukumizu, K. (2013). 
-Centering similarity measures to reduce hubs. In Proceedings of the 2013 
-Conference on Empirical Methods in Natural Language Processing (pp 613–623). 
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">[1] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., &amp; Fukumizu, K. (2013).
+Centering similarity measures to reduce hubs. In Proceedings of the 2013
+Conference on Empirical Methods in Natural Language Processing (pp 613–623).
 Retrieved from <a class="reference external" href="https://www.aclweb.org/anthology/D/D13/D13-1058.pdf">https://www.aclweb.org/anthology/D/D13/D13-1058.pdf</a></p>
+</div>
 </dd></dl>
 
 <dl class="function">
-<dt id="hub_toolbox.Centering.disSim_global">
-<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">disSim_global</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#disSim_global"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.disSim_global" title="Permalink to this definition">¶</a></dt>
+<dt id="hub_toolbox.Centering.dis_sim_global">
+<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">dis_sim_global</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#dis_sim_global"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.dis_sim_global" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate dissimilarity based on global &#8216;sample-wise centrality&#8217; [4].</p>
-<dl class="docutils">
-<dt>X <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><ul class="first last simple">
-<li>An (m x n) vector data matrix with n objects in an 
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> (<em>ndarray</em>) &#8211; An (m x n) vector data matrix with n objects in an
 m-dimensional feature space</li>
+<li><strong>test_set_mask</strong> (<em>ndarray, optional (default: None)</em>) &#8211; Hold back data as a test set and perform centering on the remaining
+data (training set).</li>
 </ul>
-</dd>
-<dt>test_set_mask <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, optional (default: None)</span></dt>
-<dd>Hold back data as a test set and perform centering on the remaining 
-data (training set).</dd>
-</dl>
-<dl class="docutils">
-<dt>D_dsg <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>Secondary distance (DisSimGlobal) matrix.</dd>
-</dl>
-<p>[4] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., &amp; 
-Radovanović, M. (2016). Flattening the density gradient for eliminating 
-spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI 
-Conference on Artificial Intelligence (AAAI ’16), 1659–1665. Retrieved from 
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_dsg</strong> &#8211;
+Secondary distance (DisSimGlobal) matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">[4] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., &amp;
+Radovanović, M. (2016). Flattening the density gradient for eliminating
+spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI
+Conference on Artificial Intelligence (AAAI ’16), 1659–1665. Retrieved from
 <a class="reference external" href="http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12055/11787">http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12055/11787</a></p>
+</div>
 </dd></dl>
 
 <dl class="function">
-<dt id="hub_toolbox.Centering.disSim_local">
-<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">disSim_local</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>k: int</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#disSim_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.disSim_local" title="Permalink to this definition">¶</a></dt>
+<dt id="hub_toolbox.Centering.dis_sim_local">
+<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">dis_sim_local</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>k: int=10</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#dis_sim_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.dis_sim_local" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate dissimilarity based on local &#8216;sample-wise centrality&#8217; [5].</p>
-<dl class="docutils">
-<dt>X <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><ul class="first last simple">
-<li>An (m x n) vector data matrix with n objects in an 
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> (<em>ndarray</em>) &#8211; An (m x n) vector data matrix with n objects in an
 m-dimensional feature space</li>
+<li><strong>k</strong> (<em>int, optional (default: 10)</em>) &#8211; Neighborhood size used for determining the local centroids.
+Can be optimized as to maximally reduce hubness [5].</li>
+<li><strong>test_set_mask</strong> (<em>ndarray, optional (default: None)</em>) &#8211; Hold back data as a test set and perform centering on the remaining
+data (training set).</li>
 </ul>
-</dd>
-<dt>k <span class="classifier-delimiter">:</span> <span class="classifier">int</span></dt>
-<dd>Neighborhood size used for determining the local centroids.</dd>
-<dt>test_set_mask <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, optional (default: None)</span></dt>
-<dd>Hold back data as a test set and perform centering on the remaining 
-data (training set).</dd>
-</dl>
-<dl class="docutils">
-<dt>D_dsl <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>Secondary distance (DisSimLocal) matrix.</dd>
-</dl>
-<p>[5] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., &amp; 
-Radovanović, M. (2016). Flattening the density gradient for eliminating 
-spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI 
-Conference on Artificial Intelligence (AAAI ’16), 1659–1665. Retrieved from 
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_dsl</strong> &#8211;
+Secondary distance (DisSimLocal) matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">[5] Hara, K., Suzuki, I., Kobayashi, K., Fukumizu, K., &amp;
+Radovanović, M. (2016). Flattening the density gradient for eliminating
+spatial centrality to reduce hubness. Proceedings of the Thirtieth AAAI
+Conference on Artificial Intelligence (AAAI ’16), 1659–1665. Retrieved from
 <a class="reference external" href="http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12055/11787">http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/12055/11787</a></p>
+</div>
 </dd></dl>
 
 <dl class="function">
 <dt id="hub_toolbox.Centering.localized_centering">
-<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">localized_centering</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>metric: str</em>, <em>kappa: float</em>, <em>gamma: float</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#localized_centering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.localized_centering" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">localized_centering</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>metric: str='cosine'</em>, <em>kappa: int=40</em>, <em>gamma: float=1.0</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#localized_centering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.localized_centering" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform localized centering.</p>
 <p>Reduce hubness in datasets according to the method proposed in [3].</p>
-<dl class="docutils">
-<dt>X <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><ul class="first simple">
-<li>An (m x n) vector data matrix with n objects in an</li>
-</ul>
-<p class="last">m-dimensional feature space</p>
-</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;cosine&#8217;, &#8216;euclidean&#8217;}</span></dt>
-<dd>Distance measure used to place more weight on objects that are more 
-likely to become hubs. (Defined for &#8216;cosine&#8217; in [2], &#8216;euclidean&#8217; does 
-not make much sense and might be removed in the future).</dd>
-<dt>kappa <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Local segment size, determines the size of the local neighborhood for 
-calculating the local affinity. When kappa=n localized centering 
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> (<em>ndarray</em>) &#8211; An (m x n) vector data matrix with n objects in an
+m-dimensional feature space</li>
+<li><strong>metric</strong> (<em>{'cosine', 'euclidean'}</em>) &#8211; Distance measure used to place more weight on objects that are more
+likely to become hubs. (Defined for &#8216;cosine&#8217; in [2], &#8216;euclidean&#8217; does
+not make much sense and might be removed in the future).</li>
+<li><strong>kappa</strong> (<em>int, optional (default: 40)</em>) &#8211; Local segment size, determines the size of the local neighborhood for
+calculating the local affinity. When kappa=n localized centering
 reduces to standard centering.
 &#8220;select κ depending on the dataset, so that the correlation between
-Nk(x) and the local affinity &lt;x, cκ(x)&gt; is maximized&#8221; [3]</dd>
-<dt>gamma <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Control the degree of penalty, so that used the similarity score 
+Nk(x) and the local affinity &lt;x, cκ(x)&gt; is maximized&#8221; [3]</li>
+<li><strong>gamma</strong> (<em>float, optional (default: 1.0)</em>) &#8211; Control the degree of penalty, so that used the similarity score
 is smaller depending on how likely a point is to become a hub.
-&#8220;Parameter γ can be tuned so as to maximally reduce the skewness 
-of the Nk distribution&#8221; [3].</dd>
-<dt>test_set_mask <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, optional (default: None)</span></dt>
-<dd>Hold back data as a test set and perform centering on the remaining 
-data (training set).</dd>
-</dl>
-<dl class="docutils">
-<dt>D_lcent <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>Secondary distance (localized centering) matrix.</dd>
-</dl>
-<p>[3] Hara, K., Suzuki, I., Shimbo, M., Kobayashi, K., Fukumizu, K., &amp; 
-Radovanović, M. (2015). Localized centering: Reducing hubness in 
-large-sample data hubness in high-dimensional data. In AAAI ’15: 
-Proceedings of the 29th AAAI Conference on Artificial Intelligence 
+&#8220;Parameter γ can be tuned so as to maximally reduce the skewness
+of the Nk distribution&#8221; [3].</li>
+<li><strong>test_set_mask</strong> (<em>ndarray, optional (default: None)</em>) &#8211; Hold back data as a test set and perform centering on the remaining
+data (training set).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>S_lcent</strong> &#8211;
+Secondary similarity (localized centering) matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">[3] Hara, K., Suzuki, I., Shimbo, M., Kobayashi, K., Fukumizu, K., &amp;
+Radovanović, M. (2015). Localized centering: Reducing hubness in
+large-sample data hubness in high-dimensional data. In AAAI ’15:
+Proceedings of the 29th AAAI Conference on Artificial Intelligence
 (pp. 2645–2651).</p>
+</div>
 </dd></dl>
 
 <dl class="function">
 <dt id="hub_toolbox.Centering.weighted_centering">
-<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">weighted_centering</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>metric: str</em>, <em>gamma: float</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#weighted_centering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.weighted_centering" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">hub_toolbox.Centering.</code><code class="descname">weighted_centering</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>metric: str='cosine'</em>, <em>gamma: float=1.0</em>, <em>test_set_mask: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Centering.html#weighted_centering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Centering.weighted_centering" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform  weighted centering: shift origin to the weighted data mean</p>
-<p>Move the origin more actively towards hub objects in the dataset, 
+<p>Move the origin more actively towards hub objects in the dataset,
 rather than towards the data centroid [2].</p>
-<dl class="docutils">
-<dt>X <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><ul class="first simple">
-<li>An (m x n) vector data matrix with n objects in an</li>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>X</strong> (<em>ndarray</em>) &#8211; An (m x n) vector data matrix with n objects in an
+m-dimensional feature space</li>
+<li><strong>metric</strong> (<em>{'cosine', 'euclidean'}, optional (default: 'cosine')</em>) &#8211; Distance measure used to place more weight on objects that are more
+likely to become hubs. (Defined for &#8216;cosine&#8217; in [2], &#8216;euclidean&#8217; does
+not make much sense and might be removed in the future).</li>
+<li><strong>gamma</strong> (<em>float, optional (default: 1.0)</em>) &#8211; <p>Controls how much we emphasize the weighting effect</p>
+<ul>
+<li>gamma=0: equivalent to normal centering</li>
+<li>gamma&gt;0: move origin closer to objects with larger similarity
+to other objects</li>
 </ul>
-<p class="last">m-dimensional feature space</p>
-</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;cosine&#8217;, &#8216;euclidean&#8217;}</span></dt>
-<dd>Distance measure used to place more weight on objects that are more 
-likely to become hubs. (Defined for &#8216;cosine&#8217; in [2], &#8216;euclidean&#8217; does 
-not make much sense and might be removed in the future).</dd>
-<dt>gamma <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><p class="first">Controls how much we emphasize the weighting effect
-- gamma=0: equivalent to normal centering
-- gamma&gt;0: move origin closer to objects with larger similarity</p>
-<blockquote class="last">
-<div>to other objects</div></blockquote>
-</dd>
-<dt>test_set_mask <span class="classifier-delimiter">:</span> <span class="classifier">ndarray, optional (default: None)</span></dt>
-<dd>Hold back data as a test set and perform centering on the remaining 
-data (training set).</dd>
-</dl>
-<dl class="docutils">
-<dt>X_wcent <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>Weighted centered vectors.</dd>
-</dl>
-<p>[2] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., &amp; Fukumizu, K. (2013). 
-Centering similarity measures to reduce hubs. In Proceedings of the 2013 
-Conference on Empirical Methods in Natural Language Processing (pp 613–623). 
+</li>
+<li><strong>test_set_mask</strong> (<em>ndarray, optional (default: None)</em>) &#8211; Hold back data as a test set and perform centering on the remaining
+data (training set).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>X_wcent</strong> &#8211;
+Weighted centered vectors.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">[2] Suzuki, I., Hara, K., Shimbo, M., Saerens, M., &amp; Fukumizu, K. (2013).
+Centering similarity measures to reduce hubs. In Proceedings of the 2013
+Conference on Empirical Methods in Natural Language Processing (pp 613–623).
 Retrieved from <a class="reference external" href="https://www.aclweb.org/anthology/D/D13/D13-1058.pdf">https://www.aclweb.org/anthology/D/D13/D13-1058.pdf</a></p>
+</div>
 </dd></dl>
 
 </div>
@@ -414,77 +456,105 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.GoodmanKruskal.GoodmanKruskal">
 <em class="property">class </em><code class="descclassname">hub_toolbox.GoodmanKruskal.</code><code class="descname">GoodmanKruskal</code><span class="sig-paren">(</span><em>D</em>, <em>classes</em>, <em>isSimilarityMatrix=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/GoodmanKruskal.html#GoodmanKruskal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.GoodmanKruskal.GoodmanKruskal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>DEPRECATED</p>
 <dl class="method">
 <dt id="hub_toolbox.GoodmanKruskal.GoodmanKruskal.calculate_goodman_kruskal_index">
 <code class="descname">calculate_goodman_kruskal_index</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &rarr; float<a class="reference internal" href="_modules/hub_toolbox/GoodmanKruskal.html#GoodmanKruskal.calculate_goodman_kruskal_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.GoodmanKruskal.GoodmanKruskal.calculate_goodman_kruskal_index" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate the Goodman-Kruskal clustering index.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="function">
 <dt id="hub_toolbox.GoodmanKruskal.goodman_kruskal_index">
-<code class="descclassname">hub_toolbox.GoodmanKruskal.</code><code class="descname">goodman_kruskal_index</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>classes: numpy.ndarray</em>, <em>metric='distance'</em><span class="sig-paren">)</span> &rarr; float<a class="reference internal" href="_modules/hub_toolbox/GoodmanKruskal.html#goodman_kruskal_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.GoodmanKruskal.goodman_kruskal_index" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">hub_toolbox.GoodmanKruskal.</code><code class="descname">goodman_kruskal_index</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>classes: numpy.ndarray</em>, <em>metric: str='distance'</em><span class="sig-paren">)</span> &rarr; float<a class="reference internal" href="_modules/hub_toolbox/GoodmanKruskal.html#goodman_kruskal_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.GoodmanKruskal.goodman_kruskal_index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the Goodman-Kruskal clustering index.</p>
-<p>This clustering quality measure relates the number of concordant (Q_c) 
+<p>This clustering quality measure relates the number of concordant (Q_c)
 and discordant (Q_d) quadruples (d_ij, d_kl) of a distance matrix.
-We only consider tuples, so that i, j are from the same class 
+We only consider tuples, so that i, j are from the same class
 and k, l are from different classes. Then a quadruple is...
 concordant, if d_ij &lt; d_kl
 discordant, if d_ij &gt; d_kl
 non counted, otherwise.</p>
 <dl class="docutils">
-<dt>The Goodman-Kruskal index gamma is defined as: </dt>
+<dt>The Goodman-Kruskal index gamma is defined as:</dt>
 <dd>gamma = (Q_c - Q_d) / (Q_c + Q_d)</dd>
 </dl>
 <p>gamma is bounded to [-1, 1], where larger values indicate better clustering.</p>
-<dl class="docutils">
-<dt>D <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>The n x n symmetric distance (similarity) matrix.</dd>
-<dt>classes <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>The 1 x n vector of class labels for each point.</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;distance&#8217;, &#8216;similarity&#8217;}, optional (default: &#8216;distance&#8217;)</span></dt>
-<dd>Define, whether the matrix &#8216;D&#8217; is a distance or similarity matrix</dd>
-</dl>
-<dl class="docutils">
-<dt>gamma <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Goodman-Kruskal index in [-1, 1] (higher=better)</dd>
-</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray</em>) &#8211; The n x n symmetric distance (similarity) matrix.</li>
+<li><strong>classes</strong> (<em>ndarray</em>) &#8211; The 1 x n vector of class labels for each point.</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; Define, whether the matrix &#8216;D&#8217; is a distance or similarity matrix</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gamma</strong> &#8211;
+Goodman-Kruskal index in [-1, 1] (higher=better)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="hub_toolbox.GoodmanKruskal.sparse_goodman_kruskal_index">
-<code class="descclassname">hub_toolbox.GoodmanKruskal.</code><code class="descname">sparse_goodman_kruskal_index</code><span class="sig-paren">(</span><em>S: scipy.sparse.csr.csr_matrix</em>, <em>classes: numpy.ndarray</em>, <em>metric='similarity'</em><span class="sig-paren">)</span> &rarr; float<a class="reference internal" href="_modules/hub_toolbox/GoodmanKruskal.html#sparse_goodman_kruskal_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.GoodmanKruskal.sparse_goodman_kruskal_index" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">hub_toolbox.GoodmanKruskal.</code><code class="descname">sparse_goodman_kruskal_index</code><span class="sig-paren">(</span><em>S: scipy.sparse.csr.csr_matrix</em>, <em>classes: numpy.ndarray</em>, <em>metric='similarity'</em>, <em>zero_mv: bool=False</em>, <em>heuristic: str=None</em>, <em>verbose: int=0</em><span class="sig-paren">)</span> &rarr; float<a class="reference internal" href="_modules/hub_toolbox/GoodmanKruskal.html#sparse_goodman_kruskal_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.GoodmanKruskal.sparse_goodman_kruskal_index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the Goodman-Kruskal clustering index.</p>
-<p>This clustering quality measure relates the number of concordant (Q_c) 
+<p>This clustering quality measure relates the number of concordant (Q_c)
 and discordant (Q_d) quadruples (s_ij, s_kl) of a similarity matrix.
-We only consider tuples, so that i, j are from the same class 
+We only consider tuples, so that i, j are from the same class
 and k, l are from different classes. Then a quadruple is...
 concordant, if s_ij &gt; s_kl
 discordant, if s_ij &lt; s_kl
 non counted, otherwise.</p>
 <dl class="docutils">
-<dt>The Goodman-Kruskal index gamma is defined as: </dt>
+<dt>The Goodman-Kruskal index gamma is defined as:</dt>
 <dd>gamma = (Q_c - Q_d) / (Q_c + Q_d)</dd>
 </dl>
-<p>gamma is bounded to [-1, 1], where larger values indicate better 
+<p>gamma is bounded to [-1, 1], where larger values indicate better
 clustering.</p>
-<dl class="docutils">
-<dt>S <span class="classifier-delimiter">:</span> <span class="classifier">csr_matrix</span></dt>
-<dd>The n x n symmetric similarity matrix.</dd>
-<dt>classes <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>The 1 x n vector of class labels for each point.</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;similarity&#8217;, &#8216;distance&#8217;}, optional (default: &#8216;similarity&#8217;)</span></dt>
-<dd><p class="first">Define, whether the matrix &#8216;D&#8217; is a distance or similarity matrix.
-NOTE: &#8216;distance&#8217; is used for debugging purposes only. Use standard</p>
-<blockquote class="last">
-<div>goodman_kruskal_index function for distance matrices.</div></blockquote>
-</dd>
-</dl>
-<dl class="docutils">
-<dt>gamma <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Goodman-Kruskal index in [-1, 1] (higher=better)</dd>
-</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>S</strong> (<em>csr_matrix</em>) &#8211; The n x n symmetric similarity matrix.</li>
+<li><strong>classes</strong> (<em>ndarray</em>) &#8211; The 1 x n vector of class labels for each point.</li>
+<li><strong>metric</strong> (<em>{'similarity', 'distance'}, optional (default: 'similarity')</em>) &#8211; <p>Define, whether the matrix &#8216;D&#8217; is a distance or similarity matrix.</p>
+<p>NOTE: &#8216;distance&#8217; is used for debugging purposes only. Use standard
+goodman_kruskal_index function for distance matrices.</p>
+</li>
+<li><strong>zero_mv</strong> (<em>boolean, optional (default: False)</em>) &#8211; Treat zeros as missing values, i.e. tuples with any zero
+similarities are not counted.</li>
+<li><strong>heuristic</strong> (<em>{None, 'equal_sim'}, optional (default: None)</em>) &#8211; <ul>
+<li>None - Exact GK</li>
+<li>&#8216;equal_sim&#8217; - omit expensive search for equal similarities
+Useful, when no/few equal similarites are expected.
+Do NOT use in case of SharedNN matrices!</li>
+</ul>
+<p>NOTE: Equal zero similarities are still considered
+when using the heuristic.</p>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>gamma</strong> &#8211;
+Goodman-Kruskal index in [-1, 1] (higher=better)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">float</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -515,31 +585,41 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.Hubness.hubness">
 <code class="descclassname">hub_toolbox.Hubness.</code><code class="descname">hubness</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>k: int=5</em>, <em>metric='distance'</em>, <em>verbose: int=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Hubness.html#hubness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Hubness.hubness" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute hubness of a distance matrix.</p>
-<p>Hubness [1] is the skewness of the k-occurrence histogram (reverse nearest 
-neighbor count, i.e. how often does a point occur in the k-nearest 
+<p>Hubness [1] is the skewness of the k-occurrence histogram (reverse nearest
+neighbor count, i.e. how often does a point occur in the k-nearest
 neighbor lists of other points).</p>
-<dl class="docutils">
-<dt>D <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>The n x n symmetric distance (similarity) matrix.</dd>
-<dt>k <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (default: 5)</span></dt>
-<dd>Neighborhood size for k-occurence.</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;distance&#8217;, &#8216;similarity&#8217;}, optional (default: &#8216;distance&#8217;)</span></dt>
-<dd>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix</dd>
-<dt>verbose <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (default: 0)</span></dt>
-<dd>Increasing level of output (progress report).</dd>
-</dl>
-<dl class="docutils">
-<dt>S_k <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Hubness (skewness of k-occurence distribution)</dd>
-<dt>D_k <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>k-nearest neighbor lists</dd>
-<dt>N_k <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>k-occurence list</dd>
-</dl>
-<p>[1] Radovanović, M., Nanopoulos, A., &amp; Ivanović, M. (2010). 
-Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data. 
-Journal of Machine Learning Research, 11, 2487–2531. Retrieved from 
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray</em>) &#8211; The n x n symmetric distance (similarity) matrix.</li>
+<li><strong>k</strong> (<em>int, optional (default: 5)</em>) &#8211; Neighborhood size for k-occurence.</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>S_k</strong> (<em>float</em>) &#8211;
+Hubness (skewness of k-occurence distribution)</li>
+<li><strong>D_k</strong> (<em>ndarray</em>) &#8211;
+k-nearest neighbor lists</li>
+<li><strong>N_k</strong> (<em>ndarray</em>) &#8211;
+k-occurence list</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">[1] Radovanović, M., Nanopoulos, A., &amp; Ivanović, M. (2010).
+Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data.
+Journal of Machine Learning Research, 11, 2487–2531. Retrieved from
 <a class="reference external" href="http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/radovanovic10a.pdf">http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/radovanovic10a.pdf</a></p>
+</div>
 </dd></dl>
 
 </div>
@@ -555,72 +635,106 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;&#52;&#48;ofai&#46;at">roman<span>&#46;</span>feldbauer<span>&#64;</span>ofai<span>&#46;</span>at</a>&gt;</p>
 <dl class="class">
 <dt id="hub_toolbox.HubnessAnalysis.HubnessAnalysis">
-<em class="property">class </em><code class="descclassname">hub_toolbox.HubnessAnalysis.</code><code class="descname">HubnessAnalysis</code><span class="sig-paren">(</span><em>D: numpy.ndarray=None</em>, <em>classes: numpy.ndarray=None</em>, <em>vectors: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#HubnessAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.HubnessAnalysis" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">hub_toolbox.HubnessAnalysis.</code><code class="descname">HubnessAnalysis</code><span class="sig-paren">(</span><em>D: numpy.ndarray=None</em>, <em>classes: numpy.ndarray=None</em>, <em>vectors: numpy.ndarray=None</em>, <em>metric: str='distance'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#HubnessAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.HubnessAnalysis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>The main hubness analysis class.</p>
-<dl class="docutils">
-<dt>Usage:</dt>
-<dd><p class="first">hub = HubnessAnalysis()
-hub.analyse_hubness()</p>
-<blockquote>
-<div><ul class="simple">
-<li>Load the example data set and perform a quick hubness analysis</li>
-</ul>
-<p>with some of the functions provided in this toolbox.</p>
-</div></blockquote>
-<p>hub = HubnessAnalysis(D, classes, vectors)
-hub.analyse_hubness()</p>
-<blockquote class="last">
-<div><ul class="simple">
-<li>Use the distance matrix D (NxN) together with an optional</li>
-</ul>
-<p>class labels vector (classes) and the original (optional) 
-data vectors (vectors) to perform a full hubness analysis.</p>
-</div></blockquote>
-</dd>
-</dl>
+<p>For more detailed analyses (optimizing parameters, using similarity data,
+etc.) please use the individual modules.</p>
+<p class="rubric">Examples</p>
+<p># Load the example data set and perform a quick hubness analysis
+# with some of the functions provided in this toolbox.
+&gt;&gt;&gt; from hub_toolbox.HubnessAnalysis import HubnessAnalysis
+&gt;&gt;&gt; hub = HubnessAnalysis()
+&gt;&gt;&gt; hub.analyse_hubness()</p>
+<p># Use the distance matrix D (NxN) together with an optional
+# class labels vector (classes) and the original (optional)
+# data vectors (vectors) to perform a full hubness analysis.
+&gt;&gt;&gt; hub = HubnessAnalysis(D, classes, vectors)
+&gt;&gt;&gt; hub.analyse_hubness()
+# Please consult the docstring of this method for additional
+# parameters (e.g. k-occurence, k-NN)</p>
 <dl class="method">
-<dt id="hub_toolbox.HubnessAnalysis.HubnessAnalysis.analyse_hubness">
-<code class="descname">analyse_hubness</code><span class="sig-paren">(</span><em>origData=True</em>, <em>mp=True</em>, <em>mp_gauss=False</em>, <em>mp_gaussi=True</em>, <em>mp_gammai=False</em>, <em>ls=True</em>, <em>snn=True</em>, <em>cent=True</em>, <em>wcent=False</em>, <em>wcent_g=0.4</em>, <em>lcent=True</em>, <em>lcent_k=40</em>, <em>lcent_g=1.4</em>, <em>Sk10=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#HubnessAnalysis.analyse_hubness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.HubnessAnalysis.analyse_hubness" title="Permalink to this definition">¶</a></dt>
+<dt id="hub_toolbox.HubnessAnalysis.HubnessAnalysis.analyze_hubness">
+<code class="descname">analyze_hubness</code><span class="sig-paren">(</span><em>experiments='orig</em>, <em>mp</em>, <em>mp_gaussi</em>, <em>nicdm</em>, <em>cent</em>, <em>dsg'</em>, <em>hubness_k=(5</em>, <em>10)</em>, <em>knn_k=(1</em>, <em>5</em>, <em>20)</em>, <em>print_results=True</em>, <em>verbose: int=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#HubnessAnalysis.analyze_hubness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.HubnessAnalysis.analyze_hubness" title="Permalink to this definition">¶</a></dt>
 <dd><p>Analyse hubness in original data and rescaled distances.</p>
-<dl class="docutils">
-<dt>args <span class="classifier-delimiter">:</span> <span class="classifier">bool</span></dt>
-<dd><ul class="first last simple">
-<li>origData ... original data</li>
-<li>mp ... Mutual Proximity (empiric)</li>
-<li>mp_gauss ... Mutual Proximity (Gaussian)</li>
-<li>mp_gaussi ... Mutual Proximity (independent Gaussian)</li>
-<li>mp_gammai ... Mutual Proximity (independent Gamma)</li>
-<li>ls ... Local Scaling (NICDM)</li>
-<li>snn ... Shared Nearest Neighbors</li>
-<li>cent ... Centering</li>
-<li>wcent ... Weighted Centering</li>
-<li>lcent ... Localized Centering</li>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>experiments</strong> (<em>str, optional</em>) &#8211; <p>Define which experiments to perform. Please provide a string of
+comma separated values chosen from the following options:</p>
+<ul>
+<li>&#8220;orig&#8221; : Original, primary distances</li>
+<li>&#8220;mp&#8221; : Mutual Proximity (empiric)</li>
+<li>&#8220;mp_gauss&#8221; : Mutual Proximity (Gaussians)</li>
+<li>&#8220;mp_gaussi&#8221; : Mutual Proximity (independent Gaussians)</li>
+<li>&#8220;mp_gammai&#8221; ... Mutual Proximity (independent Gamma)</li>
+<li>&#8220;ls&#8221; : Local Scaling (using k-th neighbor)</li>
+<li>&#8220;nicdm&#8221; : Local Scaling variant NICDM (average of k neighbors)</li>
+<li>&#8220;snn&#8221; : Shared Nearest Neighbors</li>
+<li>&#8220;cent&#8221; : Centering</li>
+<li>&#8220;wcent&#8221; : Weighted Centering</li>
+<li>&#8220;lcent&#8221; : Localized Centering</li>
+<li>&#8220;dsg&#8221; : DisSim Global</li>
+<li>&#8220;dsl&#8221; : DisSim Local</li>
 </ul>
-</dd>
-<dt>args <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd><ul class="first last simple">
-<li>wcent_g ... Weighted Centering gamma parameter</li>
-<li>lcent_k ... Localized Centering kappa parameter</li>
-<li>lcent_g ... Localized Centering gamma parameter</li>
+</li>
+<li><strong>hubness_k</strong> (<em>tuple, optional (default: (5, 10))</em>) &#8211; Hubness parameter (skewness of k-occurence)</li>
+<li><strong>knn_k</strong> (<em>tuple, optional (default: (1, 5, 20))</em>) &#8211; k-NN classification parameter</li>
+<li><strong>print_results</strong> (<em>bool, optional (default: True)</em>) &#8211; Define whether to print hubness analysis report to stdout</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing output verbosity</li>
 </ul>
-</dd>
-</dl>
-<p>None : print summary of results to stdout</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>self</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">optionally prints results to stdout</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
-<dt id="hub_toolbox.HubnessAnalysis.HubnessAnalysis.load_dexter">
-<code class="descname">load_dexter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#HubnessAnalysis.load_dexter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.HubnessAnalysis.load_dexter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load the example data set (dexter).</p>
+<dt id="hub_toolbox.HubnessAnalysis.HubnessAnalysis.print_analysis_report">
+<code class="descname">print_analysis_report</code><span class="sig-paren">(</span><em>experiment=None</em>, <em>report_nr: int=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#HubnessAnalysis.print_analysis_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.HubnessAnalysis.print_analysis_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print a report of the performed hubness analysis.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>experiment</strong> (<em>HubnessExperiment, optional (default: None)</em>) &#8211; If given, report only this experiment. Otherwise, report all
+experiments of this analysis.</li>
+<li><strong>report_nr</strong> (<em>int, optional (default: 0)</em>) &#8211; Method only prints headline for first report</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>None</strong></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Output is printed to stdout</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
-<dl class="method">
-<dt id="hub_toolbox.HubnessAnalysis.HubnessAnalysis.print_results">
-<code class="descname">print_results</code><span class="sig-paren">(</span><em>heading: str</em>, <em>D: numpy.ndarray</em>, <em>Sn5: float</em>, <em>Nk5: float</em>, <em>calc_intrinsic_dimensionality: bool=True</em>, <em>Sn10=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#HubnessAnalysis.print_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.HubnessAnalysis.print_results" title="Permalink to this definition">¶</a></dt>
-<dd><p>Print the results of a hubness analysis.</p>
 </dd></dl>
 
+<dl class="class">
+<dt id="hub_toolbox.HubnessAnalysis.HubnessExperiment">
+<em class="property">class </em><code class="descclassname">hub_toolbox.HubnessAnalysis.</code><code class="descname">HubnessExperiment</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>secondary_distance_type: str</em>, <em>metric: str='distance'</em>, <em>classes: numpy.ndarray=None</em>, <em>vectors: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#HubnessExperiment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.HubnessExperiment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Perform a single hubness experiment</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.HubnessAnalysis.load_dexter">
+<code class="descclassname">hub_toolbox.HubnessAnalysis.</code><code class="descname">load_dexter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/HubnessAnalysis.html#load_dexter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.HubnessAnalysis.load_dexter" title="Permalink to this definition">¶</a></dt>
+<dd><p>DEPRECATED (moved to IO.py)</p>
 </dd></dl>
 
 </div>
@@ -651,34 +765,43 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.Hubness_parallel.hubness">
 <code class="descclassname">hub_toolbox.Hubness_parallel.</code><code class="descname">hubness</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>k: int=5</em>, <em>metric='distance'</em>, <em>verbose: int=0</em>, <em>n_jobs: int=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Hubness_parallel.html#hubness"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Hubness_parallel.hubness" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute hubness of a distance matrix.</p>
-<p>Hubness [1] is the skewness of the k-occurrence histogram (reverse nearest 
-neighbor count, i.e. how often does a point occur in the k-nearest 
+<p>Hubness [1] is the skewness of the k-occurrence histogram (reverse nearest
+neighbor count, i.e. how often does a point occur in the k-nearest
 neighbor lists of other points).</p>
-<dl class="docutils">
-<dt>D <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>The n x n symmetric distance (similarity) matrix.</dd>
-<dt>k <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (default: 5)</span></dt>
-<dd>Neighborhood size for k-occurence.</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;distance&#8217;, &#8216;similarity&#8217;}, optional (default: &#8216;distance&#8217;)</span></dt>
-<dd>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix</dd>
-<dt>verbose <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (default: 0)</span></dt>
-<dd>Increasing level of output (progress report).</dd>
-<dt>n_jobs <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (default: -1)</span></dt>
-<dd>Number of parallel processes spawned for hubness calculation.
-Default value (-1): number of available CPUs.</dd>
-</dl>
-<dl class="docutils">
-<dt>S_k <span class="classifier-delimiter">:</span> <span class="classifier">float</span></dt>
-<dd>Hubness (skewness of k-occurence distribution)</dd>
-<dt>D_k <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>k-nearest neighbor lists</dd>
-<dt>N_k <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>k-occurence list</dd>
-</dl>
-<p>[1] Radovanović, M., Nanopoulos, A., &amp; Ivanović, M. (2010). 
-Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data. 
-Journal of Machine Learning Research, 11, 2487–2531. Retrieved from 
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray</em>) &#8211; The n x n symmetric distance (similarity) matrix.</li>
+<li><strong>k</strong> (<em>int, optional (default: 5)</em>) &#8211; Neighborhood size for k-occurence.</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+<li><strong>n_jobs</strong> (<em>int, optional (default: -1)</em>) &#8211; Number of parallel processes spawned for hubness calculation.
+Default value (-1): number of available CPUs.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>S_k</strong> (<em>float</em>) &#8211;
+Hubness (skewness of k-occurence distribution)</li>
+<li><strong>D_k</strong> (<em>ndarray</em>) &#8211;
+k-nearest neighbor lists</li>
+<li><strong>N_k</strong> (<em>ndarray</em>) &#8211;
+k-occurence list</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">[1] Radovanović, M., Nanopoulos, A., &amp; Ivanović, M. (2010).
+Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data.
+Journal of Machine Learning Research, 11, 2487–2531. Retrieved from
 <a class="reference external" href="http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/radovanovic10a.pdf">http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/radovanovic10a.pdf</a></p>
+</div>
 </dd></dl>
 
 </div>
@@ -697,7 +820,7 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <em class="property">class </em><code class="descclassname">hub_toolbox.IO.</code><code class="descname">FreeMemLinux</code><span class="sig-paren">(</span><em>unit='kB'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/IO.html#FreeMemLinux"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.IO.FreeMemLinux" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>Non-cross platform way to get free memory on Linux.</p>
-<p>Original code by Oz123, 
+<p>Original code by Oz123,
 <a class="reference external" href="http://stackoverflow.com/questions/17718449/determine-free-ram-in-python">http://stackoverflow.com/questions/17718449/determine-free-ram-in-python</a></p>
 <dl class="attribute">
 <dt id="hub_toolbox.IO.FreeMemLinux.buffers">
@@ -756,25 +879,72 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dl class="function">
 <dt id="hub_toolbox.IO.copy_D_or_load_memmap">
 <code class="descclassname">hub_toolbox.IO.</code><code class="descname">copy_D_or_load_memmap</code><span class="sig-paren">(</span><em>D</em>, <em>writeable=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/IO.html#copy_D_or_load_memmap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.IO.copy_D_or_load_memmap" title="Permalink to this definition">¶</a></dt>
-<dd><p>DEPRECATED. Return a deep copy of a numpy array (if D is an ndarray), 
+<dd><p>DEPRECATED. Return a deep copy of a numpy array (if D is an ndarray),
 otherwise return a read-only memmap (if D is a path).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.IO.load_dexter">
+<code class="descclassname">hub_toolbox.IO.</code><code class="descname">load_dexter</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/IO.html#load_dexter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.IO.load_dexter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the example data set (dexter).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li><strong>D</strong> (<em>ndarray</em>) &#8211;
+Distance matrix</li>
+<li><strong>classes</strong> (<em>ndarray</em>) &#8211;
+Class label vector</li>
+<li><strong>vectors</strong> (<em>ndarray</em>) &#8211;
+Vector data matrix</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="hub_toolbox.IO.matrix_split">
 <code class="descclassname">hub_toolbox.IO.</code><code class="descname">matrix_split</code><span class="sig-paren">(</span><em>rows</em>, <em>cols</em>, <em>elem_size=8</em>, <em>nr_matrices=4</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/IO.html#matrix_split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.IO.matrix_split" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine how to split a matrix that does not fit into memory.</p>
-<p>rows, cols  ... Shape of matrix that should be split.
-elem_size   ... memory requirement per matrix element in bytes. E.g. 8 bytes for float64
-nr_matrices ... How many times must the split matrix fit into memory?</p>
-<blockquote>
-<div>This depends on the subsequent operations.</div></blockquote>
-<p>nr_batches ... number of submatrices
-nr_rows    ... number of rows per submatrix.</p>
-<ol class="arabic simple">
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cols</strong> (<em>rows,</em>) &#8211; Shape of matrix that should be split.</li>
+<li><strong>elem_size</strong> (<em>int</em>) &#8211; memory requirement per matrix element in bytes. E.g. 8 bytes for float64</li>
+<li><strong>nr_matrices</strong> (<em>int</em>) &#8211; How many times must the split matrix fit into memory?
+This depends on the subsequent operations.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul class="simple">
+<li><strong>nr_batches</strong> (<em>int</em>) &#8211;
+number of submatrices</li>
+<li><strong>nr_rows</strong> (<em>int</em>) &#8211;
+number of rows per submatrix.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<ul class="simple">
 <li>Submatrices always contain all columns per row.</li>
 <li>The last batch will usually have less rows than nr_rows</li>
-</ol>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.IO.random_sparse_matrix">
+<code class="descclassname">hub_toolbox.IO.</code><code class="descname">random_sparse_matrix</code><span class="sig-paren">(</span><em>size</em>, <em>density=0.05</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/IO.html#random_sparse_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.IO.random_sparse_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a random sparse similarity matrix.</p>
+<p>Values are bounded by [0, 1]. Diagonal is all ones. The final density is
+approximately 2*density.</p>
 </dd></dl>
 
 </div>
@@ -788,11 +958,11 @@ The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.</p>
 <p>(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;&#52;&#48;ofai&#46;at">roman<span>&#46;</span>feldbauer<span>&#64;</span>ofai<span>&#46;</span>at</a>&gt;</p>
-<p>This file is based on a Matlab script by Elizaveta Levina, University of 
+<p>This file is based on a Matlab script by Elizaveta Levina, University of
 Michigan, available at <a class="reference external" href="http://dept.stat.lsa.umich.edu/~elevina/mledim.m">http://dept.stat.lsa.umich.edu/~elevina/mledim.m</a></p>
 <dl class="docutils">
-<dt>Reference:  E. Levina and P.J. Bickel (2005).  </dt>
-<dd>&#8220;Maximum Likelihood Estimation  of Intrinsic Dimension.&#8221;  
+<dt>Reference:  E. Levina and P.J. Bickel (2005).</dt>
+<dd>&#8220;Maximum Likelihood Estimation  of Intrinsic Dimension.&#8221;
 In Advances in NIPS 17, Eds. L. K. Saul, Y. Weiss, L. Bottou.</dd>
 </dl>
 <dl class="class">
@@ -812,39 +982,49 @@ In Advances in NIPS 17, Eds. L. K. Saul, Y. Weiss, L. Bottou.</dd>
 <dt id="hub_toolbox.IntrinsicDim.intrinsic_dimension">
 <code class="descclassname">hub_toolbox.IntrinsicDim.</code><code class="descname">intrinsic_dimension</code><span class="sig-paren">(</span><em>X: numpy.ndarray</em>, <em>k1: int=6</em>, <em>k2: int=12</em>, <em>estimator: str='levina'</em>, <em>metric: str='vector'</em>, <em>trafo: str='var'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/IntrinsicDim.html#intrinsic_dimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.IntrinsicDim.intrinsic_dimension" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate intrinsic dimension based on the MLE by Levina and Bickel [1].</p>
-<dl class="docutils">
-<dt>X <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd><ul class="first simple">
-<li>An (m x n) vector data matrix with n objects in an</li>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>X</strong> (<em>ndarray</em>) &#8211; <ul>
+<li>An (m x n) vector data matrix with n objects in an
+m-dimensional feature space</li>
+<li>An (n x n) distance matrix.</li>
 </ul>
-<p class="last">m-dimensional feature space 
-- An (n x n) distance matrix.
-NOTE: The type must be defined via parameter &#8216;metric&#8217;!</p>
-</dd>
-<dt>k1 <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (default: 6)</span></dt>
-<dd>Start of neighborhood range to search in.</dd>
-<dt>k2 <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (default: 12)</span></dt>
-<dd>End of neighborhood range to search in.</dd>
-<dt>estimator <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;levina&#8217;, &#8216;mackay&#8217;}, optional (default: &#8216;levina&#8217;)</span></dt>
-<dd>Determine the summation strategy: see [2].</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;vector&#8217;, &#8216;distance&#8217;}, optional (default: &#8216;vector&#8217;)</span></dt>
-<dd>Determine data type of &#8216;X&#8217;. 
-NOTE: the MLE was derived for euclidean distances. Using 
-other dissimilarity measures may lead to undefined results.</dd>
-<dt>trafo <span class="classifier-delimiter">:</span> <span class="classifier">{None, &#8216;std&#8217;, &#8216;var&#8217;}, optional (default: &#8216;var&#8217;)</span></dt>
-<dd><p class="first">Transform vector data. 
-- None: no transformation
-- &#8216;std&#8217;: standardization 
-- &#8216;var&#8217;: subtract mean, divide by variance (default behavior of</p>
-<blockquote class="last">
-<div>Laurens van der Maaten&#8217;s DR toolbox; most likely for other 
-ID/DR techniques).</div></blockquote>
-</dd>
+<p>NOTE: The type must be defined via parameter &#8216;metric&#8217;!</p>
+</li>
+<li><strong>k1</strong> (<em>int, optional (default: 6)</em>) &#8211; Start of neighborhood range to search in.</li>
+<li><strong>k2</strong> (<em>int, optional (default: 12)</em>) &#8211; End of neighborhood range to search in.</li>
+<li><strong>estimator</strong> (<em>{'levina', 'mackay'}, optional (default: 'levina')</em>) &#8211; Determine the summation strategy: see [2].</li>
+<li><strong>metric</strong> (<em>{'vector', 'distance'}, optional (default: 'vector')</em>) &#8211; <p>Determine data type of &#8216;X&#8217;.</p>
+<p>NOTE: the MLE was derived for euclidean distances. Using
+other dissimilarity measures may lead to undefined results.</p>
+</li>
+<li><strong>trafo</strong> (<em>{None, 'std', 'var'}, optional (default: 'var')</em>) &#8211; <p>Transform vector data.</p>
+<ul>
+<li>None: no transformation</li>
+<li>&#8216;std&#8217;: standardization</li>
+<li><dl class="first docutils">
+<dt>&#8216;var&#8217;: subtract mean, divide by variance (default behavior of</dt>
+<dd>Laurens van der Maaten&#8217;s DR toolbox; most likely for other
+ID/DR techniques).</dd>
 </dl>
-<p>[1] Levina, E., &amp; Bickel, P. (2004). Maximum likelihood estimation of 
-intrinsic dimension. Advances in Neural Information …, 17, 777–784. 
+</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">[1] Levina, E., &amp; Bickel, P. (2004). Maximum likelihood estimation of
+intrinsic dimension. Advances in Neural Information …, 17, 777–784.
 <a class="reference external" href="http://doi.org/10.2307/2335172">http://doi.org/10.2307/2335172</a>
 [2] <a class="reference external" href="http://www.inference.phy.cam.ac.uk/mackay/dimension/">http://www.inference.phy.cam.ac.uk/mackay/dimension/</a></p>
+</div>
 </dd></dl>
 
 </div>
@@ -862,29 +1042,73 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.KnnClassification.KnnClassification">
 <em class="property">class </em><code class="descclassname">hub_toolbox.KnnClassification.</code><code class="descname">KnnClassification</code><span class="sig-paren">(</span><em>D</em>, <em>classes</em>, <em>k</em>, <em>isSimilarityMatrix=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/KnnClassification.html#KnnClassification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.KnnClassification.KnnClassification" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<p>Perform k-nearest neighbor classification.</p>
+<p>DEPRECATED</p>
 <dl class="method">
 <dt id="hub_toolbox.KnnClassification.KnnClassification.perform_knn_classification">
 <code class="descname">perform_knn_classification</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/KnnClassification.html#KnnClassification.perform_knn_classification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.KnnClassification.KnnClassification.perform_knn_classification" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs k-nearest neighbor classification.</p>
-<p>Use the distance matrix D (NxN) and the classes and perform a 
-k-NN experiment. Ties are broken by the nearest neighbor.
-The classification accuracy is returned in acc. 
-corr is a raw vector of the correctly classified items. 
-cmat is the confusion matrix.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.KnnClassification.KnnClassification.perform_knn_classification_with_test_set">
 <code class="descname">perform_knn_classification_with_test_set</code><span class="sig-paren">(</span><em>test_set_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/KnnClassification.html#KnnClassification.perform_knn_classification_with_test_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.KnnClassification.KnnClassification.perform_knn_classification_with_test_set" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs k-nearest neighbor classification.</p>
-<p>Use the distance matrix D (NxN) and the classes and perform a 
-k-NN experiment. Ties are broken by the nearest neighbor.
-The classification accuracy is returned in acc. 
-corr is a raw vector of the correctly classified items. 
-cmat is the confusion matrix.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.KnnClassification.score">
+<code class="descclassname">hub_toolbox.KnnClassification.</code><code class="descname">score</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>target: numpy.ndarray</em>, <em>k=5</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em>, <em>verbose: int=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/KnnClassification.html#score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.KnnClassification.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform k-nearest neighbor classification.</p>
+<p>Use the (n x n) symmetric distance matrix (D) and target class
+labels (target) to perform a k-NN experiment (leave-one-out
+cross-validation or evaluation of test set; see parameter &#8216;test_set_ind&#8217;).
+Ties are broken by the nearest neighbor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray</em>) &#8211; The n x n symmetric distance (similarity) matrix.</li>
+<li><strong>target</strong> (<em>ndarray (of dtype=int)</em>) &#8211; The n x 1 target class labels (ground truth).</li>
+<li><strong>k</strong> (<em>int or array_like (of dtype=int), optional (default: 5)</em>) &#8211; <p>Neighborhood size for k-NN classification.
+For each value in k, one k-NN experiment is performed.</p>
+<p>HINT: Providing more than one value for k is a cheap means to perform
+multiple k-NN experiments at once. Try e.g. k=[1, 5, 20]</p>
+</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Perform a LOO-CV experiment</li>
+<li>ndarray : Hold out points indexed in this array as test set. Fit
+model to remaining data. Evaluate model on test set.</li>
+</ul>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><ul>
+<li><p class="first"><strong>acc</strong> (<em>ndarray (shape=(n_k x 1), dtype=float)</em>) &#8211;
+Classification accuracy (n_k... number of items in parameter k)</p>
+<p>HINT: Refering to the above example...
+... acc[0] gives the accuracy of the k=1 exp.</p>
+</li>
+<li><p class="first"><strong>corr</strong> (<em>ndarray (shape=(n_k x n),dtype=int</em>) &#8211;
+Raw vectors of correctly classified items</p>
+<p>HINT: ... corr[1, :] gives these items for the k=5 experiment.</p>
+</li>
+<li><p class="first"><strong>cmat</strong> (<em>ndarray (shape=(n_k x n_t x n_t), dtype=int)</em>) &#8211;
+Confusion matrix (n_t... number of unique items in parameter target)</p>
+<p>HINT: ... cmat[2, :, :] gives the cmat of the k=20 experiment.</p>
+</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -902,42 +1126,108 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.LocalScaling.LocalScaling">
 <em class="property">class </em><code class="descclassname">hub_toolbox.LocalScaling.</code><code class="descname">LocalScaling</code><span class="sig-paren">(</span><em>D</em>, <em>k: int=7</em>, <em>scalingType='nicdm'</em>, <em>isSimilarityMatrix=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#LocalScaling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.LocalScaling" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<p>Transform a distance matrix with Local Scaling.</p>
-<p>Transforms the given distance matrix into new one using local scaling [1]
-with the given neighborhood radius k. There are two types of local
-scaling methods implemented. The original one and NICDM, both reduce
-hubness in distance spaces, similarly to Mutual Proximity.</p>
-<p>[1] Local and global scaling reduce hubs in space, 
-Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012</p>
-<dl class="method">
-<dt id="hub_toolbox.LocalScaling.LocalScaling.local_geomean">
-<code class="descname">local_geomean</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#LocalScaling.local_geomean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.LocalScaling.local_geomean" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<p>DEPRECATED</p>
 <dl class="method">
 <dt id="hub_toolbox.LocalScaling.LocalScaling.ls_k">
 <code class="descname">ls_k</code><span class="sig-paren">(</span><em>test_set_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#LocalScaling.ls_k"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.LocalScaling.ls_k" title="Permalink to this definition">¶</a></dt>
-<dd><p>Perform local scaling (original), using the k-th nearest neighbor.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.LocalScaling.LocalScaling.ls_nicdm">
 <code class="descname">ls_nicdm</code><span class="sig-paren">(</span><em>test_set_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#LocalScaling.ls_nicdm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.LocalScaling.ls_nicdm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Local scaling variant: Non-Iterative Contextual Dissimilarity Measure
-This uses the mean over the k nearest neighbors.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.LocalScaling.LocalScaling.perform_local_scaling">
 <code class="descname">perform_local_scaling</code><span class="sig-paren">(</span><em>test_set_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#LocalScaling.perform_local_scaling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.LocalScaling.perform_local_scaling" title="Permalink to this definition">¶</a></dt>
-<dd><p>Transform distance matrix using local scaling.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="hub_toolbox.LocalScaling.LocalScaling.warning">
-<code class="descname">warning</code><span class="sig-paren">(</span><em>*objs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#LocalScaling.warning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.LocalScaling.warning" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+</dd></dl>
 
+<dl class="function">
+<dt id="hub_toolbox.LocalScaling.local_scaling">
+<code class="descclassname">hub_toolbox.LocalScaling.</code><code class="descname">local_scaling</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>k: int=7</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#local_scaling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.local_scaling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with Local Scaling.</p>
+<p>Transforms the given distance matrix into new one using local scaling <a href="#id2"><span class="problematic" id="id3"><span id="id1"></span>[1]_</span></a>
+with the given k-th nearest neighbor. There are two types of local
+scaling methods implemented. The original one and NICDM, both reduce
+hubness in distance spaces, similarly to Mutual Proximity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray or csr_matrix</em>) &#8211; The n x n symmetric distance (similarity) matrix.</li>
+<li><strong>k</strong> (<em>int, optional (default: 7)</em>) &#8211; Neighborhood radius for local scaling.</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; <p>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix.</p>
+<p>NOTE: self similarities in sparse D_ls are set to np.inf</p>
+</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_ls</strong> &#8211;
+Secondary distance LocalScaling matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.LocalScaling.nicdm">
+<code class="descclassname">hub_toolbox.LocalScaling.</code><code class="descname">nicdm</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>k: int=7</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#nicdm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.nicdm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with local scaling variant NICDM.</p>
+<p>Transforms the given distance matrix into new one using NICDM [1]
+with the given neighborhood radius k (average). There are two types of
+local scaling methods implemented. The original one and the non-iterative
+contextual dissimilarity measure, both reduce hubness in distance spaces,
+similarly to Mutual Proximity.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray</em>) &#8211; The n x n symmetric distance (similarity) matrix.</li>
+<li><strong>k</strong> (<em>int, optional (default: 7)</em>) &#8211; Neighborhood radius for local scaling.</li>
+<li><strong>metric</strong> (<em>{'distance'}, optional (default: 'distance')</em>) &#8211; Currently, only distance matrices are supported.</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_nicdm</strong> &#8211;
+Secondary distance NICDM matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
 </dd></dl>
 
 </div>
@@ -954,20 +1244,54 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dl class="class">
 <dt id="hub_toolbox.Logging.ConsoleLogging">
 <em class="property">class </em><code class="descclassname">hub_toolbox.Logging.</code><code class="descname">ConsoleLogging</code><a class="reference internal" href="_modules/hub_toolbox/Logging.html#ConsoleLogging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.ConsoleLogging" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dd><p>Bases: <a class="reference internal" href="#hub_toolbox.Logging.Logging" title="hub_toolbox.Logging.Logging"><code class="xref py py-class docutils literal"><span class="pre">hub_toolbox.Logging.Logging</span></code></a></p>
+<p>Convenience functions for time-stamped logging to the console</p>
 <dl class="method">
 <dt id="hub_toolbox.Logging.ConsoleLogging.error">
 <code class="descname">error</code><span class="sig-paren">(</span><em>*objs</em>, <em>flush=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Logging.html#ConsoleLogging.error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.ConsoleLogging.error" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Log error (program fails)</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.Logging.ConsoleLogging.message">
 <code class="descname">message</code><span class="sig-paren">(</span><em>*objs</em>, <em>flush=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Logging.html#ConsoleLogging.message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.ConsoleLogging.message" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Log normal program function</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.Logging.ConsoleLogging.warning">
 <code class="descname">warning</code><span class="sig-paren">(</span><em>*objs</em>, <em>flush=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Logging.html#ConsoleLogging.warning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.ConsoleLogging.warning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Log warning (program can still continue)</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="hub_toolbox.Logging.FileLogging">
+<em class="property">class </em><code class="descclassname">hub_toolbox.Logging.</code><code class="descname">FileLogging</code><a class="reference internal" href="_modules/hub_toolbox/Logging.html#FileLogging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.FileLogging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hub_toolbox.Logging.ConsoleLogging" title="hub_toolbox.Logging.ConsoleLogging"><code class="xref py py-class docutils literal"><span class="pre">hub_toolbox.Logging.ConsoleLogging</span></code></a></p>
+<p>Convenience functions for time-stamped logging to a file</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="hub_toolbox.Logging.Logging">
+<em class="property">class </em><code class="descclassname">hub_toolbox.Logging.</code><code class="descname">Logging</code><a class="reference internal" href="_modules/hub_toolbox/Logging.html#Logging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.Logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Base class for time-stamped logging.</p>
+<p>Do not instantiate this class, but ConsoleLogging or FileLogging!</p>
+<dl class="method">
+<dt id="hub_toolbox.Logging.Logging.error">
+<code class="descname">error</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Logging.html#Logging.error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.Logging.error" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="hub_toolbox.Logging.Logging.message">
+<code class="descname">message</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Logging.html#Logging.message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.Logging.message" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="hub_toolbox.Logging.Logging.warning">
+<code class="descname">warning</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/Logging.html#Logging.warning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.Logging.Logging.warning" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -987,7 +1311,7 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.MutualProximity.Distribution">
 <em class="property">class </em><code class="descclassname">hub_toolbox.MutualProximity.</code><code class="descname">Distribution</code><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#Distribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.Distribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
-<p>An enumeration.</p>
+<p>DEPRECATED</p>
 <dl class="attribute">
 <dt id="hub_toolbox.MutualProximity.Distribution.empiric">
 <code class="descname">empiric</code><em class="property"> = &lt;Distribution.empiric: 'empiric'&gt;</em><a class="headerlink" href="#hub_toolbox.MutualProximity.Distribution.empiric" title="Permalink to this definition">¶</a></dt>
@@ -1014,88 +1338,243 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.MutualProximity.MutualProximity">
 <em class="property">class </em><code class="descclassname">hub_toolbox.MutualProximity.</code><code class="descname">MutualProximity</code><span class="sig-paren">(</span><em>D</em>, <em>isSimilarityMatrix=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<p>Applies Mutual Proximity (MP) [1] on a distance matrix. The return value is
-converted to a distance matrix again. The resulting distance matrix
-should show lower hubness.</p>
-<dl class="docutils">
-<dt>Usage:</dt>
-<dd><dl class="first last docutils">
-<dt>Dmp = mutual_proximity(D, type) - Applies MP on the distance matrix &#8216;D&#8217;</dt>
-<dd>using the selected variant (&#8216;type&#8217;). The transformed distance matrix
-is returned.</dd>
-</dl>
-</dd>
-<dt>Possible types:</dt>
-<dd><p class="first">&#8216;empiric&#8217;: Uses the Empirical distribution to perform Mutual Proximity.
-&#8216;gauss&#8217;: (requires the Statistics Toolbox (the mvncdf() function)</p>
-<blockquote>
-<div>Assumes that the distances are Gaussian distributed.</div></blockquote>
-<dl class="last docutils">
-<dt>&#8216;gaussi&#8217;: Assumes that the distances are independently Gaussian</dt>
-<dd>distributed. (fastest Variante)</dd>
-<dt>&#8216;gammai&#8217;: Assumes that the distances follow a Gamma distribution and</dt>
-<dd>are independently distributed.</dd>
-</dl>
-</dd>
-</dl>
-<p>[1] Local and global scaling reduce hubs in space, 
-Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012</p>
+<p>DEPRECATED</p>
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity.MutualProximity.calculate_mutual_proximity">
 <code class="descname">calculate_mutual_proximity</code><span class="sig-paren">(</span><em>distrType=None</em>, <em>test_set_mask=None</em>, <em>verbose=False</em>, <em>enforce_disk=False</em>, <em>sample_size=0</em>, <em>filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.calculate_mutual_proximity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.calculate_mutual_proximity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply MP on a distance matrix.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
-
-<dl class="method">
-<dt id="hub_toolbox.MutualProximity.MutualProximity.local_gamcdf">
-<code class="descname">local_gamcdf</code><span class="sig-paren">(</span><em>x</em>, <em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.local_gamcdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.local_gamcdf" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity.MutualProximity.mp_empiric">
 <code class="descname">mp_empiric</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.mp_empiric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.mp_empiric" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute Mutual Proximity distances with empirical data (slow).</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity.MutualProximity.mp_empiric_sparse">
 <code class="descname">mp_empiric_sparse</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.mp_empiric_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.mp_empiric_sparse" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute empiric MP distances/similarities in a sparse matrix.
-Zero-elements do not contribute to MP calculations.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity.MutualProximity.mp_gammai">
 <code class="descname">mp_gammai</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.mp_gammai"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.mp_gammai" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute Mutual Proximity modeled with independent Gamma distributions.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity.MutualProximity.mp_gammai_sparse">
 <code class="descname">mp_gammai_sparse</code><span class="sig-paren">(</span><em>train_set_mask</em>, <em>verbose</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.mp_gammai_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.mp_gammai_sparse" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>DEPRECATED</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity.MutualProximity.mp_gauss">
 <code class="descname">mp_gauss</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.mp_gauss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.mp_gauss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute Mutual Proximity distances with Gaussian model (very slow).</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity.MutualProximity.mp_gaussi">
 <code class="descname">mp_gaussi</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em>, <em>enforce_disk=False</em>, <em>sample_size=0</em>, <em>filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.mp_gaussi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.mp_gaussi" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute Mutual Proximity modeled with independent Gaussians (fast). 
-Use enforce_disk=True to use memory maps for matrices that do not fit 
-into main memory.
-Set sample_size=SIZE to estimate Gaussian distribution from SIZE 
-samples. Default sample_size=0: use all points.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity.MutualProximity.mp_gaussi_sparse">
 <code class="descname">mp_gaussi_sparse</code><span class="sig-paren">(</span><em>train_set_mask</em>, <em>verbose</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#MutualProximity.mp_gaussi_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.MutualProximity.mp_gaussi_sparse" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>DEPRECATED</p>
+</dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.MutualProximity.mutual_proximity_empiric">
+<code class="descclassname">hub_toolbox.MutualProximity.</code><code class="descname">mutual_proximity_empiric</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em>, <em>verbose: int=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#mutual_proximity_empiric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.mutual_proximity_empiric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with Mutual Proximity (empiric distribution).</p>
+<p>Applies Mutual Proximity (MP) [1] on a distance/similarity matrix using
+the empiric data distribution (EXACT, rather SLOW). The resulting
+secondary distance/similarity matrix should show lower hubness.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray or csr_matrix</em>) &#8211; <ul>
+<li>ndarray: The n x n symmetric distance or similarity matrix.</li>
+<li>csr_matrix: The n x n symmetric similarity matrix.</li>
+</ul>
+<p>NOTE: In case of sparse D, zeros are interpreted as missing values
+and ignored during calculations. Thus, results may differ
+from using a dense version.</p>
+</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; <p>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix.</p>
+<p>NOTE: In case of sparse D, only &#8216;similarity&#8217; is supported.</p>
+</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_mp</strong> &#8211;
+Secondary distance MP empiric matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.MutualProximity.mutual_proximity_gammai">
+<code class="descclassname">hub_toolbox.MutualProximity.</code><code class="descname">mutual_proximity_gammai</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em>, <em>verbose: int=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#mutual_proximity_gammai"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.mutual_proximity_gammai" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with Mutual Proximity (indep. Gamma distr.).</p>
+<p>Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gammai
+variant assumes independent Gamma distributed distances (FAST).
+The resulting second. distance/similarity matrix should show lower hubness.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray or csr_matrix</em>) &#8211; <ul>
+<li>ndarray: The n x n symmetric distance or similarity matrix.</li>
+<li>csr_matrix: The n x n symmetric similarity matrix.</li>
+</ul>
+<p>NOTE: In case of sparse D, zeros are interpreted as missing values
+and ignored during calculations. Thus, results may differ
+from using a dense version.</p>
+</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; <p>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix.</p>
+<p>NOTE: In case of sparse D, only &#8216;similarity&#8217; is supported.</p>
+</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_mp</strong> &#8211;
+Secondary distance MP gammai matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.MutualProximity.mutual_proximity_gauss">
+<code class="descclassname">hub_toolbox.MutualProximity.</code><code class="descname">mutual_proximity_gauss</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em>, <em>verbose: int=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#mutual_proximity_gauss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.mutual_proximity_gauss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with Mutual Proximity (normal distribution).</p>
+<p>Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gauss
+variant assumes dependent normal distributions (VERY SLOW).
+The resulting second. distance/similarity matrix should show lower hubness.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray</em>) &#8211; <ul>
+<li>ndarray: The n x n symmetric distance or similarity matrix.</li>
+</ul>
+</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix.</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_mp</strong> &#8211;
+Secondary distance MP gauss matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.MutualProximity.mutual_proximity_gaussi">
+<code class="descclassname">hub_toolbox.MutualProximity.</code><code class="descname">mutual_proximity_gaussi</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>metric: str='distance'</em>, <em>sample_size: int=0</em>, <em>test_set_ind: numpy.ndarray=None</em>, <em>verbose: int=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity.html#mutual_proximity_gaussi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity.mutual_proximity_gaussi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with Mutual Proximity (indep. normal distr.).</p>
+<p>Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gaussi
+variant assumes independent normal distributions (FAST).
+The resulting second. distance/similarity matrix should show lower hubness.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray or csr_matrix</em>) &#8211; <ul>
+<li>ndarray: The n x n symmetric distance or similarity matrix.</li>
+<li>csr_matrix: The n x n symmetric similarity matrix.</li>
+</ul>
+<p>NOTE: In case of sparse D, zeros are interpreted as missing values
+and ignored during calculations. Thus, results may differ
+from using a dense version.</p>
+</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; <p>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix.</p>
+<p>NOTE: In case of sparse D, only &#8216;similarity&#8217; is supported.</p>
+</li>
+<li><strong>sample_size</strong> (<em>int, optional (default: 0)</em>) &#8211; Define sample size from which Gauss parameters are estimated.
+Use all data when set to 0.</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_mp</strong> &#8211;
+Secondary distance MP gaussi matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
 </dd></dl>
 
 </div>
@@ -1113,7 +1592,7 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.MutualProximity_parallel.Distribution">
 <em class="property">class </em><code class="descclassname">hub_toolbox.MutualProximity_parallel.</code><code class="descname">Distribution</code><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#Distribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.Distribution" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
-<p>An enumeration.</p>
+<p>DEPRECATED</p>
 <dl class="attribute">
 <dt id="hub_toolbox.MutualProximity_parallel.Distribution.empiric">
 <code class="descname">empiric</code><em class="property"> = &lt;Distribution.empiric: 'empiric'&gt;</em><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.Distribution.empiric" title="Permalink to this definition">¶</a></dt>
@@ -1135,78 +1614,177 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.MutualProximity_parallel.MutualProximity">
 <em class="property">class </em><code class="descclassname">hub_toolbox.MutualProximity_parallel.</code><code class="descname">MutualProximity</code><span class="sig-paren">(</span><em>D</em>, <em>isSimilarityMatrix=False</em>, <em>missing_values=None</em>, <em>tmp='/tmp/'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<p>Apply Mutual Proximity (MP) [1] on a distance matrix. The return value is
-converted to a distance matrix again. The resulting distance matrix
-should show lower hubness.</p>
-<dl class="docutils">
-<dt>Usage:</dt>
-<dd><dl class="first last docutils">
-<dt>Dmp = mutual_proximity(D, type) - Applies MP on the distance matrix &#8216;D&#8217;</dt>
-<dd>using the selected variant (&#8216;type&#8217;). The transformed distance matrix
-is returned.</dd>
-</dl>
-</dd>
-<dt>Possible types:</dt>
-<dd><p class="first">&#8216;empiric&#8217;: Uses the Empirical distribution to perform Mutual Proximity.
-&#8216;gauss&#8217;: (requires the Statistics Toolbox (the mvncdf() function)</p>
-<blockquote>
-<div>Assumes that the distances are Gaussian distributed.</div></blockquote>
-<dl class="last docutils">
-<dt>&#8216;gaussi&#8217;: Assumes that the distances are independently Gaussian</dt>
-<dd>distributed. (fastest Variante)</dd>
-<dt>&#8216;gammai&#8217;: Assumes that the distances follow a Gamma distribution and</dt>
-<dd>are independently distributed.</dd>
-</dl>
-</dd>
-</dl>
-<p>[1] Local and global scaling reduce hubs in space, 
-Schnitzer, Flexer, Schedl, Widmer, Journal of Machine Learning Research 2012</p>
+<p>DEPRECATED</p>
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity_parallel.MutualProximity.calculate_mutual_proximity">
 <code class="descname">calculate_mutual_proximity</code><span class="sig-paren">(</span><em>distrType=None</em>, <em>test_set_mask=None</em>, <em>verbose=False</em>, <em>sample_size=0</em>, <em>empspex=False</em>, <em>n_jobs=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity.calculate_mutual_proximity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity.calculate_mutual_proximity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply MP on a distance matrix.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
-
-<dl class="method">
-<dt id="hub_toolbox.MutualProximity_parallel.MutualProximity.local_gamcdf">
-<code class="descname">local_gamcdf</code><span class="sig-paren">(</span><em>x</em>, <em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity.local_gamcdf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity.local_gamcdf" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity_parallel.MutualProximity.mp_empiric">
 <code class="descname">mp_empiric</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em>, <em>empspex=False</em>, <em>n_jobs=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity.mp_empiric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_empiric" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute Mutual Proximity distances with empirical data (slow).</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
-
-<dl class="method">
-<dt id="hub_toolbox.MutualProximity_parallel.MutualProximity.mp_empiric_sparse">
-<code class="descname">mp_empiric_sparse</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em>, <em>empspex=False</em>, <em>n_jobs=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity.mp_empiric_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_empiric_sparse" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gammai">
 <code class="descname">mp_gammai</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em>, <em>n_jobs=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity.mp_gammai"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gammai" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute Mutual Proximity modeled with independent Gamma distributions.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
-
-<dl class="method">
-<dt id="hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gammai_sparse">
-<code class="descname">mp_gammai_sparse</code><span class="sig-paren">(</span><em>train_set_mask</em>, <em>verbose</em>, <em>n_jobs=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity.mp_gammai_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gammai_sparse" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="method">
 <dt id="hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gaussi">
 <code class="descname">mp_gaussi</code><span class="sig-paren">(</span><em>train_set_mask=None</em>, <em>verbose=False</em>, <em>sample_size=0</em>, <em>n_jobs=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity.mp_gaussi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gaussi" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute Mutual Proximity modeled with independent Gaussians (fast).</p>
-<p>Set sample_size=SIZE to estimate Gaussian distribution from SIZE 
-samples. Default sample_size=0: use all points.</p>
+<dd><p>DEPRECATED</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gaussi_sparse">
-<code class="descname">mp_gaussi_sparse</code><span class="sig-paren">(</span><em>train_set_mask</em>, <em>verbose</em>, <em>n_jobs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#MutualProximity.mp_gaussi_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.MutualProximity.mp_gaussi_sparse" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+</dd></dl>
 
+<dl class="function">
+<dt id="hub_toolbox.MutualProximity_parallel.mutual_proximity_empiric">
+<code class="descclassname">hub_toolbox.MutualProximity_parallel.</code><code class="descname">mutual_proximity_empiric</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em>, <em>verbose: int=0</em>, <em>n_jobs: int=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#mutual_proximity_empiric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.mutual_proximity_empiric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with Mutual Proximity (empiric distribution).</p>
+<p>Applies Mutual Proximity (MP) [1] on a distance/similarity matrix using
+the empiric data distribution (EXACT, rather SLOW). The resulting
+secondary distance/similarity matrix should show lower hubness.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray or csr_matrix</em>) &#8211; <ul>
+<li>ndarray: The n x n symmetric distance or similarity matrix.</li>
+<li>csr_matrix: The n x n symmetric similarity matrix.</li>
+</ul>
+</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; <p>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix.</p>
+<p>NOTE: In case of sparse D, only &#8216;similarity&#8217; is supported.</p>
+</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+<li><strong>n_jobs</strong> (<em>int, optional (default: -1)</em>) &#8211; <p>Number of parallel processes to be used.</p>
+<p>NOTE: set n_jobs=-1 to use all CPUs</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_mp</strong> &#8211;
+Secondary distance MP empiric matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.MutualProximity_parallel.mutual_proximity_gammai">
+<code class="descclassname">hub_toolbox.MutualProximity_parallel.</code><code class="descname">mutual_proximity_gammai</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em>, <em>verbose: int=0</em>, <em>n_jobs: int=-1</em>, <em>mv=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#mutual_proximity_gammai"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.mutual_proximity_gammai" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with Mutual Proximity (indep. Gamma distr.).</p>
+<p>Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gammai
+variant assumes independent Gamma distributed distances (FAST).
+The resulting second. distance/similarity matrix should show lower hubness.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray or csr_matrix</em>) &#8211; <ul>
+<li>ndarray: The n x n symmetric distance or similarity matrix.</li>
+<li>csr_matrix: The n x n symmetric similarity matrix.</li>
+</ul>
+</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; <p>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix.</p>
+<p>NOTE: In case of sparse D, only &#8216;similarity&#8217; is supported.</p>
+</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+<li><strong>n_jobs</strong> (<em>int, optional (default: -1)</em>) &#8211; <p>Number of parallel processes to be used.</p>
+<p>NOTE: set n_jobs=-1 to use all CPUs</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_mp</strong> &#8211;
+Secondary distance MP gammai matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hub_toolbox.MutualProximity_parallel.mutual_proximity_gaussi">
+<code class="descclassname">hub_toolbox.MutualProximity_parallel.</code><code class="descname">mutual_proximity_gaussi</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>metric: str='distance'</em>, <em>sample_size: int=0</em>, <em>test_set_ind: numpy.ndarray=None</em>, <em>verbose: int=0</em>, <em>n_jobs: int=-1</em>, <em>mv=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/MutualProximity_parallel.html#mutual_proximity_gaussi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.MutualProximity_parallel.mutual_proximity_gaussi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform a distance matrix with Mutual Proximity (indep. normal distr.).</p>
+<p>Applies Mutual Proximity (MP) [1] on a distance/similarity matrix. Gaussi
+variant assumes independent normal distributions (FAST).
+The resulting second. distance/similarity matrix should show lower hubness.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>ndarray or csr_matrix</em>) &#8211; <ul>
+<li>ndarray: The n x n symmetric distance or similarity matrix.</li>
+<li>csr_matrix: The n x n symmetric similarity matrix.</li>
+</ul>
+</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; <p>Define, whether matrix &#8216;D&#8217; is a distance or similarity matrix.</p>
+<p>NOTE: In case of sparse D, only &#8216;similarity&#8217; is supported.</p>
+</li>
+<li><strong>sample_size</strong> (<em>int, optional (default: 0)</em>) &#8211; Define sample size from which Gauss parameters are estimated.
+Use all data when set to 0.</li>
+<li><strong>test_sed_ind</strong> (<em>ndarray, optional (default: None)</em>) &#8211; <p>Define data points to be hold out as part of a test set. Can be:</p>
+<ul>
+<li>None : Rescale all distances</li>
+<li>ndarray : Hold out points indexed in this array as test set.</li>
+</ul>
+</li>
+<li><strong>verbose</strong> (<em>int, optional (default: 0)</em>) &#8211; Increasing level of output (progress report).</li>
+<li><strong>n_jobs</strong> (<em>int, optional (default: -1)</em>) &#8211; <p>Number of parallel processes to be used.</p>
+<p>NOTE: set n_jobs=-1 to use all CPUs</p>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_mp</strong> &#8211;
+Secondary distance MP gaussi matrix.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012).
+Local and global scaling reduce hubs in space. The Journal of Machine
+Learning Research, 13(1), 2871–2902.</p>
 </dd></dl>
 
 </div>
@@ -1237,33 +1815,50 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.SharedNN.shared_nearest_neighbors">
 <code class="descclassname">hub_toolbox.SharedNN.</code><code class="descname">shared_nearest_neighbors</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>k: int=10</em>, <em>metric='distance'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/SharedNN.html#shared_nearest_neighbors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.SharedNN.shared_nearest_neighbors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transform distance matrix using shared nearest neighbors [1].</p>
-<p>SNN similarity is based on computing the overlap between the k nearest 
-neighbors of two objects. SNN approaches try to symmetrize nearest neighbor 
+<p>SNN similarity is based on computing the overlap between the k nearest
+neighbors of two objects. SNN approaches try to symmetrize nearest neighbor
 relations using only rank and not distance information [2].</p>
-<dl class="docutils">
-<dt>D <span class="classifier-delimiter">:</span> <span class="classifier">np.ndarray</span></dt>
-<dd>The n x n symmetric distance (similarity) matrix.</dd>
-<dt>k <span class="classifier-delimiter">:</span> <span class="classifier">int, optional (default: 10)</span></dt>
-<dd>Neighborhood radius: The k nearest neighbors are used to calculate SNN.</dd>
-<dt>metric <span class="classifier-delimiter">:</span> <span class="classifier">{&#8216;distance&#8217;, &#8216;similarity&#8217;}, optional (default: &#8216;distance&#8217;)</span></dt>
-<dd>Define, whether the matrix &#8216;D&#8217; is a distance or similarity matrix</dd>
-</dl>
-<dl class="docutils">
-<dt>D_snn <span class="classifier-delimiter">:</span> <span class="classifier">ndarray</span></dt>
-<dd>Secondary distance SNN matrix</dd>
-</dl>
-<p>[1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure 
-based on shared near neighbors,” IEEE Transactions on Computers, 
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>D</strong> (<em>np.ndarray</em>) &#8211; The n x n symmetric distance (similarity) matrix.</li>
+<li><strong>k</strong> (<em>int, optional (default: 10)</em>) &#8211; Neighborhood radius: The k nearest neighbors are used to calculate SNN.</li>
+<li><strong>metric</strong> (<em>{'distance', 'similarity'}, optional (default: 'distance')</em>) &#8211; Define, whether the matrix &#8216;D&#8217; is a distance or similarity matrix</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>D_snn</strong> &#8211;
+Secondary distance SNN matrix</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ndarray</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">References</p>
+<p>[1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure
+based on shared near neighbors,” IEEE Transactions on Computers,
 vol. 22, pp. 1025–1034, 1973.</p>
-<p>[2] Flexer, A., &amp; Schnitzer, D. (2013). Can Shared Nearest Neighbors 
-Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th International 
-Conference on Data Mining Workshops, 460–467. 
+<p>[2] Flexer, A., &amp; Schnitzer, D. (2013). Can Shared Nearest Neighbors
+Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th International
+Conference on Data Mining Workshops, 460–467.
 <a class="reference external" href="http://doi.org/10.1109/ICDMW.2013.101">http://doi.org/10.1109/ICDMW.2013.101</a></p>
 </dd></dl>
 
 </div>
 <div class="section" id="module-hub_toolbox">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-hub_toolbox" title="Permalink to this headline">¶</a></h2>
+<p>This file is part of the HUB TOOLBOX available at
+<a class="reference external" href="http://ofai.at/research/impml/projects/hubology.html">http://ofai.at/research/impml/projects/hubology.html</a>
+Source code is available at
+<a class="reference external" href="https://github.com/OFAI/hub-toolbox-python3/">https://github.com/OFAI/hub-toolbox-python3/</a>
+The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.</p>
+<p>(c) 2011-2016, Dominik Schnitzer, Roman Feldbauer
+Austrian Research Institute for Artificial Intelligence (OFAI)
+Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;&#52;&#48;ofai&#46;at">roman<span>&#46;</span>feldbauer<span>&#64;</span>ofai<span>&#46;</span>at</a>&gt;</p>
 </div>
 </div>
 

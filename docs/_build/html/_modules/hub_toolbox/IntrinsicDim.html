@@ -152,20 +152,21 @@
 <span class="sd"> &quot;Maximum Likelihood Estimation  of Intrinsic Dimension.&quot;  </span>
 <span class="sd"> In Advances in NIPS 17, Eds. L. K. Saul, Y. Weiss, L. Bottou. </span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <div class="viewcode-block" id="intrinsic_dimension"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.IntrinsicDim.intrinsic_dimension">[docs]</a><span class="k">def</span> <span class="nf">intrinsic_dimension</span><span class="p">(</span><span class="n">X</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">k1</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">k2</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> 
                         <span class="n">estimator</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;levina&#39;</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;vector&#39;</span><span class="p">,</span> 
                         <span class="n">trafo</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calculate intrinsic dimension based on the MLE by Levina and Bickel [1].</span>
 <span class="sd">    </span>
-<span class="sd">    Parameters:</span>
-<span class="sd">    -----------</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
 <span class="sd">    X : ndarray</span>
 <span class="sd">        - An (m x n) vector data matrix with n objects in an </span>
-<span class="sd">        m-dimensional feature space </span>
+<span class="sd">          m-dimensional feature space </span>
 <span class="sd">        - An (n x n) distance matrix.</span>
+<span class="sd">        </span>
 <span class="sd">        NOTE: The type must be defined via parameter &#39;metric&#39;!</span>
 <span class="sd">        </span>
 <span class="sd">    k1 : int, optional (default: 6)</span>
@@ -179,25 +180,26 @@
 <span class="sd">    </span>
 <span class="sd">    metric : {&#39;vector&#39;, &#39;distance&#39;}, optional (default: &#39;vector&#39;)</span>
 <span class="sd">        Determine data type of &#39;X&#39;. </span>
+<span class="sd">        </span>
 <span class="sd">        NOTE: the MLE was derived for euclidean distances. Using </span>
 <span class="sd">        other dissimilarity measures may lead to undefined results.</span>
 <span class="sd">        </span>
 <span class="sd">    trafo : {None, &#39;std&#39;, &#39;var&#39;}, optional (default: &#39;var&#39;)</span>
 <span class="sd">        Transform vector data. </span>
+<span class="sd">        </span>
 <span class="sd">        - None: no transformation</span>
 <span class="sd">        - &#39;std&#39;: standardization </span>
 <span class="sd">        - &#39;var&#39;: subtract mean, divide by variance (default behavior of </span>
-<span class="sd">                 Laurens van der Maaten&#39;s DR toolbox; most likely for other </span>
-<span class="sd">                 ID/DR techniques).</span>
-<span class="sd">        </span>
-<span class="sd">    See also:</span>
-<span class="sd">    ---------</span>
+<span class="sd">           Laurens van der Maaten&#39;s DR toolbox; most likely for other </span>
+<span class="sd">           ID/DR techniques).</span>
+<span class="sd">    </span>
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
 <span class="sd">    [1] Levina, E., &amp; Bickel, P. (2004). Maximum likelihood estimation of </span>
 <span class="sd">    intrinsic dimension. Advances in Neural Information …, 17, 777–784. </span>
 <span class="sd">    http://doi.org/10.2307/2335172</span>
 <span class="sd">    [2] http://www.inference.phy.cam.ac.uk/mackay/dimension/</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    
     <span class="n">n</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;vector&#39;</span><span class="p">,</span> <span class="s1">&#39;distance&#39;</span><span class="p">]:</span>
         <span class="n">data_type</span> <span class="o">=</span> <span class="n">metric</span>
@@ -211,40 +213,40 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid neighborhood: Please make sure that &quot;</span>
                          <span class="s2">&quot;0 &lt; k1 &lt;= k2 &lt; n. (Got k1={} and k2={}).&quot;</span><span class="o">.</span>
                          <span class="n">format</span><span class="p">(</span><span class="n">k1</span><span class="p">,</span> <span class="n">k2</span><span class="p">))</span>
-    <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
         
     <span class="k">if</span> <span class="n">data_type</span> <span class="o">==</span> <span class="s1">&#39;vector&#39;</span><span class="p">:</span>
-        <span class="c1"># New array with unique rows                </span>
-        <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fliplr</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)]</span>  
+        <span class="c1"># New array with unique rows   </span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fliplr</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)]</span>
         
         <span class="k">if</span> <span class="n">trafo</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">pass</span>
         <span class="k">elif</span> <span class="n">trafo</span> <span class="o">==</span> <span class="s1">&#39;var&#39;</span><span class="p">:</span>
-            <span class="n">X</span> <span class="o">-=</span> <span class="n">X</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># broadcast</span>
-            <span class="n">X</span> <span class="o">/=</span> <span class="n">X</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-7</span> <span class="c1"># broadcast</span>
+            <span class="n">X</span> <span class="o">-=</span> <span class="n">X</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># broadcast</span>
+            <span class="n">X</span> <span class="o">/=</span> <span class="n">X</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-7</span> <span class="c1"># broadcast</span>
         <span class="k">elif</span> <span class="n">trafo</span> <span class="o">==</span> <span class="s1">&#39;std&#39;</span><span class="p">:</span>
             <span class="c1"># Standardization</span>
-            <span class="n">X</span> <span class="o">-=</span> <span class="n">X</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># broadcast</span>
-            <span class="n">X</span> <span class="o">/=</span> <span class="n">X</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-7</span> <span class="c1"># broadcast</span>
+            <span class="n">X</span> <span class="o">-=</span> <span class="n">X</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># broadcast</span>
+            <span class="n">X</span> <span class="o">/=</span> <span class="n">X</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-7</span> <span class="c1"># broadcast</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Transformation must be None, &#39;std&#39;, or &#39;var&#39;.&quot;</span><span class="p">)</span>
         
         <span class="c1"># Compute matrix of log nearest neighbor distances</span>
         <span class="n">X2</span> <span class="o">=</span> <span class="p">(</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-    
+        
         <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">5000</span><span class="p">:</span> <span class="c1"># speed-memory trade-off</span>
-            <span class="n">distance</span> <span class="o">=</span> <span class="n">X2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">X2</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="c1">#2x br.cast </span>
+            <span class="n">distance</span> <span class="o">=</span> <span class="n">X2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">X2</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="c1">#2x br.cast</span>
             <span class="n">distance</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="c1"># Replace invalid values with a small number </span>
+            <span class="c1"># Replace invalid values with a small number</span>
             <span class="n">distance</span><span class="p">[</span><span class="n">distance</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-7</span>
             <span class="n">knnmatrix</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">distance</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="n">k2</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">knnmatrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">k2</span><span class="p">))</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
                 <span class="n">distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">X2</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">X2</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]))</span>
-                <span class="c1"># Replace invalid values with a small number </span>
-                <span class="n">distance</span><span class="p">[</span><span class="n">distance</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-7</span>
-                <span class="n">knnmatrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">distance</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">k2</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> 
+                <span class="c1"># Replace invalid values with a small number</span>
+                <span class="n">distance</span><span class="p">[</span><span class="n">distance</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-7</span>
+                <span class="n">knnmatrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="o">.</span><span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">distance</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="n">k2</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">elif</span> <span class="n">data_type</span> <span class="o">==</span> <span class="s1">&#39;distance&#39;</span><span class="p">:</span>
         <span class="c1"># TODO calculation WRONG</span>
         <span class="n">X</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -304,11 +306,11 @@
         <span class="k">return</span> <span class="n">intrinsic_dimension</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">X</span><span class="p">,</span> <span class="n">k1</span><span class="p">,</span> <span class="n">k2</span><span class="p">,</span> <span class="n">estimator</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span><span class="p">)</span></div></div>
     
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
-    <span class="n">m</span> <span class="o">=</span> <span class="mi">100</span>
-    <span class="n">n</span> <span class="o">=</span> <span class="mi">2000</span>
-    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
-    <span class="n">id_</span> <span class="o">=</span> <span class="n">intrinsic_dimension</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Random {}x{} matrix: ID_MLE = {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">id_</span><span class="p">))</span>
+    <span class="n">m_dim</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">n_dim</span> <span class="o">=</span> <span class="mi">2000</span>
+    <span class="n">VECT_DATA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n_dim</span><span class="p">,</span> <span class="n">m_dim</span><span class="p">)</span>
+    <span class="n">id_</span> <span class="o">=</span> <span class="n">intrinsic_dimension</span><span class="p">(</span><span class="n">VECT_DATA</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Random {}x{} matrix: ID_MLE = {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_dim</span><span class="p">,</span> <span class="n">m_dim</span><span class="p">,</span> <span class="n">id_</span><span class="p">))</span>
 </pre></div>
 
            </div>

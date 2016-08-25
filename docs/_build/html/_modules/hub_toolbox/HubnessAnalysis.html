@@ -147,41 +147,80 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
 <span class="kn">from</span> <span class="nn">hub_toolbox.Hubness</span> <span class="kn">import</span> <span class="n">hubness</span>
-<span class="kn">from</span> <span class="nn">hub_toolbox.KnnClassification</span> <span class="kn">import</span> <span class="n">KnnClassification</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.KnnClassification</span> <span class="kn">import</span> <span class="n">score</span>
 <span class="kn">from</span> <span class="nn">hub_toolbox.GoodmanKruskal</span> <span class="kn">import</span> <span class="n">goodman_kruskal_index</span>
 <span class="kn">from</span> <span class="nn">hub_toolbox.IntrinsicDim</span> <span class="kn">import</span> <span class="n">intrinsic_dimension</span>
-<span class="kn">from</span> <span class="nn">hub_toolbox.MutualProximity</span> <span class="kn">import</span> <span class="n">MutualProximity</span><span class="p">,</span> <span class="n">Distribution</span>
-<span class="kn">from</span> <span class="nn">hub_toolbox.LocalScaling</span> <span class="kn">import</span> <span class="n">LocalScaling</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.MutualProximity</span> <span class="kn">import</span> <span class="n">mutual_proximity_empiric</span><span class="p">,</span> \
+    <span class="n">mutual_proximity_gammai</span><span class="p">,</span> <span class="n">mutual_proximity_gauss</span><span class="p">,</span> <span class="n">mutual_proximity_gaussi</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.LocalScaling</span> <span class="kn">import</span> <span class="n">nicdm</span><span class="p">,</span> <span class="n">local_scaling</span>
 <span class="kn">from</span> <span class="nn">hub_toolbox.SharedNN</span> <span class="kn">import</span> <span class="n">shared_nearest_neighbors</span>
 <span class="kn">from</span> <span class="nn">hub_toolbox.Centering</span> <span class="kn">import</span> <span class="n">centering</span><span class="p">,</span> <span class="n">weighted_centering</span><span class="p">,</span> \
-                                  <span class="n">localized_centering</span>
-<span class="kn">from</span> <span class="nn">hub_toolbox</span> <span class="kn">import</span> <span class="n">Distances</span> <span class="k">as</span> <span class="n">htd</span>
+    <span class="n">localized_centering</span><span class="p">,</span> <span class="n">dis_sim_global</span><span class="p">,</span> <span class="n">dis_sim_local</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.Distances</span> <span class="kn">import</span> <span class="n">cosine_distance</span>
+<span class="kn">from</span> <span class="nn">hub_toolbox.IO</span> <span class="kn">import</span> <span class="n">load_dexter</span> <span class="k">as</span> <span class="n">io_load_dexter</span>
 
+<span class="n">CITATION</span> <span class="o">=</span> \
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Feldbauer, R., Flexer, A. (2016). Centering Versus Scaling for </span>
+<span class="sd">Hubness Reduction. ICANN 2016, Part I, LNCS 9886, pp. 1–9 (preprint </span>
+<span class="sd">available at http://www.ofai.at/cgi-bin/tr-online?number+2016-05).</span>
+<span class="sd">or</span>
+<span class="sd">Schnitzer, D., Flexer, A., Schedl, M., &amp; Widmer, G. (2012). Local </span>
+<span class="sd">and global scaling reduce hubs in space. The Journal of Machine </span>
+<span class="sd">Learning Research, 13(1), 2871–2902.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="k">def</span> <span class="nf">_primary_distance</span><span class="p">(</span><span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">metric</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return D, identical. (Dummy function.)&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">D</span>
+
+<span class="c1"># New types of hubness reduction methods must be added here</span>
+<span class="n">SEC_DIST</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;mp&#39;</span> <span class="p">:</span> <span class="n">mutual_proximity_empiric</span><span class="p">,</span>
+            <span class="s1">&#39;mp_gauss&#39;</span><span class="p">:</span> <span class="n">mutual_proximity_gauss</span><span class="p">,</span>
+            <span class="s1">&#39;mp_gaussi&#39;</span> <span class="p">:</span> <span class="n">mutual_proximity_gaussi</span><span class="p">,</span>
+            <span class="s1">&#39;mp_gammai&#39;</span> <span class="p">:</span> <span class="n">mutual_proximity_gammai</span><span class="p">,</span>
+            <span class="s1">&#39;ls&#39;</span> <span class="p">:</span> <span class="n">local_scaling</span><span class="p">,</span>
+            <span class="s1">&#39;nicdm&#39;</span> <span class="p">:</span> <span class="n">nicdm</span><span class="p">,</span>
+            <span class="s1">&#39;snn&#39;</span> <span class="p">:</span> <span class="n">shared_nearest_neighbors</span><span class="p">,</span>
+            <span class="s1">&#39;cent&#39;</span> <span class="p">:</span> <span class="n">centering</span><span class="p">,</span>
+            <span class="s1">&#39;wcent&#39;</span> <span class="p">:</span> <span class="n">weighted_centering</span><span class="p">,</span>
+            <span class="s1">&#39;lcent&#39;</span> <span class="p">:</span> <span class="n">localized_centering</span><span class="p">,</span>
+            <span class="s1">&#39;dsg&#39;</span> <span class="p">:</span> <span class="n">dis_sim_global</span><span class="p">,</span>
+            <span class="s1">&#39;dsl&#39;</span> <span class="p">:</span> <span class="n">dis_sim_local</span><span class="p">,</span>
+            <span class="s1">&#39;orig&#39;</span> <span class="p">:</span> <span class="n">_primary_distance</span> <span class="c1"># a dummy function</span>
+            <span class="p">}</span>
 
 <div class="viewcode-block" id="HubnessAnalysis"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis">[docs]</a><span class="k">class</span> <span class="nc">HubnessAnalysis</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    The main hubness analysis class.</span>
+    <span class="sd">&quot;&quot;&quot;The main hubness analysis class.</span>
 <span class="sd">    </span>
-<span class="sd">    Usage:</span>
-<span class="sd">        hub = HubnessAnalysis()</span>
-<span class="sd">        hub.analyse_hubness()</span>
-<span class="sd">            - Load the example data set and perform a quick hubness analysis </span>
-<span class="sd">            with some of the functions provided in this toolbox.</span>
-
-<span class="sd">        hub = HubnessAnalysis(D, classes, vectors)</span>
-<span class="sd">        hub.analyse_hubness()</span>
-<span class="sd">             - Use the distance matrix D (NxN) together with an optional </span>
-<span class="sd">             class labels vector (classes) and the original (optional) </span>
-<span class="sd">             data vectors (vectors) to perform a full hubness analysis.</span>
+<span class="sd">    For more detailed analyses (optimizing parameters, using similarity data, </span>
+<span class="sd">    etc.) please use the individual modules.</span>
+<span class="sd">    </span>
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    # Load the example data set and perform a quick hubness analysis </span>
+<span class="sd">    # with some of the functions provided in this toolbox.</span>
+<span class="sd">    &gt;&gt;&gt; from hub_toolbox.HubnessAnalysis import HubnessAnalysis</span>
+<span class="sd">    &gt;&gt;&gt; hub = HubnessAnalysis()</span>
+<span class="sd">    &gt;&gt;&gt; hub.analyse_hubness()</span>
+<span class="sd">    </span>
+<span class="sd">    # Use the distance matrix D (NxN) together with an optional </span>
+<span class="sd">    # class labels vector (classes) and the original (optional) </span>
+<span class="sd">    # data vectors (vectors) to perform a full hubness analysis.</span>
+<span class="sd">    &gt;&gt;&gt; hub = HubnessAnalysis(D, classes, vectors)</span>
+<span class="sd">    &gt;&gt;&gt; hub.analyse_hubness()</span>
+<span class="sd">    # Please consult the docstring of this method for additional </span>
+<span class="sd">    # parameters (e.g. k-occurence, k-NN)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">classes</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> 
-                 <span class="n">vectors</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+                 <span class="n">vectors</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize a quick hubness analysis.</span>
 <span class="sd">        </span>
-<span class="sd">        Parameters:</span>
-<span class="sd">        -----------</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
 <span class="sd">        D : ndarray, optional (default: None)</span>
 <span class="sd">            The n x n symmetric distance (similarity) matrix.</span>
 <span class="sd">            Default: load example dataset (dexter).</span>
@@ -191,12 +230,25 @@
 <span class="sd">            </span>
 <span class="sd">        vectors : ndarray, optional (default: None)</span>
 <span class="sd">            The m x n vector data. Required for IntrDim estimation.</span>
+<span class="sd">            </span>
+<span class="sd">        metric : {&#39;distance&#39;, &#39;similarity&#39;}</span>
+<span class="sd">            Define whether D is a distance or similarity matrix.</span>
 <span class="sd">        &quot;&quot;&quot;</span>        
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">haveClasses</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">haveVectors</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_class_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_vector_data</span> <span class="o">=</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span>
         <span class="k">if</span> <span class="n">D</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_dexter</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">haveClasses</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">haveVectors</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="bp">True</span>
+            <span class="k">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;NO PARAMETERS GIVEN! Loading &amp; evaluating DEXTER data set.&#39;</span>
+                  <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;DEXTER is a text classification problem in a bag-of-word </span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;representation. This is a two-class classification problem</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;with sparse continuous input variables. </span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;This dataset is one of five datasets of the NIPS 2003</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;feature selection challenge.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;http://archive.ics.uci.edu/ml/datasets/Dexter</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="o">=</span> <span class="n">io_load_dexter</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_class_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_vector_data</span> <span class="o">=</span> <span class="bp">True</span><span class="p">,</span> <span class="bp">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;distance&#39;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># copy data and ensure correct type (not int16 etc.)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">D</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -204,216 +256,271 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">classes</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">haveClasses</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">has_class_data</span> <span class="o">=</span> <span class="bp">True</span>
             <span class="k">if</span> <span class="n">vectors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">haveVectors</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">has_vector_data</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)</span>
-                
-<div class="viewcode-block" id="HubnessAnalysis.analyse_hubness"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.analyse_hubness">[docs]</a>    <span class="k">def</span> <span class="nf">analyse_hubness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origData</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mp</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mp_gauss</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> 
-                        <span class="n">mp_gaussi</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mp_gammai</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">snn</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> 
-                        <span class="n">cent</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">wcent</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">wcent_g</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> 
-                        <span class="n">lcent</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">lcent_k</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">lcent_g</span><span class="o">=</span><span class="mf">1.4</span><span class="p">,</span> <span class="n">Sk10</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span> <span class="o">=</span> <span class="p">[]</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_header</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;mp&#39;</span> <span class="p">:</span> <span class="s2">&quot;MUTUAL PROXIMITY (Empiric)&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;mp_gauss&#39;</span><span class="p">:</span> <span class="s2">&quot;MUTUAL PROXIMITY (Gaussian)&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;mp_gaussi&#39;</span> <span class="p">:</span> <span class="s2">&quot;MUTUAL PROXIMITY (Independent Gaussians)&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;mp_gammai&#39;</span> <span class="p">:</span> <span class="s2">&quot;MUTUAL PROXIMITY (Independent Gamma)&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;ls&#39;</span> <span class="p">:</span> <span class="s2">&quot;LOCAL SCALING (original)&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;nicdm&#39;</span> <span class="p">:</span> <span class="s2">&quot;LOCAL SCALING (NICDM)&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;snn&#39;</span> <span class="p">:</span> <span class="s2">&quot;SHARED NEAREST NEIGHBORS&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;cent&#39;</span> <span class="p">:</span> <span class="s2">&quot;CENTERING&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;wcent&#39;</span> <span class="p">:</span> <span class="s2">&quot;WEIGHTED CENTERING&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;lcent&#39;</span> <span class="p">:</span> <span class="s2">&quot;LOCALIZED CENTERING&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;dsg&#39;</span> <span class="p">:</span> <span class="s2">&quot;DISSIM GLOBAL&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;dsl&#39;</span> <span class="p">:</span> <span class="s2">&quot;DISSIM LOCAL&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;orig&#39;</span> <span class="p">:</span> <span class="s2">&quot;ORIGINAL DATA&quot;</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_calc_intrinsic_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate intrinsic dimension estimate.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intrinsic_dim</span> <span class="o">=</span> <span class="n">intrinsic_dimension</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="HubnessAnalysis.analyze_hubness"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.analyze_hubness">[docs]</a>    <span class="k">def</span> <span class="nf">analyze_hubness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiments</span><span class="o">=</span><span class="s2">&quot;orig,mp,mp_gaussi,nicdm,cent,dsg&quot;</span><span class="p">,</span>
+                        <span class="n">hubness_k</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">knn_k</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> 
+                        <span class="n">print_results</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Analyse hubness in original data and rescaled distances.</span>
-<span class="sd">        </span>
-<span class="sd">        Parameters:</span>
-<span class="sd">        -----------</span>
-<span class="sd">        args : bool</span>
-<span class="sd">            - origData ... original data</span>
-<span class="sd">            - mp ... Mutual Proximity (empiric)</span>
-<span class="sd">            - mp_gauss ... Mutual Proximity (Gaussian)</span>
-<span class="sd">            - mp_gaussi ... Mutual Proximity (independent Gaussian)</span>
-<span class="sd">            - mp_gammai ... Mutual Proximity (independent Gamma)</span>
-<span class="sd">            - ls ... Local Scaling (NICDM)</span>
-<span class="sd">            - snn ... Shared Nearest Neighbors</span>
-<span class="sd">            - cent ... Centering</span>
-<span class="sd">            - wcent ... Weighted Centering</span>
-<span class="sd">            - lcent ... Localized Centering</span>
-<span class="sd">        args : float</span>
-<span class="sd">            - wcent_g ... Weighted Centering gamma parameter</span>
-<span class="sd">            - lcent_k ... Localized Centering kappa parameter</span>
-<span class="sd">            - lcent_g ... Localized Centering gamma parameter</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        experiments : str, optional</span>
+<span class="sd">            Define which experiments to perform. Please provide a string of </span>
+<span class="sd">            comma separated values chosen from the following options:</span>
 <span class="sd">            </span>
-<span class="sd">        Returns:</span>
-<span class="sd">        --------</span>
-<span class="sd">        None : print summary of results to stdout</span>
+<span class="sd">            - &quot;orig&quot; : Original, primary distances</span>
+<span class="sd">            - &quot;mp&quot; : Mutual Proximity (empiric)</span>
+<span class="sd">            - &quot;mp_gauss&quot; : Mutual Proximity (Gaussians)</span>
+<span class="sd">            - &quot;mp_gaussi&quot; : Mutual Proximity (independent Gaussians)</span>
+<span class="sd">            - &quot;mp_gammai&quot; ... Mutual Proximity (independent Gamma)</span>
+<span class="sd">            - &quot;ls&quot; : Local Scaling (using k-th neighbor)</span>
+<span class="sd">            - &quot;nicdm&quot; : Local Scaling variant NICDM (average of k neighbors)</span>
+<span class="sd">            - &quot;snn&quot; : Shared Nearest Neighbors</span>
+<span class="sd">            - &quot;cent&quot; : Centering</span>
+<span class="sd">            - &quot;wcent&quot; : Weighted Centering</span>
+<span class="sd">            - &quot;lcent&quot; : Localized Centering</span>
+<span class="sd">            - &quot;dsg&quot; : DisSim Global</span>
+<span class="sd">            - &quot;dsl&quot; : DisSim Local</span>
+
+<span class="sd">        hubness_k : tuple, optional (default: (5, 10))</span>
+<span class="sd">            Hubness parameter (skewness of k-occurence)</span>
+
+<span class="sd">        knn_k : tuple, optional (default: (1, 5, 20))</span>
+<span class="sd">            k-NN classification parameter</span>
+
+<span class="sd">        print_results : bool, optional (default: True)</span>
+<span class="sd">            Define whether to print hubness analysis report to stdout</span>
+<span class="sd">            </span>
+<span class="sd">        verbose : int, optional (default: 0)</span>
+<span class="sd">            Increasing output verbosity</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self : optionally prints results to stdout</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        
-        <span class="k">print</span><span class="p">()</span>
-        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Hubness Analysis&quot;</span><span class="p">)</span>
-            
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">origData</span> <span class="ow">or</span> <span class="n">mp</span> <span class="ow">or</span> <span class="n">mp_gauss</span> <span class="ow">or</span> <span class="n">mp_gaussi</span> <span class="ow">or</span> <span class="n">mp_gammai</span> <span class="ow">or</span> \
-                <span class="n">ls</span> <span class="ow">or</span> <span class="n">snn</span> <span class="ow">or</span> <span class="n">cent</span> <span class="ow">or</span> <span class="n">wcent</span> <span class="ow">or</span> <span class="n">lcent</span><span class="p">):</span>
-            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;---Nothing to do. Please specify tasks to be performed.---&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">origData</span><span class="p">:</span>
-            <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;ORIGINAL DATA&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">mp</span> <span class="ow">or</span> <span class="n">mp_gaussi</span> <span class="ow">or</span> <span class="n">mp_gammai</span> <span class="ow">or</span> <span class="n">mp_gauss</span><span class="p">:</span>
-            <span class="n">mut_prox</span> <span class="o">=</span> <span class="n">MutualProximity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">mp</span><span class="p">:</span>  
-                <span class="c1"># Hubness in empiric mutual proximity distance space</span>
-                <span class="n">Dn</span> <span class="o">=</span> <span class="n">mut_prox</span><span class="o">.</span><span class="n">calculate_mutual_proximity</span><span class="p">(</span><span class="n">Distribution</span><span class="o">.</span><span class="n">empiric</span><span class="p">)</span>
-                <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">Dn</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;MUTUAL PROXIMITY (Empiric/Slow)&#39;</span><span class="p">,</span> \
-                                   <span class="n">Dn</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">mp_gauss</span><span class="p">:</span>    
-                <span class="c1"># Hubness in mutual proximity distance space, Gaussian model</span>
-                <span class="n">Dn</span> <span class="o">=</span> <span class="n">mut_prox</span><span class="o">.</span><span class="n">calculate_mutual_proximity</span><span class="p">(</span><span class="n">Distribution</span><span class="o">.</span><span class="n">gauss</span><span class="p">)</span>
-                <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">Dn</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;MUTUAL PROXIMITY (Gaussian)&#39;</span><span class="p">,</span> <span class="n">Dn</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">mp_gaussi</span><span class="p">:</span>
-                <span class="c1"># Hubness in mutual proximity distance space, independent Gaussians</span>
-                <span class="n">Dn</span> <span class="o">=</span> <span class="n">mut_prox</span><span class="o">.</span><span class="n">calculate_mutual_proximity</span><span class="p">(</span><span class="n">Distribution</span><span class="o">.</span><span class="n">gaussi</span><span class="p">)</span>
-                <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">Dn</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;MUTUAL PROXIMITY (Independent Gaussians)&#39;</span><span class="p">,</span> \
-                                   <span class="n">Dn</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">mp_gammai</span><span class="p">:</span>
-                <span class="c1"># Hubness in mutual proximity distance space, indep. Gamma distr.</span>
-                <span class="n">Dn</span> <span class="o">=</span> <span class="n">mut_prox</span><span class="o">.</span><span class="n">calculate_mutual_proximity</span><span class="p">(</span><span class="n">Distribution</span><span class="o">.</span><span class="n">gammai</span><span class="p">)</span>
-                <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">Dn</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;MUTUAL PROXIMITY (Independent Gamma)&#39;</span><span class="p">,</span> \
-                                   <span class="n">Dn</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">ls</span><span class="p">:</span>
-            <span class="c1"># Hubness in local scaling distance space</span>
-            <span class="n">radius</span> <span class="o">=</span> <span class="mi">10</span>
-            <span class="n">scalingType</span> <span class="o">=</span> <span class="s1">&#39;nicdm&#39;</span> <span class="c1"># &#39;original&#39;</span>
-            <span class="n">ls</span> <span class="o">=</span> <span class="n">LocalScaling</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">scalingType</span><span class="p">)</span>
-            <span class="n">Dn</span> <span class="o">=</span> <span class="n">ls</span><span class="o">.</span><span class="n">perform_local_scaling</span><span class="p">()</span>
-            <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">Dn</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;LOCAL SCALING ({}, k={})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                <span class="n">scalingType</span><span class="p">,</span> <span class="n">radius</span><span class="p">),</span> <span class="n">Dn</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">snn</span><span class="p">:</span>
-            <span class="c1"># Hubness in shared nearest neighbors space</span>
-            <span class="n">Dn</span> <span class="o">=</span> <span class="n">shared_nearest_neighbors</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">)</span>
-            <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">Dn</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;SHARED NEAREST NEIGHBORS (k={})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                <span class="n">radius</span><span class="p">),</span> <span class="n">Dn</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">cent</span> <span class="ow">or</span> <span class="n">wcent</span> <span class="ow">or</span> <span class="n">lcent</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">haveVectors</span><span class="p">:</span>
-                <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Centering is currently only supported for vector data.&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">cent</span><span class="p">:</span>
-                    <span class="c1"># Hubness after centering</span>
-                    <span class="n">D_cent</span> <span class="o">=</span> <span class="n">htd</span><span class="o">.</span><span class="n">cosine_distance</span><span class="p">(</span><span class="n">centering</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">,</span> <span class="s1">&#39;vector&#39;</span><span class="p">))</span>
-                    <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">D_cent</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;CENTERING&#39;</span><span class="p">,</span> <span class="n">D_cent</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span>                    
-                    <span class="c1"># TODO remove again</span>
-                    <span class="k">if</span> <span class="n">Sk10</span><span class="p">:</span>
-                        <span class="n">Sn10</span><span class="p">,</span> <span class="n">Nk10</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">D_cent</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;CENTERING&#39;</span><span class="p">,</span> <span class="n">D_cent</span><span class="p">,</span> <span class="n">Sn10</span><span class="p">,</span> <span class="n">Nk10</span><span class="p">,</span> <span class="n">Sn10</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-                    
-                <span class="k">if</span> <span class="n">wcent</span><span class="p">:</span>        
-                    <span class="c1"># Hubness after weighted centering</span>
-                    <span class="n">D_wcent</span> <span class="o">=</span> <span class="n">htd</span><span class="o">.</span><span class="n">cosine_distance</span><span class="p">(</span><span class="n">weighted_centering</span><span class="p">(</span>
-                                <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;cosine&#39;</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">wcent_g</span><span class="p">))</span>
-                    <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">D_wcent</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;WEIGHTED CENTERING (gamma={})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                                        <span class="n">wcent_g</span><span class="p">),</span> <span class="n">D_wcent</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span>
+        <span class="n">experiments</span> <span class="o">=</span> <span class="n">experiments</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calc_intrinsic_dim</span><span class="p">()</span>    
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">exp_type</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">experiments</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Experiment {}/{} ({})&quot;</span><span class="o">.</span>
+                      <span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">experiments</span><span class="p">),</span> <span class="n">exp_type</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">experiment</span> <span class="o">=</span> <span class="n">HubnessExperiment</span><span class="p">(</span><span class="n">D</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">D</span><span class="p">,</span> 
+                <span class="n">secondary_distance_type</span><span class="o">=</span><span class="n">exp_type</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> 
+                <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> <span class="n">vectors</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">D</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">experiment</span><span class="o">.</span><span class="n">_calc_secondary_distance</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">hubness_k</span><span class="p">:</span>
+                    <span class="n">experiment</span><span class="o">.</span><span class="n">_calc_hubness</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">knn_k</span><span class="p">:</span>
+                    <span class="n">experiment</span><span class="o">.</span><span class="n">_calc_knn_accuracy</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+                <span class="n">experiment</span><span class="o">.</span><span class="n">_calc_gk_index</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">experiment</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">print_results</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">print_analysis_report</span><span class="p">(</span><span class="n">experiment</span><span class="p">,</span> <span class="n">report_nr</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">print_results</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;------------------------------------------------------------&quot;</span><span class="p">)</span>
+            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Thanks for using the HUB-TOOLBOX!&quot;</span><span class="p">)</span>
+            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;If you use this software in a research project, please cite:&quot;</span><span class="p">)</span>
+            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;---&quot;</span><span class="p">,</span> <span class="n">CITATION</span><span class="p">)</span>
+            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Please also consider citing the references to the </span><span class="se">\n</span><span class="s2">&quot;</span>
+                  <span class="s2">&quot;individual modules/hubness functions that you use.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
 
-                    <span class="c1"># TODO remove again</span>
-                    <span class="k">if</span> <span class="n">Sk10</span><span class="p">:</span>
-                        <span class="n">Sn10</span><span class="p">,</span> <span class="n">Nk10</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">D_wcent</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">10</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span><span class="s1">&#39;WEIGHTED CENTERING (gamma={})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                                        <span class="n">wcent_g</span><span class="p">),</span> <span class="n">D_wcent</span><span class="p">,</span> <span class="n">Sn10</span><span class="p">,</span> <span class="n">Nk10</span><span class="p">,</span> <span class="n">Sn10</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">lcent</span><span class="p">:</span>
-                    <span class="c1"># Hubness after localized centering</span>
-                    <span class="n">D_lcent</span> <span class="o">=</span> <span class="n">localized_centering</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;cosine&#39;</span><span class="p">,</span>
-                                                  <span class="n">kappa</span><span class="o">=</span><span class="n">lcent_k</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">lcent_g</span><span class="p">)</span>
-                    <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">D_lcent</span><span class="p">)[::</span><span class="mi">2</span><span class="p">]</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">print_results</span><span class="p">(</span>\
-                        <span class="s1">&#39;LOCALIZED CENTERING (k={}, gamma={})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                        <span class="n">lcent_k</span><span class="p">,</span> <span class="n">lcent_g</span><span class="p">),</span> <span class="n">D_lcent</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">)</span></div>
-    
-<div class="viewcode-block" id="HubnessAnalysis.print_results"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.print_results">[docs]</a>    <span class="k">def</span> <span class="nf">print_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">heading</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Sn5</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> <span class="n">Nk5</span><span class="p">:</span><span class="nb">float</span><span class="p">,</span> 
-                      <span class="n">calc_intrinsic_dimensionality</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">Sn10</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Print the results of a hubness analysis.&quot;&quot;&quot;</span>     
-        
-        <span class="k">if</span> <span class="n">Sn10</span><span class="p">:</span>
-            <span class="k">print</span><span class="p">(</span><span class="s1">&#39;data set hubness (S^n=10)                : {:.3}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">Sn5</span><span class="p">))</span> 
-            <span class="k">return</span>
-        
-        <span class="k">print</span><span class="p">()</span>
-        <span class="k">print</span><span class="p">(</span><span class="n">heading</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;data set hubness (S^n=5)                 : {:.3}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">Sn5</span><span class="p">))</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">% o</span><span class="s1">f anti-hubs at k=5                    : {:.4}%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-            <span class="mi">100</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">Nk5</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">))</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">% o</span><span class="s1">f k=5-NN lists the largest hub occurs : {:.4}%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-            <span class="mi">100</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">Nk5</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">))</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">haveClasses</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">20</span><span class="p">]:</span>
-                <span class="n">knn</span> <span class="o">=</span> <span class="n">KnnClassification</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
-                <span class="n">acc</span> <span class="o">=</span> <span class="n">knn</span><span class="o">.</span><span class="n">perform_knn_classification</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;k={:2}-NN classification accuracy          : {:.4}%&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                        <span class="n">k</span><span class="p">,</span> <span class="mi">100</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="n">acc</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>                
-            <span class="k">print</span><span class="p">(</span><span class="s1">&#39;Goodman-Kruskal index (higher=better)    : {:.3}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                <span class="n">goodman_kruskal_index</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> <span class="s1">&#39;distance&#39;</span><span class="p">)))</span>
+<div class="viewcode-block" id="HubnessAnalysis.print_analysis_report"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.print_analysis_report">[docs]</a>    <span class="k">def</span> <span class="nf">print_analysis_report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">experiment</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">report_nr</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Print a report of the performed hubness analysis.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        experiment : HubnessExperiment, optional (default: None)</span>
+<span class="sd">            If given, report only this experiment. Otherwise, report all </span>
+<span class="sd">            experiments of this analysis.</span>
+
+<span class="sd">        report_nr : int, optional (default: 0)</span>
+<span class="sd">            Method only prints headline for first report</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None : Output is printed to stdout</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">experiment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">experiments</span> <span class="o">=</span> <span class="p">[</span><span class="n">experiment</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">print</span><span class="p">(</span><span class="s1">&#39;k=5-NN classification accuracy           : No classes given&#39;</span><span class="p">)</span>
-            <span class="k">print</span><span class="p">(</span><span class="s1">&#39;Goodman-Kruskal index (higher=better)    : No classes given&#39;</span><span class="p">)</span>
-        
-        <span class="k">if</span> <span class="n">calc_intrinsic_dimensionality</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">haveVectors</span><span class="p">:</span>
-                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;original dimensionality                  : {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                    <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;intrinsic dimensionality estimate        : {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
-                    <span class="nb">round</span><span class="p">(</span><span class="n">intrinsic_dimension</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">))))</span>
+            <span class="n">experiments</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">experiments</span>
+        <span class="k">if</span> <span class="n">report_nr</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                  <span class="s2">&quot;================</span><span class="se">\n</span><span class="s2">&quot;</span>
+                  <span class="s2">&quot;Hubness Analysis</span><span class="se">\n</span><span class="s2">&quot;</span>
+                  <span class="s2">&quot;================</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">experiment</span> <span class="ow">in</span> <span class="n">experiments</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_header</span><span class="p">[</span><span class="n">experiment</span><span class="o">.</span><span class="n">secondary_distance_type</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span><span class="p">)</span>
+            <span class="c1"># Print used parameters (which are the default parameters)</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">SEC_DIST</span><span class="p">[</span><span class="n">experiment</span><span class="o">.</span><span class="n">secondary_distance_type</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="s1">&#39;kappa&#39;</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">]:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;parameter {} = {} (for optimization use the &quot;</span>
+                          <span class="s2">&quot;individual modules of the HUB-TOOLBOX)&quot;</span><span class="o">.</span>
+                          <span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span><span class="o">.</span><span class="n">default</span><span class="p">))</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">pass</span> <span class="c1"># function does not use this parameter</span>
+            <span class="k">try</span><span class="p">:</span> <span class="c1"># to print hubness results, if available</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">experiment</span><span class="o">.</span><span class="n">hubness</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;data set hubness (S^k={:2})                : {:.3}&#39;</span><span class="o">.</span>
+                          <span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">experiment</span><span class="o">.</span><span class="n">hubness</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">% o</span><span class="s1">f anti-hubs at k={:2}                   : {:.4}%&#39;</span><span class="o">.</span>
+                          <span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">experiment</span><span class="o">.</span><span class="n">anti_hubs</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">% o</span><span class="s1">f k={:2}-NN lists the largest hub occurs: {:.4}%&#39;</span><span class="o">.</span>
+                          <span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">experiment</span><span class="o">.</span><span class="n">max_hub_k_occurence</span><span class="p">[</span><span class="n">k</span><span class="p">]))</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;data set hubness (S^k={:2})                : &#39;</span>
+                      <span class="s1">&#39;No k given&#39;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span> <span class="c1"># to print k-NN results, if available</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">experiment</span><span class="o">.</span><span class="n">knn_accuracy</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;k={:2}-NN classification accuracy          : {:.4}%&#39;</span><span class="o">.</span>
+                          <span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mf">100.</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="n">experiment</span><span class="o">.</span><span class="n">knn_accuracy</span><span class="p">[</span><span class="n">k</span><span class="p">])))</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;k=5-NN classification accuracy           : &#39;</span>
+                      <span class="s1">&#39;No classes given&#39;</span><span class="p">)</span>   
+            <span class="c1"># print Goodman-Kruskal result, if available</span>
+            <span class="k">if</span> <span class="n">experiment</span><span class="o">.</span><span class="n">gk_index</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;Goodman-Kruskal index (higher=better)    : &#39;</span>
+                      <span class="s1">&#39;No classes given/Not calculated&#39;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;original dimensionality                  : No vectors given&#39;</span><span class="p">)</span>
-                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;intrinsic dimensionality estimate        : No vectors given&#39;</span><span class="p">)</span></div>
-        
-<div class="viewcode-block" id="HubnessAnalysis.load_dexter"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessAnalysis.load_dexter">[docs]</a>    <span class="k">def</span> <span class="nf">load_dexter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Load the example data set (dexter).&quot;&quot;&quot;</span>
-        
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">NO PARAMETERS GIVEN! Loading &amp; evaluating DEXTER data set.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;DEXTER is a text classification problem in a bag-of-word&#39;</span><span class="p">);</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;representation. This is a two-class classification problem&#39;</span><span class="p">);</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;with sparse continuous input variables.&#39;</span><span class="p">);</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;This dataset is one of five datasets of the NIPS 2003 feature&#39;</span><span class="p">);</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;selection challenge.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span>
-        <span class="k">print</span><span class="p">(</span><span class="s1">&#39;http://archive.ics.uci.edu/ml/datasets/Dexter</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">);</span>
-        
-        <span class="kn">import</span> <span class="nn">os</span>
-    
-        <span class="n">n</span> <span class="o">=</span> <span class="mi">300</span>
-        <span class="n">dim</span> <span class="o">=</span> <span class="mi">20000</span>
-        
-        <span class="c1"># Read class labels</span>
-        <span class="n">classes_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span> <span class="o">+</span>\
-            <span class="s1">&#39;/example_datasets/dexter_train.labels&#39;</span>
-        <span class="n">classes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">classes_file</span><span class="p">)</span>  
+                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;Goodman-Kruskal index (higher=better)    : {:.3}&#39;</span><span class="o">.</span>
+                      <span class="n">format</span><span class="p">(</span><span class="n">experiment</span><span class="o">.</span><span class="n">gk_index</span><span class="p">))</span>
+            <span class="c1"># Embedding dimension</span>
+            <span class="k">print</span><span class="p">(</span><span class="s1">&#39;embedding dimensionality                 : {}&#39;</span><span class="o">.</span>
+                  <span class="n">format</span><span class="p">(</span><span class="n">experiment</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">))</span>
+            <span class="c1"># Intrinsic dimension estimate, if available</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intrinsic_dim</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;intrinsic dimensionality estimate        : &#39;</span>
+                      <span class="s1">&#39;No vectors given&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s1">&#39;intrinsic dimensionality estimate        : {}&#39;</span><span class="o">.</span>
+                      <span class="n">format</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">intrinsic_dim</span><span class="p">)))</span>
+            <span class="k">print</span><span class="p">()</span>
+        <span class="k">return</span></div></div>
 
-        <span class="c1"># Read data</span>
-        <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">dim</span><span class="p">))</span>
-        <span class="n">data_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span> <span class="o">+</span> \
-            <span class="s1">&#39;/example_datasets/dexter_train.data&#39;</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">data_file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">fid</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>       
-        <span class="n">row</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
-            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="c1"># line now contains pairs of dim:val</span>
-            <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
-                    <span class="n">col</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">word</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
-                    <span class="n">vectors</span><span class="p">[</span><span class="n">row</span><span class="p">][</span><span class="nb">int</span><span class="p">(</span><span class="n">col</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-            <span class="n">row</span> <span class="o">+=</span> <span class="mi">1</span>
-        
-        <span class="c1"># Calc distance</span>
-        <span class="n">D</span> <span class="o">=</span> <span class="n">htd</span><span class="o">.</span><span class="n">cosine_distance</span><span class="p">(</span><span class="n">vectors</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">D</span><span class="p">,</span> <span class="n">classes</span><span class="p">,</span> <span class="n">vectors</span></div></div>
-                
+<div class="viewcode-block" id="HubnessExperiment"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.HubnessExperiment">[docs]</a><span class="k">class</span> <span class="nc">HubnessExperiment</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Perform a single hubness experiment&quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">secondary_distance_type</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span> 
+                 <span class="n">metric</span><span class="p">:</span><span class="nb">str</span><span class="o">=</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span> <span class="n">classes</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> 
+                 <span class="n">vectors</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize a hubness experiment&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Distance/similarity matrix is not quadratic.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">secondary_distance_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SEC_DIST</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Requested secondary distance type unknown.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Metric must be &#39;distance&#39; or &#39;similarity&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">classes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">classes</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Target vector (classes) length does not &quot;</span>
+                                <span class="s2">&quot;match number of points.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">vectors</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># got vectors</span>
+            <span class="k">if</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Data vectors dimension does not match &quot;</span>
+                                <span class="s2">&quot;distance matrix (D) dimension.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">vectors</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_distance</span> <span class="o">=</span> <span class="n">D</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance_type</span> <span class="o">=</span> <span class="n">secondary_distance_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes</span> <span class="o">=</span> <span class="n">classes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vectors</span> <span class="o">=</span> <span class="n">vectors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># Obtained later through functions:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hubness</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anti_hubs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_hub_k_occurence</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">knn_accuracy</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gk_index</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">_calc_secondary_distance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate secondary distances (e.g. Mutual Proximity)&quot;&quot;&quot;</span>
+        <span class="n">sec_dist_fun</span> <span class="o">=</span> <span class="n">SEC_DIST</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance_type</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance</span> <span class="o">=</span> <span class="n">sec_dist_fun</span><span class="p">(</span>
+                <span class="n">D</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">original_distance</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span> <span class="c1"># centering has no keyword &#39;D=&#39;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;cent&#39;</span><span class="p">,</span> <span class="s1">&#39;wcent&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance</span> <span class="o">=</span> \
+                    <span class="n">cosine_distance</span><span class="p">(</span><span class="n">sec_dist_fun</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;lcent&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">sec_dist_fun</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;dsg&#39;</span><span class="p">,</span> <span class="s1">&#39;dsl&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance</span> <span class="o">=</span> <span class="n">sec_dist_fun</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vectors</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Erroneus secondary distance type: {}&quot;</span><span class="o">.</span>
+                                 <span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance_type</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">_calc_hubness</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate hubness (skewness of k-occurence).</span>
+<span class="sd">        </span>
+<span class="sd">        Also calculate percentage of anti hubs (k-occurence == 0) and </span>
+<span class="sd">        percentage of k-NN lists the largest hub occurs in&quot;&quot;&quot;</span>
+        <span class="n">S_k</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">N_k</span> <span class="o">=</span> <span class="n">hubness</span><span class="p">(</span><span class="n">D</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance</span><span class="p">,</span> 
+                              <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hubness</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">S_k</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">anti_hubs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="p">(</span><span class="n">N_k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_hub_k_occurence</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">N_k</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">_calc_knn_accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate k-NN accuracy.&quot;&quot;&quot;</span>
+        <span class="n">acc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">score</span><span class="p">(</span><span class="n">D</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> 
+                          <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">knn_accuracy</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">acc</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">_calc_gk_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate Goodman-Kruskal&#39;s gamma.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gk_index</span> <span class="o">=</span> <span class="n">goodman_kruskal_index</span><span class="p">(</span><span class="n">D</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">secondary_distance</span><span class="p">,</span> 
+                                              <span class="n">classes</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">classes</span><span class="p">,</span> 
+                                              <span class="n">metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="load_dexter"><a class="viewcode-back" href="../../hub_toolbox.html#hub_toolbox.HubnessAnalysis.load_dexter">[docs]</a><span class="k">def</span> <span class="nf">load_dexter</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;DEPRECATED (moved to IO.py)&quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">io_load_dexter</span><span class="p">()</span></div>
+
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="n">hub</span> <span class="o">=</span> <span class="n">HubnessAnalysis</span><span class="p">()</span>
-    <span class="n">hub</span><span class="o">.</span><span class="n">analyse_hubness</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;hub.analyse_hubness(origData=True, </span>
-<span class="sd">                           mp=True,</span>
-<span class="sd">                           mp_gauss=False,</span>
-<span class="sd">                           mp_gaussi=True,</span>
-<span class="sd">                           mp_gammai=False,</span>
-<span class="sd">                           ls=True, </span>
-<span class="sd">                           snn=False, </span>
-<span class="sd">                           cent=False, </span>
-<span class="sd">                           wcent=False, </span>
-<span class="sd">                           lcent=False</span>
-<span class="sd">                          )</span>
-<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="n">hub</span><span class="o">.</span><span class="n">analyze_hubness</span><span class="p">()</span>
 </pre></div>
 
            </div>

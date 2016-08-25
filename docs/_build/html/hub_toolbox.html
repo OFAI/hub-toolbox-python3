@@ -1005,12 +1005,9 @@ other dissimilarity measures may lead to undefined results.</p>
 <ul>
 <li>None: no transformation</li>
 <li>&#8216;std&#8217;: standardization</li>
-<li><dl class="first docutils">
-<dt>&#8216;var&#8217;: subtract mean, divide by variance (default behavior of</dt>
-<dd>Laurens van der Maaten&#8217;s DR toolbox; most likely for other
-ID/DR techniques).</dd>
-</dl>
-</li>
+<li>&#8216;var&#8217;: subtract mean, divide by variance (default behavior of
+Laurens van der Maaten&#8217;s DR toolbox; most likely for other
+ID/DR techniques).</li>
 </ul>
 </li>
 </ul>
@@ -1151,7 +1148,7 @@ Contact: &lt;<a class="reference external" href="mailto:roman&#46;feldbauer&#37;
 <dt id="hub_toolbox.LocalScaling.local_scaling">
 <code class="descclassname">hub_toolbox.LocalScaling.</code><code class="descname">local_scaling</code><span class="sig-paren">(</span><em>D: numpy.ndarray</em>, <em>k: int=7</em>, <em>metric: str='distance'</em>, <em>test_set_ind: numpy.ndarray=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/hub_toolbox/LocalScaling.html#local_scaling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#hub_toolbox.LocalScaling.local_scaling" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transform a distance matrix with Local Scaling.</p>
-<p>Transforms the given distance matrix into new one using local scaling <a href="#id2"><span class="problematic" id="id3"><span id="id1"></span>[1]_</span></a>
+<p>Transforms the given distance matrix into new one using local scaling [1]
 with the given k-th nearest neighbor. There are two types of local
 scaling methods implemented. The original one and NICDM, both reduce
 hubness in distance spaces, similarly to Mutual Proximity.</p>

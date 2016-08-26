@@ -27,15 +27,5 @@ API Reference
 Find all the information about specific modules and functions of the Hub 
 Toolbox in this section.
 
-.. toctree::
-  :maxdepth: 2
-
-  modules/xyz
-  modules/yzx
-  modules/zxy
-
-Indices and tables
-==================
-
 * :ref:`genindex`
 * :ref:`modindex`

@@ -175,13 +175,13 @@ into example mode and tells you a little bit about the dataset being used.
 
 The actual results of the analysis are grouped into blocks by experiments.
 Here, an experiment comprises the following: 
-1) a hubness reduction method is applied to the dataset's distance matrix
+#. a hubness reduction method is applied to the dataset's distance matrix
    to obtain a matrix of secondary distances
-2) hubness and additional measures of hubs and anti-hubs are calculated
+#. hubness and additional measures of hubs and anti-hubs are calculated
    (in this case twice, for two different neighborhood sizes)
-3) k-nearest neighbor classification leave-one-out crossvalidation is
+#. k-nearest neighbor classification leave-one-out crossvalidation is
    performed (in this case three times, for three different values of `k`)
-4) the Goodman-Kruskal index is calculated for the secondary distance matrix
+#. the Goodman-Kruskal index is calculated for the secondary distance matrix
 
 Additionally, the intrinsic dimension is estimated once for the dataset 
 for all experiments. 

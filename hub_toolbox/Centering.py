@@ -352,7 +352,7 @@ def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
 #
 # DEPRECATED class
 #
-class Centering(object):
+class Centering(object): # pragma: no cover
     """Transform data (in vector space) by various 'centering' approaches.
     
     .. note:: Deprecated in hub-toolbox 2.3

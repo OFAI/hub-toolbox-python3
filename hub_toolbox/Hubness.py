@@ -112,7 +112,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance', verbose:int=0):
     return S_k, D_k, N_k    
     
 
-class Hubness():
+class Hubness(): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.

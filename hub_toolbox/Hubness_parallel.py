@@ -175,7 +175,7 @@ def _partial_hubness(k, d_self, log, sort_order,
     return [rows, Dk]    
 
 
-class Hubness():
+class Hubness(): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.

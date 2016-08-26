@@ -655,7 +655,7 @@ def _local_gamcdf(x, a, b, mv=np.nan):
 #
 # DEPRECATED class
 #
-class MutualProximity():
+class MutualProximity(): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.
@@ -777,7 +777,7 @@ class MutualProximity():
         return mutual_proximity_gammai(self.D, metric, test_set_ind, 
                                        verbose, n_jobs, self.mv)
  
-class Distribution(Enum):
+class Distribution(Enum): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.

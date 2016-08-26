@@ -91,7 +91,7 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     np.fill_diagonal(D_snn, self_value)
     return D_snn
 
-class SharedNN():
+class SharedNN(): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.

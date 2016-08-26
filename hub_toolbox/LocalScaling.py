@@ -213,7 +213,7 @@ def _local_geomean(x):
 #
 # DEPRECATED class
 #
-class LocalScaling():
+class LocalScaling(): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.

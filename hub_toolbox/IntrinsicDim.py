@@ -153,7 +153,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
     return int(no_dims.round())
     
 
-class IntrinsicDim():
+class IntrinsicDim(): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.

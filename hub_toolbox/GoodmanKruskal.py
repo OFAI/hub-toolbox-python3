@@ -415,7 +415,7 @@ def _naive_goodman_kruskal(D:np.ndarray, labels:np.ndarray, metric='distance'):
         return (Q_c - Q_d) / (Q_c + Q_d)
 
 # DEPRECATED class GoodmanKruskal. Remove for next hub_toolbox release.
-class GoodmanKruskal():
+class GoodmanKruskal(): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.

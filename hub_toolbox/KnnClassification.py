@@ -177,7 +177,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
 #
 # DEPRECATED class
 #
-class KnnClassification():
+class KnnClassification(): # pragma: no cover
     """
     .. note:: Deprecated in hub-toolbox 2.3
               Class will be removed in hub-toolbox 3.0.

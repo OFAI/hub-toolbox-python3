@@ -58,7 +58,7 @@ def load_dexter():
     D = cosine_distance(vectors)
     return D, classes, vectors
 
-def copy_D_or_load_memmap(D, writeable=False):
+def copy_D_or_load_memmap(D, writeable=False): # pragma: no cover
     """Return a deep copy of a numpy array (if `D` is an ndarray), 
     otherwise return a read-only memmap (if `D` is a path).
     
@@ -91,7 +91,7 @@ def copy_D_or_load_memmap(D, writeable=False):
         
     return newD
 
-def matrix_split(rows, cols, elem_size=8, nr_matrices=4):
+def matrix_split(rows, cols, elem_size=8, nr_matrices=4): # pragma: no cover
     """Determine how to split a matrix that does not fit into memory. 
     
     Parameters
@@ -148,7 +148,7 @@ def random_sparse_matrix(size, density=0.05):
     S += sparse.diags(np.ones(size), 0)
     return S
 
-class FreeMemLinux(object):
+class FreeMemLinux(object): # pragma: no cover
     """Non-cross platform way to get free memory on Linux. 
     
     Original code by Oz123, 

@@ -1,4 +1,8 @@
-	
+.. image:: https://readthedocs.org/projects/hub-toolbox-python3/badge/?version=latest
+:target: http://hub-toolbox-python3.readthedocs.io/en/latest/?badge=latest
+:alt: Documentation Status
+
+
 	
 A new version of this readme will replace this soon. 
 	

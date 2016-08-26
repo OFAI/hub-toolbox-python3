@@ -252,10 +252,143 @@ Looking at your output, you may notice a line that was not discussed before:
 The convenience class :class:`HubnessAnalysis <hub_toolbox.HubnessAnalysis>`
 does not allow to change the default values for the methods' parameters.
 To do so, you can use the individual methods of the Hub Toolbox directly,
-which will be covered in the next chapter.
+which will be covered in the next section.
 
 
 Using individual methods
 ========================
 
-work in progress...
+In this section we will revisit the analysis we performed previously 
+on the DEXTER dataset. This time, instead of using the convenience class
+:class:`HubnessAnalysis <hub_toolbox.HubnessAnalysis>`, we will employ
+the individual modules of the Hub Toolbox in order to see, how to use
+it in a more flexible way.
+
+Loading the example dataset
+---------------------------
+
+.. code-block:: python
+
+	>>>from hub_toolbox.IO import load_dexter
+	>>>D, labels, vectors = load_dexter()
+	>>> vectors.shape
+	(300, 20000)
+	
+We see that DEXTER comprises ``300`` points in an embedding 
+dimension of ``20000``. The `IntrinsicDim` module can provide some insight,
+how well this reflects the 'true' dimensionality of the dataset, by
+
+Calculating an intrinsic dimension estimate
+-------------------------------------------
+
+.. code-block:: python
+
+	>>> from hub_toolbox.IntrinsicDim import intrinsic_dimension
+	>>> intrinsic_dimension(vectors, k1=6, k2=12, estimator='levina', trafo=None)
+	74
+
+The MLE by Levina and Bickel with neighborhood ``[6, 12]`` tells us
+that the intrinsic dimension is much lower than the embedding dimension,
+but is still considerably high. We can assume, that this dataset is prone
+to
+
+Hubness
+-------
+
+.. code-block:: python
+
+	>>>from hub_toolbox.Hubness import hubness
+	>>>S_k, D_k, N_k = hubness(D=D, k=5, metric='distance')
+	>>>print("Hubness:", S_k)
+	Hubness: 4.222131665788378
+
+Besides the hubness in ``S_k``, you also get the objects ``D_k`` 
+and ``N_k``, which contain the ``k`` nearest neighbors of all elements 
+and the n-occurence, respectively. From them you can extract more 
+detailed information about hubs and anti-hubs.
+
+External and internal evaluation can be performed with the following 
+methods:
+
+k-NN classification
+-------------------
+
+.. code-block:: python
+
+	>>> from hub_toolbox.KnnClassification import score
+	>>> acc, corr, cmat = score(D=D, target=labels, k=[1,5], metric='distance')
+	>>> print("k=5-NN accuracy:", acc[1, 0])
+	k=5-NN accuracy: 0.803333333333
+
+Also in this case, you obtain three objects: ``acc`` contains the 
+accuracy values, 
+``corr`` contains information about each point, whether it was classified
+correctly or not, and ``cmat`` contains the corresponding confusion
+matrices. All three objects contain their information of each 
+k-NN experiment defined with parameter ``k=[1,5]``.
+
+Goodman-Kruskal index
+---------------------
+
+.. code-block:: python
+
+	>>> from hub_toolbox.GoodmanKruskal import goodman_kruskal_index
+	>>> gamma = goodman_kruskal_index(D=D, classes=labels, metric='distance')
+	>>> print("Goodman-Kruskal index:", gamma)
+	Goodman-Kruskal index: 0.103701886155
+
+Using the :method:`goodman_kruskal_index <hub_toolbox.GoodmanKruskal.goodman_kruskal_index>`
+is straight forward. 
+
+Hubness reduction
+-----------------
+
+.. code-block:: python
+
+	>>> from hub_toolbox.MutualProximity import mutual_proximity_empiric
+	>>> D_mp = mutual_proximity_empiric(D=D, metric='distance')
+	
+.. code-block:: python
+
+	>>> from hub_toolbox.LocalScaling import nicdm
+	>>> D_nicdm = nicdm(D=D, k=10, metric='distance')
+
+You now have two objects ``D_mp`` and ``D_nicdm`` which contain  
+secondary distances of the DEXTER dataset, rescaled with Mutual 
+Proximity (Empiric) and Local Scaling (NICDM), respectively.
+They can now be used just as illustrated above for k-NN classification, 
+hubness calculation etc.
+
+The Hub Toolbox provides more methods for hubness reduction than these 
+two, and additional ones will be integrated as they are developed by
+the hubness community. To see, which methods are currently included, try
+
+.. code-block:: python
+
+	>>> from hub_toolbox.HubnessAnalysis import SEC_DIST
+	>>> for k, v in SEC_DIST.items():
+	...   print(k)
+	... 
+	dsl
+	snn
+	wcent
+	lcent
+	mp_gaussi
+	mp
+	orig
+	mp_gauss
+	nicdm
+	dsg
+	cent
+	ls
+	mp_gammai
+
+The values in this dictionary are actually the hubness reduction 
+functions, so you may invoke them for example like this:
+
+.. code-block:: python
+
+	>>>D_snn = SEC_DIST['snn'](D)
+	
+to obtain shared nearest neighbor distances.
+

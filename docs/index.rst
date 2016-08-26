@@ -4,8 +4,6 @@ Welcome to the HUB TOOLBOX!
 The Hub Toolbox is a collection of scripts for the analysis and reduction 
 of hubness in high-dimensional data.
 
-Documentation is currently work-in-progress...
-
 User Guide
 ------------
 

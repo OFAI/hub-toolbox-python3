@@ -1,9 +1,16 @@
 .. image:: https://readthedocs.org/projects/hub-toolbox-python3/badge/?version=latest
-:target: http://hub-toolbox-python3.readthedocs.io/en/latest/?badge=latest
-:alt: Documentation Status
+	:target: http://hub-toolbox-python3.readthedocs.io/en/latest/?badge=latest
+	:alt: Documentation Status
 
+.. image:: https://travis-ci.org/OFAI/hub-toolbox-python3.svg?branch=master
+    :target: https://travis-ci.org/OFAI/hub-toolbox-python3
 
-	
+.. image:: https://coveralls.io/repos/github/OFAI/hub-toolbox-python3/badge.svg?branch=master
+	:target: https://coveralls.io/github/OFAI/hub-toolbox-python3?branch=master
+
+.. image:: https://img.shields.io/aur/license/yaourt.svg?maxAge=2592000   
+	:target: https://github.com/OFAI/hub-toolbox-python3/blob/master/LICENSE.txt
+
 A new version of this readme will replace this soon. 
 	
 .. code-block:: text

@@ -32,4 +32,4 @@ cache:
   - apt
   - directories:
     - $HOME/.cache/pip
-    #- $HOME/miniconda # breaks the build
+    - $HOME/miniconda # might break the build

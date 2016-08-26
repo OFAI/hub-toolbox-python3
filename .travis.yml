@@ -30,3 +30,4 @@ cache:
   - apt
   - directories:
     - $HOME/.cache/pip
+    - $HOME/miniconda

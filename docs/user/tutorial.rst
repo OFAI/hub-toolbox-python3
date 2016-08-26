@@ -337,7 +337,7 @@ Goodman-Kruskal index
 	>>> print("Goodman-Kruskal index:", gamma)
 	Goodman-Kruskal index: 0.103701886155
 
-Using the :method:`goodman_kruskal_index <hub_toolbox.GoodmanKruskal.goodman_kruskal_index>`
+Calculating the :meth:`Goodman-Kruskal index <hub_toolbox.GoodmanKruskal.goodman_kruskal_index>`
 is straight forward. 
 
 Hubness reduction

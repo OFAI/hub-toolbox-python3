@@ -175,6 +175,7 @@ into example mode and tells you a little bit about the dataset being used.
 
 The actual results of the analysis are grouped into blocks by experiments.
 Here, an experiment comprises the following: 
+
 #. a hubness reduction method is applied to the dataset's distance matrix
    to obtain a matrix of secondary distances
 #. hubness and additional measures of hubs and anti-hubs are calculated

@@ -16,7 +16,7 @@ Contact: <roman.feldbauer@ofai.at>
 import sys, time
 from abc import ABCMeta, abstractmethod
 
-class Logging(metaclass=ABCMeta):
+class Logging(metaclass=ABCMeta): # pragma: no cover
     """Base class for time-stamped logging.
     
     Do not instantiate this class, but ConsoleLogging or FileLogging!

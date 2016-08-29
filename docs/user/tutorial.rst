@@ -43,9 +43,9 @@ analyzes the DEXTER example dataset, if invoked without further parameters:
 
 .. code-block:: python
 
-	from hub_toolbox.HubnessAnalysis import HubnessAnalysis
-	ana = HubnessAnalysis()
-	ana.analyze_hubness()
+	>>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
+	>>> ana = HubnessAnalysis()
+	>>> ana.analyze_hubness()
 	
 This will print a rather lengthy result log:
 
@@ -236,10 +236,10 @@ Now simply call
 
 .. code-block:: python
 	
-	from hub_toolbox.HubnessAnalysis import HubnessAnalysis
-	ana = HubnessAnalysis(D, vectors, target)
-	ana.analyze_hubness(experiments="orig,mp,nicdm,dsg",
-                        hubness_k=(5, 10), knn_k=(10, 20))
+	>>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
+	>>> ana = HubnessAnalysis(D, vectors, target)
+	>>> ana.analyze_hubness(experiments="orig,mp,nicdm,dsg",
+                            hubness_k=(5, 10), knn_k=(10, 20))
 
 Note, how we provided parameters to ``analyze_hubness``: The Hub Toolbox 
 will now perform four experiments (original data, Mutual Proximity (Empiric), 
@@ -269,8 +269,8 @@ Loading the example dataset
 
 .. code-block:: python
 
-	>>>from hub_toolbox.IO import load_dexter
-	>>>D, labels, vectors = load_dexter()
+	>>> from hub_toolbox.IO import load_dexter
+	>>> D, labels, vectors = load_dexter()
 	>>> vectors.shape
 	(300, 20000)
 	
@@ -297,9 +297,9 @@ Hubness
 
 .. code-block:: python
 
-	>>>from hub_toolbox.Hubness import hubness
-	>>>S_k, D_k, N_k = hubness(D=D, k=5, metric='distance')
-	>>>print("Hubness:", S_k)
+	>>> from hub_toolbox.Hubness import hubness
+	>>> S_k, D_k, N_k = hubness(D=D, k=5, metric='distance')
+	>>> print("Hubness:", S_k)
 	Hubness: 4.222131665788378
 
 Besides the hubness in ``S_k``, you also get the objects ``D_k`` 
@@ -383,12 +383,12 @@ the hubness community. To see, which methods are currently included, try
 	ls
 	mp_gammai
 
-The values in this dictionary are actually the hubness reduction 
+The values ``v`` in this dictionary are actually the hubness reduction 
 functions, so you may invoke them for example like this:
 
 .. code-block:: python
 
-	>>>D_snn = SEC_DIST['snn'](D)
+	>>> D_snn = SEC_DIST['snn'](D)
 	
 to obtain shared nearest neighbor distances.
 

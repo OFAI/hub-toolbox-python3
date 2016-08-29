@@ -165,8 +165,8 @@ This will print a rather lengthy result log:
 	individual modules/hubness functions that you use.
 
 
-Interpreting the results:
-=========================
+Interpreting the results
+========================
 
 Let us disect these results: The first block appears, because we did not 
 provide any parameters, when instantiating 

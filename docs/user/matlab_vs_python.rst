@@ -1,20 +1,19 @@
 Which Hub Toolbox to choose
 ===========================
 
-The Hub Toolbox comes in two flavors. 
-
-If in doubt, use the Hub Toolbox for Python.
-
-For a more detailed description, see below.
+The Hub Toolbox is available as Python and Matlab scripts. 
+If in doubt, use the Hub Toolbox for Python. See below
+for a more detailed description.
 
 hub-toolbox-matlab
 --------------------
 
 The Hub Toolbox was originally developed for Matlab/Octave. 
-We still provide this flavor, however, development is limited to bugfixing.
+We still provide these scripts, however, development is limited to bugfixing.
 No new functionality will be added (you may, however, get in contact with us 
 at GitHub, if you wish to contribute).
-The Hub Toolbox for Matlab supports:
+The `Hub Toolbox for Matlab <https://github.com/OFAI/hub-toolbox-matlab>`_ 
+supports:
 
 - hubness analysis
 
@@ -33,11 +32,12 @@ for distance matrices.
 hub-toolbox-python3
 -------------------
 
-The Hub Toolbox for Python3 was initially ported from the Matlab code. 
-Development now focuses on this flavor. It is thus continuously being extended 
+The `Hub Toolbox for Python3 <https://github.com/OFAI/hub-toolbox-python3>`_ 
+was initially ported from the Matlab code. 
+Development now focuses on these scripts. It is thus continuously being extended 
 for new functionality and is tested and documented thoroughly. 
 The Hub Toolbox for Python3 offers all the functionality the Matlab 
-flavor offers, plus:
+scripts offer, plus:
 
 - additional hubness reduction methods
 
@@ -51,4 +51,4 @@ flavor offers, plus:
 - this documentation
  
 We recommend using hub-toolbox-python3 for all users. This documentation will 
-assume you are using this flavor.
+assume you are using these scripts.

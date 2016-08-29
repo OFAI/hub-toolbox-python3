@@ -177,7 +177,8 @@ The actual results of the analysis are grouped into blocks by experiments.
 Here, an experiment comprises the following: 
 
 #. a hubness reduction method is applied to the dataset's distance matrix
-   to obtain a matrix of secondary distances
+   to obtain a matrix of secondary distances (except for centering, which
+   changes vector data)
 #. hubness and additional measures of hubs and anti-hubs are calculated
    (in this case twice, for two different neighborhood sizes)
 #. k-nearest neighbor classification leave-one-out crossvalidation is

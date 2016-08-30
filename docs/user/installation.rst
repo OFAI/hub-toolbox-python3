@@ -46,15 +46,19 @@ performance unless configured properly.
 Stable Hub Toolbox release
 ==========================
 
-Once the Hub Toolbox is added to PyPI, instructions will be included here.
+Stable releases of the Hub Toolbox are added to `PyPI <pypi.python.org>`_.
+To install the latest stable release, simply use `pip` 
+(you may need to install it first via your operating system's package manager,
+e.g. ``sudo apt install python3-pip``).
 
 .. code-block:: bash
 
 ..  pip3 install hub-toolbox
 
-Until then, you may download the `latest release from GitHub 
+Alternatively, you may download the `latest release from GitHub 
 <https://github.com/OFAI/hub-toolbox-python3/releases/latest>`_ and follow
-the instructions of a development installation (from source) below.
+the instructions of a development installation (from source) below,
+omitting the ``git clone`` step.
 
 
 .. _hubtoolbox-development-install:
@@ -62,7 +66,9 @@ the instructions of a development installation (from source) below.
 Installation from source
 ========================
 
-On the console, change to the directory, under which the Hub Toolbox shoud
+For a bleeding edge version of the Hub Toolbox, you can install it from
+the latest sources:  
+On the console, change to the directory, under which the Hub Toolbox should
 be installed. Then obtain a copy of the latest sources from GitHub:
 
 .. code-block:: bash

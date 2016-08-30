@@ -56,6 +56,7 @@ using some of the provided hubness reduction methods,
 simply run the following in a Python shell:
 
 .. code-block:: python
+
 	>>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
 	>>> ana = HubnessAnalysis()
 	>>> ana.analyze_hubness()

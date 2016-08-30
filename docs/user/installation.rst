@@ -53,7 +53,7 @@ e.g. ``sudo apt install python3-pip``).
 
 .. code-block:: bash
 
-..  pip3 install hub-toolbox
+	pip3 install hub-toolbox
 
 Alternatively, you may download the `latest release from GitHub 
 <https://github.com/OFAI/hub-toolbox-python3/releases/latest>`_ and follow

@@ -1,5 +1,5 @@
-.. image:: https://img.shields.io/pypi/v/nine.svg?maxAge=2592000   
-	:target: https://pypi.python.org/pypi/hub-toolbox
+.. image:: https://badge.fury.io/py/hub-toolbox.svg
+    :target: https://badge.fury.io/py/hub-toolbox
 
 .. image:: https://readthedocs.org/projects/hub-toolbox-python3/badge/?version=latest
 	:target: http://hub-toolbox-python3.readthedocs.io/en/latest/?badge=latest

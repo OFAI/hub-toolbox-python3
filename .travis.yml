@@ -1,33 +1,43 @@
 language: python
 sudo: true
 python:
-  # We don't actually use the Travis Python, but this keeps it organized.
-  - "3.4"
-  - "3.5"
+- '3.4'
+- '3.5'
 install:
-  - sudo apt-get update
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda;
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  # Useful for debugging any issues with conda
-  - conda info -a
-
-  # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn coverage
-  - source activate test-environment
-  - pip install coveralls
-  - python setup.py build
-  - python setup.py install
+- sudo apt-get update
+- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+- bash miniconda.sh -b -p $HOME/miniconda;
+- export PATH="$HOME/miniconda/bin:$PATH"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda update -q conda
+- conda info -a
+- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn
+  coverage
+- source activate test-environment
+- pip install coveralls
+- python setup.py build
+- python setup.py install
 script:
-  - python setup.py test
-  - coverage run setup.py test
+- python setup.py test
+- coverage run setup.py test
 after_success:
-  - coveralls
+- coveralls
 cache:
-  - apt
-  - directories:
-    - $HOME/.cache/pip
-    #- $HOME/miniconda # might break the build
+- apt
+- directories:
+  - "$HOME/.cache/pip"
+deploy:
+  - provider: releases
+    api_key:
+      secure: "kyQ/EbH2A4fedw49y2hATgSnoonY7r1zf/jiFRaXy+ZqcnOlileDAzJihd7RHeeRN9wL2Gw1L+U3s62AwjddiGZRz9Qv87Ub/bvJVU+aNB0uHlxSRjw3Q8zhtO0hDEyp4wWQnhPqNhGEJCfrRVuAYG956XdgdpfdL6ZdSPWaHt+nj7yfDEwZ/5iiU8UpjgxZzAgO3k7EIvW188dl75SgL9xf5eYxTXjf2NNNbvpvUXvgrpAMUkTCKix5EHMJcnoKDqlNqnURBQI+f/TpqBoO3g+F+KfF/wLIwmiqJIKALhTsTfyHb+Auv+evJ/kxtWe+GSkeF9+SBT5RdCZx3uh6U9RVm/soy12nf88f344HgS/xnj5WLfqPcG53gdwHdoKbA41OzCNGJ66mTtQfNtVFnsYfphU2fZ7yTq3JHxRwknAWDeKWh9cZixf6U8Y9Pi4vpkDNyl56sHDSlroZltRSz37M3grQOJ3kKdPfB1XOTH6nhN2yiuv1047mSj0WVGDsIwFGECc/iUDvUtdY6cliAiC0rRZX1A/axLQKW8LD3GpBSgXmPS1hJy+l8iPiiHjJvwrldz5t0OMeHfvW2ln7jMqN/yirQiHqJJN7oWKYM3qrTCK0pEJg6KS+eje4GOfMSPl2+/RkJF8ViZPfCpE37HmjsZYAHdHKD8dX89C9Y5I="
+    #file: ''
+    on:
+      repo: OFAI/hub-toolbox-python3
+      tags: true
+  - provider: pypi
+    user: "feldbauer"
+    password:
+      secure: "fSerf/lsApqvZjbNYmOSAuG33+TyW7aKsM/aS2pItzr9u3GQSSQls0Lo+yCduV3/12joBKh4G9k+SXqZnxmdMFPJ/L2RT9ZCx28HFrD+mGakoFX2nVqVhxnqw2bfSg4Wndw1fyNcimYQGNhHHp1WECTFjZInV162719cwID6fLaVzn1AHM8LcR1WPoO5RPZJ/0KhAuxbpkMsoMp5EDJtAxDgn7QGnyTZfwo8jV4ZlUGVTiKYbiPBvLPZ3eTp7b88x4X846X2QzdBHfQ6Qr6nzA6IOJAzkZ+NNpEhDQlQRX44ty0JR0jd5Bz3IypFodZVtDguz29L5oCcuYxJGaul1ANpoqfPZ4vR6b9FkWf3CQW1BNXd5SLVbscf9l4yorDUX4KeagvPJ2z65Y/IaTIoMZjgeZX0/Pm0rcuRFkn/6KobK+lG1IaLMs6F7H7LM+TJn5v9tUYNDbPthPbr7kGmm0E5OtwX8+QZD9h9ufAPgEnsvJkLurus5HbxUiSyARE1SwayBKatJAOY3AyjC3t3tjDSWY+FVTSPbvEbMIg3BMQy0NP0oRzNJLBJ5ZbFO1bcGpMEiqbYim9ZgYonagXsmhfWzRaWughkHZABZZMyFW4uhmyvDV3SiMZpM3wE7DiWm/Oq2PhkAvLJkW085qbjiw6wFxqjgSJ3amCeH3/ZdAY="
+    on:
+      tags: true  

@@ -122,6 +122,7 @@ Citation
 If you use the Hub Toolbox in your scientific publication, please cite:
 
 .. code-block:: text
+
 	@article{feldbauer2016a,
 			 title={Centering Versus Scaling for Hubness Reduction},
 			 author={Feldbauer, Roman and Flexer, Arthur},
@@ -133,6 +134,7 @@ If you use the Hub Toolbox in your scientific publication, please cite:
 or
 
 .. code-block:: text
+
 	@article{schnitzer2012local,
 			 title={Local and global scaling reduce hubs in space},
 			 author={Schnitzer, Dominik and Flexer, Arthur and 

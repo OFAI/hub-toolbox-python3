@@ -118,9 +118,11 @@ to contribute code or have any other kind of issue. Please don't hesitate
 to file an `issue <https://github.com/OFAI/hub-toolbox-python3/issues>`_ 
 here on GitHub. 
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
-Austrian Research Institute for Artificial Intelligence (OFAI)
-Contact: <roman.feldbauer@ofai.at>
+.. code-block:: text
+
+	(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+	Austrian Research Institute for Artificial Intelligence (OFAI)
+	Contact: <roman.feldbauer@ofai.at>
 
 Citation
 --------

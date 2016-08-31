@@ -24,7 +24,7 @@ import numpy as np
 
 def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12, 
                         estimator:str='levina', metric:str='vector', 
-                        trafo:str='var'):
+                        trafo:str='var', mem_threshold:int=5000):
     """Calculate intrinsic dimension based on the MLE by Levina and Bickel [1]_.
     
     Parameters
@@ -59,7 +59,12 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         - 'var': subtract mean, divide by variance (default behavior of 
           Laurens van der Maaten's DR toolbox; most likely for other 
           ID/DR techniques).
-    
+
+    mem_treshold : int, optional, default: 5000
+        Controls speed-memory usage trade-off: If number of points is higher
+        than the given value, don't calculate complete distance matrix at
+        once (fast, high memory), but per row (slower, less memory).
+
     Returns
     -------
     d_mle : int
@@ -100,7 +105,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         # Compute matrix of log nearest neighbor distances
         X2 = (X**2).sum(1)
         
-        if n <= 5000: # speed-memory trade-off
+        if n <= mem_threshold: # speed-memory trade-off
             distance = X2.reshape(-1, 1) + X2 - 2*np.dot(X, X.T) #2x br.cast
             distance.sort(1)
             # Replace invalid values with a small number

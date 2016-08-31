@@ -30,5 +30,12 @@ class TestIntrinsicDim(unittest.TestCase):
             estimator='levina', metric='vector', trafo=None)
         return self.assertEqual(id_mle, int(ID_MLE_REF))
 
+    def test_intrinsic_dim_mle_levina_low_memory(self):
+        """ Same as above, but invoking the speed-memory trade-off. """
+        ID_MLE_REF = 74.742
+        id_mle = intrinsic_dimension(self.vector, 6, 12, 'levina', 
+                                     'vector', None, mem_threshold=0)
+        return self.assertEqual(id_mle, int(ID_MLE_REF))
+
 if __name__ == "__main__":
     unittest.main()

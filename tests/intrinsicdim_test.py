@@ -67,5 +67,20 @@ class TestIntrinsicDim(unittest.TestCase):
         with self.assertRaises(ValueError):
             intrinsic_dimension(self.vector, trafo=0)
 
+    def test_incorrect_metric_dist(self):
+        """ Test handling of unsupported metric parameters."""
+        with self.assertRaises(NotImplementedError):
+            intrinsic_dimension(self.vector, metric='distance')
+
+    def test_incorrect_metric_sim(self):
+        """ Test handling of unsupported metric parameters."""
+        with self.assertRaises(NotImplementedError):
+            intrinsic_dimension(self.vector, metric='similarity')
+
+    def test_incorrect_metric_other(self):
+        """ Test handling of unsupported metric parameters."""
+        with self.assertRaises(ValueError):
+            intrinsic_dimension(self.vector, metric=None)
+
 if __name__ == "__main__":
     unittest.main()

@@ -52,7 +52,7 @@ class TestMutualProximityParallel(unittest.TestCase):
         """Test parallel version equivalent to serial version."""
         sim = csr_matrix(1. - self.dist)
         sim_s = mpe_s(sim, 'similarity')
-        sim_p = mutual_proximity_empiric(sim, 'similarity')
+        sim_p = mutual_proximity_empiric(sim, 'similarity', verbose=1)
         parallel_all_close_serial = np.allclose(sim_p.toarray(), 
                                                 sim_s.toarray()) 
         return self.assertTrue(parallel_all_close_serial)
@@ -80,7 +80,7 @@ class TestMutualProximityParallel(unittest.TestCase):
         """Test parallel version equivalent to serial version."""
         sim = csr_matrix(1. - self.dist)
         sim_s = mpmvni_s(sim, 'similarity')
-        sim_p = mutual_proximity_gaussi(sim, 'similarity', mv=0)
+        sim_p = mutual_proximity_gaussi(sim, 'similarity', mv=0, verbose=1)
         parallel_all_close_serial = np.allclose(sim_p.toarray(), 
                                                 sim_s.toarray())
         return self.assertTrue(parallel_all_close_serial)
@@ -100,7 +100,7 @@ class TestMutualProximityParallel(unittest.TestCase):
         """Test parallel version equivalent to serial version."""
         sim = csr_matrix(1. - self.dist)
         sim_s = mpgam_s(sim, 'similarity')
-        sim_p = mutual_proximity_gammai(sim, 'similarity', mv=0)
+        sim_p = mutual_proximity_gammai(sim, 'similarity', mv=0, verbose=1)
         parallel_all_close_serial = np.allclose(sim_p.toarray(),
                                                 sim_s.toarray())
         return self.assertTrue(parallel_all_close_serial)

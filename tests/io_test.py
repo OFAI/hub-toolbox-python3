@@ -15,6 +15,7 @@ import unittest
 import numpy as np
 from scipy.sparse.csr import csr_matrix
 from hub_toolbox.IO import random_sparse_matrix, load_dexter
+from hub_toolbox import IO
 
 class TestIO(unittest.TestCase):
 
@@ -65,6 +66,28 @@ class TestIO(unittest.TestCase):
         corr_label_shape = self.lab.shape[0] == self.vect.shape[0]
         return self.assertTrue(
             symm_dist_shape == corr_dist_shape == corr_label_shape)
+
+    def test_check_shape(self):
+        with self.assertRaises(TypeError):
+            d = np.empty((2, 3))
+            IO._check_distance_matrix_shape(d)
+
+    def test_check_dist_vs_classes(self):
+        with self.assertRaises(TypeError):
+            D = np.empty((5, 5))
+            classes = np.empty(4)
+            IO._check_distance_matrix_shape_fits_labels(D, classes)
+
+    def test_check_dist_vs_vectors(self):
+        with self.assertRaises(TypeError):
+            D = np.zeros((5, 5))
+            vectors = np.zeros((4, 5))
+            IO._check_distance_matrix_shape_fits_vectors(D, vectors)
+
+    def test_check_valid_metric(self):
+        with self.assertRaises(ValueError):
+            metric = 'dissimilarity'
+            IO._check_valid_metric_parameter(metric)
 
 if __name__ == "__main__":
     unittest.main()

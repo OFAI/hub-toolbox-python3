@@ -30,7 +30,7 @@ class TestHubness(unittest.TestCase):
 
     def test_hubness(self):
         """Test hubness against ground truth calc on spreadsheet"""
-        Sk5, _, _ = hubness(self.dist, k=2)
+        Sk5, _, _ = hubness(self.dist, k=2, verbose=1)
         return self.assertAlmostEqual(Sk5, self.hubness_truth, places=10)
 
     def test_hubness_return_values_are_self_consistent(self):

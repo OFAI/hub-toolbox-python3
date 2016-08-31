@@ -46,7 +46,7 @@ class TestMutualProximity(unittest.TestCase):
     def test_mp_empiric(self):
         """Test MP Empiric for toy example (ground truth calc by hand)"""
         self.setUpMod('toy')
-        mp_dist_calc = mutual_proximity_empiric(self.dist, 'distance')
+        mp_dist_calc = mutual_proximity_empiric(self.dist, 'distance', verbose=1)
         mp_calc_equal_truth = np.alltrue(mp_dist_calc == self.mp_dist_truth)
         return self.assertTrue(mp_calc_equal_truth)
 
@@ -97,7 +97,7 @@ class TestMutualProximity(unittest.TestCase):
     def test_mp_gauss_all_zero_self_distances_and_symmetric(self):
         """Test most basic requirements for MP Gauss"""
         self.setUpMod('rnd')
-        mp_dist = mutual_proximity_gauss(self.dist)
+        mp_dist = mutual_proximity_gauss(self.dist, verbose=1)
         mp_self_distances_all_zero = np.all(mp_dist.diagonal() == 0.)
         mp_dist_symmetric = np.all(mp_dist == mp_dist.T)
         return self.assertTrue(mp_self_distances_all_zero and mp_dist_symmetric)
@@ -114,7 +114,7 @@ class TestMutualProximity(unittest.TestCase):
     def test_mp_gaussi(self):
         """Test MP GaussI for toy example (ground truth calc by 'hand')"""
         self.setUpMod('toy')
-        mp_gaussi = mutual_proximity_gaussi(self.dist)
+        mp_gaussi = mutual_proximity_gaussi(self.dist, verbose=1)
         # Calculated with formula (3) in JMLR paper, aided by LibreOffice Calc
         mp_gaussi_hand = np.array(
             [[0.155334048, 0.3466121867, 0.2534339319, 0.971773078, 0.575452874], 
@@ -159,7 +159,7 @@ class TestMutualProximity(unittest.TestCase):
     def test_mp_gammai(self):
         """Test MP GammaI for toy example (ground truth calc by 'hand')"""
         self.setUpMod('toy')
-        mp_gammai = mutual_proximity_gammai(self.dist)
+        mp_gammai = mutual_proximity_gammai(self.dist, verbose=1)
         # Calculated with formula (3) in JMLR paper, aided by LibreOffice Calc
         mp_gammai_hand = np.array(
             [[0., 0.4334769987, 0.230927083, 0.9558409888, 0.6744697939], 

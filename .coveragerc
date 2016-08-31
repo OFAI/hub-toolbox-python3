@@ -2,6 +2,7 @@
 omit = 
 	tests/*
 	setup.py
+concurrency = multiprocessing
 
 [report]
 exclude_lines =

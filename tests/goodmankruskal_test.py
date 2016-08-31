@@ -62,7 +62,7 @@ class TestGoodmanKruskal(unittest.TestCase):
     def test_sparse_goodmankruskal_equal_to_dense_goodmankruskal(self):
         similarity = random_sparse_matrix(size=1000)
         labels = np.random.randint(0, 5, 1000)
-        gamma_sparse = sparse_goodman_kruskal_index(similarity, labels, verbose=1)
+        gamma_sparse = sparse_goodman_kruskal_index(similarity, labels, verbose=2)
         gamma_dense = goodman_kruskal_index(similarity.toarray(), labels, 'similarity')
         return self.assertEqual(gamma_dense, gamma_sparse)
     

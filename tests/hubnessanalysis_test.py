@@ -58,7 +58,7 @@ class TestHubnessAnalysis(unittest.TestCase):
         ana = HubnessAnalysis.HubnessAnalysis(
             self.dist, self.label, self.vector, 'distance')
         ana = ana.analyze_hubness(
-            experiments=dist_type, print_results=False)
+            experiments=dist_type, print_results=True, verbose=1)
         exp = ana.experiments[0]
         got_all_results = \
             (exp.secondary_distance is not None and

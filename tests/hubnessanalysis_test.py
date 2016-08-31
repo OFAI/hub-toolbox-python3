@@ -70,5 +70,19 @@ class TestHubnessAnalysis(unittest.TestCase):
              ana.intrinsic_dim is not None)
         return got_all_results
 
+    def test_hubness_analysis_only_with_distances(self):
+        """ Check correct handling when no labels, vectors are given."""
+        ana = HubnessAnalysis.HubnessAnalysis(self.dist)
+        ana = ana.analyze_hubness("orig")
+        exp = ana.experiments[0]
+        got_all_results = \
+            (exp.secondary_distance is not None and
+             len(exp.hubness) > 0 and
+             len(exp.anti_hubs) > 0 and
+             len(exp.max_hub_k_occurence) > 0 and
+             exp.gk_index is not None and
+             ana.intrinsic_dim is not None)
+        return got_all_results
+
 if __name__ == "__main__":
     unittest.main()

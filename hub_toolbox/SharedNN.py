@@ -15,6 +15,7 @@ Contact: <roman.feldbauer@ofai.at>
 
 import sys
 import numpy as np
+from hub_toolbox import IO
 
 def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     """Transform distance matrix using shared nearest neighbors [1]_.
@@ -50,19 +51,16 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
            International Conference on Data Mining Workshops, 460–467. 
            http://doi.org/10.1109/ICDMW.2013.101
     """
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'distance':
         self_value = 0.
         sort_order = 1
         exclude = np.inf
-    elif metric == 'similarity':
+    if metric == 'similarity':
         self_value = 1.
         sort_order = -1
         exclude = -np.inf
-    else:
-        raise ValueError("Parameter 'metric' must be "
-                         "'distance' or 'similarity'.")
     
     distance = D.copy()
     np.fill_diagonal(distance, exclude)

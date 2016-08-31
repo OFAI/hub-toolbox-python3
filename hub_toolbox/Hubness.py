@@ -58,17 +58,14 @@ def hubness(D:np.ndarray, k:int=5, metric='distance', verbose:int=0):
            radovanovic10a.pdf
     """
     log = Logging.ConsoleLogging()
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
         sort_order = 1
-    elif metric == 'similarity':
+    if metric == 'similarity':
         d_self = -np.inf
         sort_order = -1
-    else:
-        raise ValueError("Parameter 'metric' must be 'distance' or "
-                         "'similarity'.")
         
     if verbose:
         log.message("Hubness calculation (skewness of {}-occurence)".format(k))

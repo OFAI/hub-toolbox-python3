@@ -70,15 +70,12 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Check input
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if metric != 'similarity' and metric != 'distance':
-        raise ValueError("Parameter 'metric' must be 'distance' "
-                         "or 'similarity'.")  
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
         exclude_value = np.inf
-    else:
+    else: # metric == 'distance':
         self_value = 0
         exclude_value = -np.inf
         if issparse(D):
@@ -193,11 +190,8 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Checking input
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if metric != 'similarity' and metric != 'distance':
-        raise ValueError("Parameter 'metric' must be 'distance' "
-                         "or 'similarity'.")  
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':
@@ -325,11 +319,8 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Checking input
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if metric != 'similarity' and metric != 'distance':
-        raise ValueError("Parameter 'metric' must be 'distance' "
-                         "or 'similarity'.")  
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':
@@ -488,11 +479,8 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Checking input
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if metric != 'similarity' and metric != 'distance':
-        raise ValueError("Parameter 'metric' must be 'distance' "
-                         "or 'similarity'.")  
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':

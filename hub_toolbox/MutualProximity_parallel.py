@@ -69,6 +69,8 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
            Learning Research, 13(1), 2871–2902.
     """
     log = Logging.ConsoleLogging()
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     # DO NOT DELETE this comment, will be used upon parallel MP emp dist impl
     #===========================================================================
     # # Initialization
@@ -253,7 +255,8 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     # Initialization   
     n = D.shape[0]  # @UnusedVariable
     log = Logging.ConsoleLogging()
-    
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     # DO NOT DELETE comment
     #===========================================================================
     # # Checking input
@@ -442,8 +445,10 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
            Local and global scaling reduce hubs in space. The Journal of Machine 
            Learning Research, 13(1), 2871–2902.
     """
-    n = D.shape[0]
     log = Logging.ConsoleLogging()
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
+    n = D.shape[0]
     sample_size = 0 # not implemented
     if test_set_ind is None:
         train_set_ind = slice(0, n)

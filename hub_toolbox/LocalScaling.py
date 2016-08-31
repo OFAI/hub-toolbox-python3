@@ -17,7 +17,7 @@ import sys
 import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
-from hub_toolbox import Logging
+from hub_toolbox import IO, Logging
     
 def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
                   test_set_ind:np.ndarray=None):
@@ -60,11 +60,8 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     """
     log = Logging.ConsoleLogging()
     # Checking input
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if metric != 'similarity' and metric != 'distance':
-        raise ValueError("Parameter 'metric' must be 'distance' "
-                         "or 'similarity'.")    
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'similarity':
         sort_order = -1
         exclude = -np.inf
@@ -162,11 +159,8 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     """
     #log = Logging.ConsoleLogging()
     # Checking input
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if metric != 'similarity' and metric != 'distance':
-        raise ValueError("Parameter 'metric' must be 'distance' "
-                         "or 'similarity'.")
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'similarity':
         raise NotImplementedError("NICDM does not support similarity matrices "
                                   "at the moment.")

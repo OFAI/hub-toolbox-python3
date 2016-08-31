@@ -16,7 +16,7 @@ Contact: <roman.feldbauer@ofai.at>
 import sys
 import numpy as np
 from scipy.sparse.base import issparse
-from hub_toolbox import Logging
+from hub_toolbox import Logging, IO
 
 def score(D:np.ndarray, target:np.ndarray, k=5, 
           metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
@@ -75,19 +75,16 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     
     # Check input sanity
     log = Logging.ConsoleLogging()
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if target.size != D.shape[0]:
-        raise TypeError("Target vector length does not match number of points.")
+    IO._check_distance_matrix_shape(D)
+    IO._check_distance_matrix_shape_fits_labels(D, target)
+    IO._check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
         sort_order = 1
-    elif metric == 'similarity':
+    if metric == 'similarity':
         d_self = -np.inf
         sort_order = -1
-    else:
-        raise ValueError("Parameter 'metric' must be 'distance' or "
-                         "'similarity'.")
+    
     # Copy, because data is changed
     D = D.copy()
     target = target.astype(int)

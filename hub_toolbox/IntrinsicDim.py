@@ -73,12 +73,6 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
     .. [2] http://www.inference.phy.cam.ac.uk/mackay/dimension/
     """
     n = X.shape[0]
-    if metric in ['vector', 'distance']:
-        data_type = metric
-        if data_type != 'vector':
-            raise NotImplementedError("ID currently only supports vector data.")
-    else:
-        raise ValueError("Parameter 'metric' must be 'vector' or 'distance'.")
     if estimator not in ['levina', 'mackay']:
         raise ValueError("Parameter 'estimator' must be 'levina' or 'mackay'.")
     if k1 < 1 or k2 < k1 or k2 >= n:
@@ -87,7 +81,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
                          format(k1, k2))
     X = X.copy().astype(float)
         
-    if data_type == 'vector':
+    if metric == 'vector':
         # New array with unique rows   
         X = X[np.lexsort(np.fliplr(X).T)]
         
@@ -119,20 +113,27 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
                 # Replace invalid values with a small number
                 distance[distance < 0] = 1e-7
                 knnmatrix[i, :] = .5 * np.log(distance[1:k2+1])
-    elif data_type == 'distance':
-        # TODO calculation WRONG
-        X.sort(1)
-        X[X < 0] = 1e-7
-        knnmatrix = np.log(X[:, 1:k2+1])
-    elif data_type == 'similarity':
-        # TODO calculation WRONG
-        print("WARNING: using similarity data may return "
-              "undefined results.", file=sys.stderr)
-        X[X < 0] = 0
-        distance = 1 - (X / X.max())
-        knnmatrix = np.log(distance[:, 1:k2+1])
+    
+    elif metric == 'distance':
+        raise NotImplementedError("ID currently only supports vector data.")
+        #=======================================================================
+        # # TODO calculation WRONG
+        # X.sort(1)
+        # X[X < 0] = 1e-7
+        # knnmatrix = np.log(X[:, 1:k2+1])
+        #=======================================================================
+    elif metric == 'similarity':
+        raise NotImplementedError("ID currently only supports vector data.")
+        #=======================================================================
+        # # TODO calculation WRONG
+        # print("WARNING: using similarity data may return "
+        #       "undefined results.", file=sys.stderr)
+        # X[X < 0] = 0
+        # distance = 1 - (X / X.max())
+        # knnmatrix = np.log(distance[:, 1:k2+1])
+        #=======================================================================
     else:
-        assert False, "Unknown metric. Implementation broken?"
+        raise ValueError("Parameter 'metric' must be 'vector' or 'distance'.")
     
     # Compute the ML estimate
     S = np.cumsum(knnmatrix, 1)
@@ -142,14 +143,12 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
     if estimator == 'levina':  
         # Average over estimates and over values of k
         no_dims = dhat.mean()
-    elif estimator == 'mackay':
+    if estimator == 'mackay':
         # Average over inverses
         dhat **= -1
         dhat_k = dhat.mean(0)
         no_dims = (dhat_k ** -1).mean()
-    else:
-        assert False, "Unknown estimator. Implementation broken?"
-            
+           
     return int(no_dims.round())
     
 

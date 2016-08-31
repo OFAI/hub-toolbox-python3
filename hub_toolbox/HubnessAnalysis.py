@@ -26,7 +26,7 @@ from hub_toolbox.SharedNN import shared_nearest_neighbors
 from hub_toolbox.Centering import centering, weighted_centering, \
     localized_centering, dis_sim_global, dis_sim_local
 from hub_toolbox.Distances import cosine_distance
-from hub_toolbox.IO import load_dexter as io_load_dexter
+from hub_toolbox import IO
 
 CITATION = \
 """
@@ -120,7 +120,7 @@ class HubnessAnalysis():
                   'This dataset is one of five datasets of the NIPS 2003\n'
                   'feature selection challenge.\n'
                   'http://archive.ics.uci.edu/ml/datasets/Dexter\n')
-            self.D, self.classes, self.vectors = io_load_dexter()
+            self.D, self.classes, self.vectors = IO.load_dexter()
             self.has_class_data, self.has_vector_data = True, True
             self.metric = 'distance'
         else:
@@ -310,24 +310,18 @@ class HubnessExperiment():
                  metric:str='distance', classes:np.ndarray=None, 
                  vectors:np.ndarray=None):
         """Initialize a hubness experiment"""
-        if D.shape[0] != D.shape[1]:
-            raise TypeError("Distance/similarity matrix is not quadratic.")
+        
+        IO._check_distance_matrix_shape(D)
+        IO._check_valid_metric_parameter(metric)
         if secondary_distance_type not in SEC_DIST.keys():
             raise ValueError("Requested secondary distance type unknown.")
-        if metric not in ['distance', 'similarity']:
-            raise ValueError("Metric must be 'distance' or 'similarity'.")
         if classes is not None:
-            if D.shape[0] != classes.size:
-                raise TypeError("Target vector (classes) length does not "
-                                "match number of points.")
+            IO._check_distance_matrix_shape_fits_labels(D, classes)
         if vectors is None:
             self.embedding_dim = None
         else: # got vectors
-            if D.shape[0] != vectors.shape[0]:
-                raise TypeError("Data vectors dimension does not match "
-                                "distance matrix (D) dimension.")
-            else:
-                self.embedding_dim = vectors.shape[1]
+            IO._check_distance_matrix_shape_fits_vectors(D, vectors)
+            self.embedding_dim = vectors.shape[1]
         self.original_distance = D
         self.secondary_distance_type = secondary_distance_type
         self.classes = classes
@@ -357,7 +351,7 @@ class HubnessExperiment():
             elif self.secondary_distance_type in ['dsg', 'dsl']:
                 self.secondary_distance = sec_dist_fun(X=self.vectors)
             else:
-                raise ValueError("Erroneus secondary distance type: {}".
+                raise ValueError("Erroneous secondary distance type: {}".
                                  format(self.secondary_distance_type))
         return self
 
@@ -396,7 +390,7 @@ def load_dexter():
               Please use IO.load_dexter() instead.
     """
 
-    return io_load_dexter()
+    return IO.load_dexter()
 
 if __name__ == "__main__":
     hub = HubnessAnalysis()

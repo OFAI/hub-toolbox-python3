@@ -15,6 +15,7 @@ Contact: <roman.feldbauer@ofai.at>
 import sys
 import numpy as np
 from scipy.sparse import csr_matrix, lil_matrix
+from hub_toolbox import IO
 
 def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
                           metric:str='distance') -> float:
@@ -64,12 +65,9 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     """
     
     # Checking input
-    if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if classes.size != D.shape[0]:
-        raise TypeError("Number of class labels does not match number of points.")
-    if metric != 'distance' and metric != 'similarity':
-        raise ValueError("Parameter 'metric' must be 'distance' or 'similarity'.")
+    IO._check_distance_matrix_shape(D)
+    IO._check_distance_matrix_shape_fits_labels(D, classes)
+    IO._check_valid_metric_parameter(metric)
     
     # Calculations
     Q_c = 0.0
@@ -207,14 +205,10 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     """
     
     # Checking input
-    if S.shape[0] != S.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
-    if classes.size != S.shape[0]:
-        raise TypeError("Number of class labels does not match "
-                        "number of points.")
-    if metric != 'similarity' and metric != 'distance':
-        raise ValueError("Parameter 'metric' must be 'distance' "
-                         "or 'similarity'.")
+    IO._check_distance_matrix_shape(S)
+    IO._check_distance_matrix_shape_fits_labels(S, classes)
+    IO._check_valid_metric_parameter(metric)
+    
     if verbose:
         print("Sparse Goodman-Kruskal")
         sys.stdout.write("----------------------")
@@ -381,14 +375,13 @@ def _naive_goodman_kruskal(D:np.ndarray, labels:np.ndarray, metric='distance'):
     function is intended for testing purposes only.
     """
     
+    # Checking input
+    IO._check_distance_matrix_shape(D)
+    IO._check_distance_matrix_shape_fits_labels(D, labels)
+    IO._check_valid_metric_parameter(metric)
+    n = D.shape[0]
     Q_c = 0
     Q_d = 0
-    if metric not in ['similarity', 'distance']:
-        raise ValueError("Parameter 'metric' must be 'distance' or "
-                         "'similarity'. Got {}.".format(metric.__str__()))
-    assert D.shape[0] == D.shape[1], 'Non-quadratic input matrix!'
-    assert D.shape[0] == labels.size, 'Number of labels does not match number of points!'
-    n = D.shape[0]
     
     # loop through all quadruples...
     for i in range(n):
@@ -408,10 +401,7 @@ def _naive_goodman_kruskal(D:np.ndarray, labels:np.ndarray, metric='distance'):
         return 0
     if metric == 'similarity':
         return (Q_d - Q_c) / (Q_c + Q_d)
-    else:
-        if metric != 'distance':
-            print("WARNING: unknown type: {}. Trying to interpret as "
-                  "'distance'.".format(metric))
+    else: # metric == 'distance':
         return (Q_c - Q_d) / (Q_c + Q_d)
 
 # DEPRECATED class GoodmanKruskal. Remove for next hub_toolbox release.

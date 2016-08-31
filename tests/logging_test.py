@@ -33,5 +33,20 @@ class TestLogging(unittest.TestCase):
             hasattr(log, 'warning') and hasattr(log, 'error')
         return self.assertTrue(has_all_attributes)
 
+    def test_message(self):
+        log = ConsoleLogging()
+        log.message("Message")
+        return self
+
+    def test_warning(self):
+        log = ConsoleLogging()
+        log.warning("Warning")
+        return self
+
+    def test_error(self):
+        log = ConsoleLogging()
+        log.error("Error")
+        return self
+
 if __name__ == "__main__":
     unittest.main()

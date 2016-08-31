@@ -40,6 +40,13 @@ class TestHubnessAnalysis(unittest.TestCase):
         n_intersection = len(hub_ana_sec_dist & self.SEC_DIST)
         return self.assertEqual(n_self_sec_dist, n_intersection)
 
+    def test_all_sec_dist_have_header(self):
+        ha_sec_dist = set(HubnessAnalysis.SEC_DIST.keys())
+        header_sec_dist = set(HubnessAnalysis()._header.keys())
+        n_sec_dist = len(ha_sec_dist)
+        n_intersection = len(ha_sec_dist & header_sec_dist)
+        return self.assertEqual(n_sec_dist, n_intersection)
+
     def test_all_sec_dist_types(self):
         got_all_results = True
         for dist_type in self.SEC_DIST:

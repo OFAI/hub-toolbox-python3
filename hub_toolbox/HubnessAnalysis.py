@@ -126,12 +126,15 @@ class HubnessAnalysis():
         else:
             # copy data and ensure correct type (not int16 etc.)
             self.D = np.copy(D).astype(np.float64)
-           
-            self.classes = np.copy(classes).astype(np.float64)
-            self.vectors = np.copy(vectors).astype(np.float64)
-            if classes is not None:
+            if classes is None:
+                self.classes = None
+            else:
+                self.classes = np.copy(classes).astype(np.float64)
                 self.has_class_data = True
-            if vectors is not None:
+            if vectors is None:
+                self.vectors = None
+            else:
+                self.vectors = np.copy(vectors).astype(np.float64)
                 self.has_vector_data = True
             self.metric = metric
         self.n = len(self.D)
@@ -200,7 +203,9 @@ class HubnessAnalysis():
         self : optionally prints results to stdout
         """
         experiments = experiments.split(',')
-        if self.vectors is not None:
+        if self.vectors is None:
+            self.intrinsic_dim = None
+        else:
             self._calc_intrinsic_dim()    
         for i, exp_type in enumerate(experiments):
             if verbose:
@@ -291,8 +296,12 @@ class HubnessAnalysis():
                 print('Goodman-Kruskal index (higher=better)    : {:.3}'.
                       format(experiment.gk_index))
             # Embedding dimension
-            print('embedding dimensionality                 : {}'.
-                  format(experiment.embedding_dim))
+            if self.vectors is None:
+                print('embedding dimensionality                 : '
+                      'No vectors given')
+            else:
+                print('embedding dimensionality                 : {}'.
+                      format(experiment.embedding_dim))
             # Intrinsic dimension estimate, if available
             if self.intrinsic_dim is None:
                 print('intrinsic dimensionality estimate        : '

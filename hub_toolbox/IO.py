@@ -58,6 +58,29 @@ def load_dexter():
     D = cosine_distance(vectors)
     return D, classes, vectors
 
+def _check_distance_matrix_shape(D:np.ndarray):
+    """ Check that matrix is quadratic. """
+    if D.shape[0] != D.shape[1]:
+        raise TypeError("Distance/similarity matrix is not quadratic.")
+
+def _check_distance_matrix_shape_fits_vectors(D:np.ndarray, vectors:np.ndarray):
+    """ Check number of points in distance matrix equal number of vectors. """
+    if D.shape[0] != vectors.shape[0]:
+        raise TypeError("Data vectors dimension does not match "
+                        "distance matrix (D) dimension.")
+
+def _check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
+    """ Check the number of points in distance matrix equal number of labels"""
+    if classes.size != D.shape[0]:
+        raise TypeError("Number of class labels does not "
+                        "match number of points.")
+
+def _check_valid_metric_parameter(metric:str):
+    """ Check parameter is either 'distance' or 'similarity'. """
+    if metric != 'distance' and metric != 'similarity':
+        raise ValueError("Parameter 'metric' must be "
+                         "'distance' or 'similarity'.")
+
 def copy_D_or_load_memmap(D, writeable=False): # pragma: no cover
     """Return a deep copy of a numpy array (if `D` is an ndarray), 
     otherwise return a read-only memmap (if `D` is a path).

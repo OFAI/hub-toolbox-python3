@@ -8,7 +8,7 @@
 .. image:: https://travis-ci.org/OFAI/hub-toolbox-python3.svg?branch=master
     :target: https://travis-ci.org/OFAI/hub-toolbox-python3
 
-.. image:: https://coveralls.io/repos/github/OFAI/hub-toolbox-python3/badge.svg?branch=master?dummy=1
+.. image:: https://coveralls.io/repos/github/OFAI/hub-toolbox-python3/badge.svg?branch=master
 	:target: https://coveralls.io/github/OFAI/hub-toolbox-python3?branch=master 
 
 .. image:: https://img.shields.io/aur/license/yaourt.svg?maxAge=2592000   

@@ -58,7 +58,7 @@ except ImportError:
 
 setup(
     name = "hub_toolbox",
-    version = "2.3",
+    version = "2.3.1",
     author = "Roman Feldbauer",
     author_email = "roman.feldbauer@ofai.at",
     maintainer = "Roman Feldbauer",

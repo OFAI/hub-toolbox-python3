@@ -132,37 +132,37 @@ If you use the Hub Toolbox in your scientific publication, please cite:
 .. code-block:: text
 
 	@Inbook{Feldbauer2016,
-			author="Feldbauer, Roman
-			and Flexer, Arthur",
-			editor="Villa, E.P. Alessandro
-			and Masulli, Paolo
-			and Pons Rivero, Javier Antonio",
-			title="Centering Versus Scaling for Hubness Reduction",
-			bookTitle="Artificial Neural Networks and Machine Learning -- ICANN 2016: 25th International Conference on Artificial Neural Networks, Barcelona, Spain, September 6-9, 2016, Proceedings, Part I",
-			year="2016",
-			publisher="Springer International Publishing",
-			address="Cham",
-			pages="175--183",
-			isbn="978-3-319-44778-0",
-			doi="10.1007/978-3-319-44778-0_21",
-			url="http://dx.doi.org/10.1007/978-3-319-44778-0_21"
-			}
+		author="Feldbauer, Roman
+		and Flexer, Arthur",
+		editor="Villa, E.P. Alessandro
+		and Masulli, Paolo
+		and Pons Rivero, Javier Antonio",
+		title="Centering Versus Scaling for Hubness Reduction",
+		bookTitle="Artificial Neural Networks and Machine Learning -- ICANN 2016: 25th International Conference on Artificial Neural Networks, Barcelona, Spain, September 6-9, 2016, Proceedings, Part I",
+		year="2016",
+		publisher="Springer International Publishing",
+		address="Cham",
+		pages="175--183",
+		isbn="978-3-319-44778-0",
+		doi="10.1007/978-3-319-44778-0_21",
+		url="http://dx.doi.org/10.1007/978-3-319-44778-0_21"
+		}
 
 or
 
 .. code-block:: text
 
 	@article{schnitzer2012local,
-			 title={Local and global scaling reduce hubs in space},
-			 author={Schnitzer, Dominik and Flexer, Arthur and 
-			 		 Schedl, Markus and Widmer, Gerhard},
-			 journal={Journal of Machine Learning Research},
-			 volume={13},
-			 pages={2871--2902},
-			 year={2012}
+		 title={Local and global scaling reduce hubs in space},
+		 author={Schnitzer, Dominik and Flexer, Arthur and 
+		 		 Schedl, Markus and Widmer, Gerhard},
+		 journal={Journal of Machine Learning Research},
+		 volume={13},
+		 pages={2871--2902},
+		 year={2012}
 	}
 
-The technical report "Centering Versus Scaling for Hubness Reduction is
+The technical report ``Centering Versus Scaling for Hubness Reduction`` is
 available at 
 `<http://www.ofai.at/cgi-bin/tr-online?number+2016-05>`_ .
 

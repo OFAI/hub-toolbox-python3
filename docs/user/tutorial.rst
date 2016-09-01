@@ -148,21 +148,6 @@ This will print a rather lengthy result log:
 	Goodman-Kruskal index (higher=better)    : 0.189
 	embedding dimensionality                 : 20000
 	intrinsic dimensionality estimate        : 161
-	
-	------------------------------------------------------------
-	Thanks for using the HUB-TOOLBOX!
-	If you use this software in a research project, please cite:
-	--- 
-	Feldbauer, R., Flexer, A. (2016). Centering Versus Scaling for 
-	Hubness Reduction. ICANN 2016, Part I, LNCS 9886, pp. 1–9 (preprint 
-	available at http://www.ofai.at/cgi-bin/tr-online?number+2016-05).
-	or
-	Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). Local 
-	and global scaling reduce hubs in space. The Journal of Machine 
-	Learning Research, 13(1), 2871–2902.
-	
-	Please also consider citing the references to the 
-	individual modules/hubness functions that you use.
 
 
 Interpreting the results

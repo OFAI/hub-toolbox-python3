@@ -13,8 +13,8 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-import numpy as np
 from inspect import signature
+import numpy as np
 from hub_toolbox.Hubness import hubness
 from hub_toolbox.KnnClassification import score
 from hub_toolbox.GoodmanKruskal import goodman_kruskal_index
@@ -30,13 +30,16 @@ from hub_toolbox import IO
 
 CITATION = \
 """
-Feldbauer, R., Flexer, A. (2016). Centering Versus Scaling for 
-Hubness Reduction. ICANN 2016, Part I, LNCS 9886, pp. 1–9 (preprint 
-available at http://www.ofai.at/cgi-bin/tr-online?number+2016-05).
+Feldbauer, R., Flexer, A.: Centering Versus Scaling for Hubness Reduction.
+In: Villa, E.P.A., Masulli, P., Pons Rivero, J.A. (eds.) ICANN 2016, part I.
+LNCS, vol. 9886, pp. 175–183. Springer International Publishing, Cham (2016).
+(tech report available at http://www.ofai.at/cgi-bin/tr-online?number+2016-05)
+
 or
-Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). Local 
-and global scaling reduce hubs in space. The Journal of Machine 
-Learning Research, 13(1), 2871–2902.
+
+Schnitzer, D., Flexer, A., Schedl, M., Widmer, G.: Local and global scaling
+reduce hubs in space. J. Mach. Learn. Res. 13(1), 2871–2902 (2012).
+(full paper available at http://www.jmlr.org/papers/v13/schnitzer12a.html)
 """
 
 def _primary_distance(D:np.ndarray, metric):
@@ -57,58 +60,58 @@ SEC_DIST = {'mp' : mutual_proximity_empiric,
             'dsg' : dis_sim_global,
             'dsl' : dis_sim_local,
             'orig' : _primary_distance # a dummy function
-            }
+           }
 
 class HubnessAnalysis():
     """The main hubness analysis class.
-    
-    For more detailed analyses (optimizing parameters, using similarity data, 
+
+    For more detailed analyses (optimizing parameters, using similarity data,
     etc.) please use the individual modules.
-    
+
     Examples
     --------
     >>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
     >>> hub = HubnessAnalysis()
     >>> hub.analyse_hubness()
-    
+
     >>> hub = HubnessAnalysis(D, classes, vectors)
     >>> hub.analyse_hubness()
-    
+
     Notes
     -----
     The first example loads the example data set and performs a quick 
     hubness analysis with some of the functions provided in this toolbox.
-    
-    For the second example you must provide a distance matrix `D` (NxN) 
-    together with an optional class labels vector (`classes`) and the 
-    original (optional) data vectors (`vectors`) to perform a full hubness 
+
+    For the second example you must provide a distance matrix `D` (NxN)
+    together with an optional class labels vector (`classes`) and the
+    original (optional) data vectors (`vectors`) to perform a full hubness
     analysis.
-    
+
     See also
     --------
     analyse_hubness : additional parameters (e.g. k-occurence, k-NN)
     """
 
-    def __init__(self, D:np.ndarray=None, classes:np.ndarray=None, 
+    def __init__(self, D:np.ndarray=None, classes:np.ndarray=None,
                  vectors:np.ndarray=None, metric:str='distance'):
         """Initialize a quick hubness analysis.
-        
+
         Parameters
         ----------
         D : ndarray, optional (default: None)
             The n x n symmetric distance (similarity) matrix.
             Default: load example dataset (dexter).
-            
+
         classes : ndarray, optional (default: None)
             The 1 x n class labels. Required for k-NN, GK.
-            
+
         vectors : ndarray, optional (default: None)
             The m x n vector data. Required for IntrDim estimation.
-            
+
         metric : {'distance', 'similarity'}
             Define whether `D` is a distance or similarity matrix.
-        """        
-        
+        """
+
         self.has_class_data, self.has_vector_data = False, False
         if D is None:
             print('\n'
@@ -139,7 +142,7 @@ class HubnessAnalysis():
             self.metric = metric
         self.n = len(self.D)
         self.experiments = []
-        
+
     @property
     def _header(self):
         return {'mp' : "MUTUAL PROXIMITY (Empiric)",
@@ -162,16 +165,16 @@ class HubnessAnalysis():
         return self
 
     def analyze_hubness(self, experiments="orig,mp,mp_gaussi,nicdm,cent,dsg",
-                        hubness_k=(5, 10), knn_k=(1, 5, 20), 
+                        hubness_k=(5, 10), knn_k=(1, 5, 20),
                         print_results=True, verbose:int=0):
         """Analyse hubness in original data and rescaled distances.
 
         Parameters
         ----------
         experiments : str, optional
-            Define which experiments to perform. Please provide a string of 
+            Define which experiments to perform. Please provide a string of
             comma separated values chosen from the following options:
-            
+
             - "orig" : Original, primary distances
             - "mp" : Mutual Proximity (empiric)
             - "mp_gauss" : Mutual Proximity (Gaussians)
@@ -194,7 +197,7 @@ class HubnessAnalysis():
 
         print_results : bool, optional (default: True)
             Define whether to print hubness analysis report to stdout
-            
+
         verbose : int, optional (default: 0)
             Increasing output verbosity
 
@@ -206,13 +209,13 @@ class HubnessAnalysis():
         if self.vectors is None:
             self.intrinsic_dim = None
         else:
-            self._calc_intrinsic_dim()    
+            self._calc_intrinsic_dim()
         for i, exp_type in enumerate(experiments):
             if verbose:
                 print("Experiment {}/{} ({})".
                       format(i+1, len(experiments), exp_type), end="\r")
-            experiment = HubnessExperiment(D=self.D, 
-                secondary_distance_type=exp_type, metric=self.metric, 
+            experiment = HubnessExperiment(D=self.D,
+                secondary_distance_type=exp_type, metric=self.metric,
                 classes=self.classes, vectors=self.vectors)
             if self.D is not None:
                 experiment._calc_secondary_distance()
@@ -229,7 +232,7 @@ class HubnessAnalysis():
             print("------------------------------------------------------------")
             print("Thanks for using the HUB-TOOLBOX!")
             print("If you use this software in a research project, please cite:")
-            print("---", CITATION)
+            print("\n", CITATION)
             print("Please also consider citing the references to the \n"
                   "individual modules/hubness functions that you use.")
         return self
@@ -240,7 +243,7 @@ class HubnessAnalysis():
         Parameters
         ----------
         experiment : HubnessExperiment, optional (default: None)
-            If given, report only this `experiment`. Otherwise, report all 
+            If given, report only this `experiment`. Otherwise, report all
             experiments of this analysis.
 
         report_nr : int, optional (default: 0)
@@ -287,7 +290,7 @@ class HubnessAnalysis():
                           format(k, 100.*float(experiment.knn_accuracy[k])))
             except KeyError:
                 print('k=5-NN classification accuracy           : '
-                      'No classes given')   
+                      'No classes given')
             # print Goodman-Kruskal result, if available
             if experiment.gk_index is None:
                 print('Goodman-Kruskal index (higher=better)    : '
@@ -314,12 +317,12 @@ class HubnessAnalysis():
 
 class HubnessExperiment():
     """Perform a single hubness experiment"""
-    
-    def __init__(self, D:np.ndarray, secondary_distance_type:str, 
-                 metric:str='distance', classes:np.ndarray=None, 
+
+    def __init__(self, D:np.ndarray, secondary_distance_type:str,
+                 metric:str='distance', classes:np.ndarray=None,
                  vectors:np.ndarray=None):
         """Initialize a hubness experiment"""
-        
+
         IO._check_distance_matrix_shape(D)
         IO._check_valid_metric_parameter(metric)
         if secondary_distance_type not in SEC_DIST.keys():
@@ -366,11 +369,11 @@ class HubnessExperiment():
 
     def _calc_hubness(self, k:int=5):
         """Calculate hubness (skewness of `k`-occurence).
-        
-        Also calculate percentage of anti hubs (`k`-occurence == 0) and 
+
+        Also calculate percentage of anti hubs (`k`-occurence == 0) and
         percentage of k-NN lists the largest hub occurs in.
         """
-        S_k, _, N_k = hubness(D=self.secondary_distance, 
+        S_k, _, N_k = hubness(D=self.secondary_distance,
                               metric=self.metric, k=k)
         self.hubness[k] = S_k
         self.anti_hubs[k] = 100 * (N_k == 0).sum() / self.n
@@ -379,21 +382,21 @@ class HubnessExperiment():
 
     def _calc_knn_accuracy(self, k:int=5):
         """Calculate `k`-NN accuracy."""
-        acc, _, _ = score(D=self.secondary_distance, target=self.classes, 
+        acc, _, _ = score(D=self.secondary_distance, target=self.classes,
                           k=k, metric=self.metric)
         self.knn_accuracy[k] = acc
         return self
 
     def _calc_gk_index(self):
         """Calculate Goodman-Kruskal's gamma."""
-        self.gk_index = goodman_kruskal_index(D=self.secondary_distance, 
-                                              classes=self.classes, 
+        self.gk_index = goodman_kruskal_index(D=self.secondary_distance,
+                                              classes=self.classes,
                                               metric=self.metric)
         return self
 
 def load_dexter():
     """Load the dexter data set.
-    
+
     .. note:: Deprecated in hub-toolbox 2.3
               Will be removed in hub-toolbox 3.0.
               Please use IO.load_dexter() instead.

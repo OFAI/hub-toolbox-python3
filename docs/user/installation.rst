@@ -46,7 +46,8 @@ performance unless configured properly.
 Stable Hub Toolbox release
 ==========================
 
-Stable releases of the Hub Toolbox are added to `PyPI <pypi.python.org>`_.
+Stable releases of the Hub Toolbox are added to 
+`PyPI <https://pypi.python.org/pypi/hub-toolbox>`_.
 To install the latest stable release, simply use `pip` 
 (you may need to install it first via your operating system's package manager,
 e.g. ``sudo apt install python3-pip``).

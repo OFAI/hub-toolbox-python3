@@ -15,21 +15,22 @@ Contact: <roman.feldbauer@ofai.at>
 
 from enum import Enum
 import numpy as np
-from scipy.spatial.distance import cdist
+from scipy.spatial.distance import pdist
 
 def cosine_distance(X):
     """Calculate the cosine distance between all pairs of vectors in `X`."""
     xn = np.sqrt(np.sum(X**2, 1))
-    X = X / np.tile(xn[:, np.newaxis], np.size(X, 1))
-    D = 1 - np.dot(X, X.T)
+    Y = X / xn[:, np.newaxis]
+    del xn
+    D = 1. - Y.dot(Y.T)
+    del Y
     D[D < 0] = 0
     D = np.triu(D, 1) + np.triu(D, 1).T
     return D
 
 def euclidean_distance(X):
     """Calculate the euclidean distances between all pairs of vectors in `X`."""
-    D = cdist(X, X, 'euclidean')
-    return D
+    return pdist(X, 'euclidean')
 
 class Distance(Enum):
     """Enum for distance metrics.

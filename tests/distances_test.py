@@ -13,7 +13,7 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist, cdist, squareform
 from hub_toolbox.Distances import cosine_distance, euclidean_distance
 
 class TestDistances(unittest.TestCase):
@@ -31,10 +31,10 @@ class TestDistances(unittest.TestCase):
         result = np.allclose(cos_dist, cos_dist_scipy)
         return self.assertTrue(result)
     
-    def test_euclidean_dist_equal_to_scipy_pdist_eucl(self):
+    def test_euclidean_dist_equal_to_scipy_cdist_eucl(self):
         eucl_dist = euclidean_distance(self.vectors)
-        eucl_dist_scipy = squareform(pdist(self.vectors, 'euclidean'))
-        result = np.allclose(eucl_dist, eucl_dist_scipy)
+        eucl_dist_cdist = cdist(self.vectors, self.vectors, 'euclidean')
+        result = np.allclose(eucl_dist, eucl_dist_cdist)
         return self.assertTrue(result)
 
 if __name__ == "__main__":

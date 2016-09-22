@@ -20,8 +20,10 @@ from scipy.spatial.distance import cdist
 def cosine_distance(X):
     """Calculate the cosine distance between all pairs of vectors in `X`."""
     xn = np.sqrt(np.sum(X**2, 1))
-    X = X / np.tile(xn[:, np.newaxis], np.size(X, 1))
-    D = 1 - np.dot(X, X.T)
+    Y = X / xn[:, np.newaxis]
+    del xn
+    D = 1. - Y.dot(Y.T)
+    del Y
     D[D < 0] = 0
     D = np.triu(D, 1) + np.triu(D, 1).T
     return D

@@ -22,6 +22,111 @@ from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
 from hub_toolbox import IO, Logging
 
+def mutual_proximity_empiric_sample(D:np.ndarray, metric:str='distance', 
+    test_set_ind:np.ndarray=None, verbose:int=0):
+    """Transform a distance matrix with Mutual Proximity (empiric distribution).
+    
+    NOTE: this docstring does not yet fully reflect the properties of this 
+    proof-of-concept function!
+    
+    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using 
+    the empiric data distribution (EXACT, rather SLOW). The resulting 
+    secondary distance/similarity matrix should show lower hubness.
+    
+    Parameters
+    ----------
+    D : ndarray or csr_matrix
+        - ndarray: The ``n x n`` symmetric distance or similarity matrix.
+        - csr_matrix: The ``n x n`` symmetric similarity matrix.
+          
+        NOTE: In case of sparse ``D`, zeros are interpreted as missing values 
+        and ignored during calculations. Thus, results may differ 
+        from using a dense version.
+    
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix `D` is a distance or similarity matrix.
+        
+        NOTE: In case of sparse `D`, only 'similarity' is supported.
+        
+    test_sed_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+        
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set. 
+        
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+        
+    Returns
+    -------
+    D_mp : ndarray
+        Secondary distance MP empiric matrix.
+    
+    References
+    ----------
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+           Local and global scaling reduce hubs in space. The Journal of Machine 
+           Learning Research, 13(1), 2871–2902.
+    """
+    # Initialization
+    n = D.shape[0]
+    log = Logging.ConsoleLogging()
+    
+    # Check input
+    IO._check_distance_matrix_shape(D)
+    IO._check_valid_metric_parameter(metric)
+    if metric == 'similarity':
+        self_value = 1
+        exclude_value = np.inf
+    else: # metric == 'distance':
+        self_value = 0
+        exclude_value = -np.inf
+        if issparse(D):
+            raise ValueError("MP sparse only supports similarity matrices.")
+    if test_set_ind is None:
+        pass # TODO implement
+        #train_set_ind = slice(0, n)
+    elif not np.all(~test_set_ind):
+        raise NotImplementedError("MP empiric does not yet support train/"
+                                  "test splits.")
+        #train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+
+    # Start MP
+    D = D.copy()
+    
+    if issparse(D):
+        raise NotImplementedError
+        return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log)
+        
+    # ensure correct self distances (NOT done for sparse matrices!)
+    np.fill_diagonal(D, exclude_value)
+    
+    D_mp = np.zeros_like(D)
+     
+    # Calculate MP empiric
+    for i in range(n-1):
+        if verbose and ((i+1)%1000 == 0 or i == n-2):
+            log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+        # Calculate only triu part of matrix
+        j_idx = i + 1
+         
+        dI = D[i, :][np.newaxis, :]
+        dJ = D[j_idx:n, :]
+        d = D[j_idx:n, i][:, np.newaxis]
+
+        # non-sample points and self are masked as nan or inf, so...
+        n_pts = np.isfinite(dI).sum()
+        if metric == 'similarity':
+            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / n_pts
+        else: # metric == 'distance':
+            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n_pts)
+         
+    # Mirror, so that matrix is symmetric
+    D_mp += D_mp.T
+    np.fill_diagonal(D_mp, self_value)
+
+    return D_mp
+
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
                              test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).

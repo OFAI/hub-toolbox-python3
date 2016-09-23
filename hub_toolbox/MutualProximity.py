@@ -107,23 +107,37 @@ def mutual_proximity_empiric_sample(D:np.ndarray, metric:str='distance',
     for i in range(n-1):
         if verbose and ((i+1)%1000 == 0 or i == n-2):
             log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-        # Calculate only triu part of matrix
-        j_idx = i + 1
-         
-        dI = D[i, :][np.newaxis, :]
-        dJ = D[j_idx:n, :]
-        d = D[j_idx:n, i][:, np.newaxis]
-
-        # non-sample points and self are masked as nan or inf, so...
-        n_pts = np.isfinite(dI).sum()
-        if metric == 'similarity':
-            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / n_pts
-        else: # metric == 'distance':
-            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n_pts)
+        dI = D[i, :]
+        for j in range(i+1, n):
+            if np.isfinite(D[i, j]):
+                dJ = D[j, :]
+                d = D[i, j]
+                assert len(dJ) == len(dI)
+                n_pts = len(dI)
+                if metric == 'similarity':
+                    D_mp[i, j] = np.sum((dI <= d) & (dJ <= d)) / n_pts
+                else: # metric == 'distance':
+                    D_mp[i, j] = 1 - (np.sum((dI > d) & (dJ > d)) / n_pts)
+    #===========================================================================
+    #        # Calculate only triu part of matrix
+    #        j_idx = i + 1
+    #          
+    #        dI = D[i, :][np.newaxis, :]
+    #        dJ = D[j_idx:n, :]
+    #        d = D[j_idx:n, i][:, np.newaxis]
+    # 
+    #        # non-sample points and self are masked as nan or inf, so...
+    #        n_pts = np.isfinite(dI).sum()
+    #        if metric == 'similarity':
+    #            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / n_pts
+    #        else: # metric == 'distance':
+    #            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n_pts)
+    #===========================================================================
          
     # Mirror, so that matrix is symmetric
     D_mp += D_mp.T
     np.fill_diagonal(D_mp, self_value)
+    D_mp[D_mp == 0] = np.nan
 
     return D_mp
 

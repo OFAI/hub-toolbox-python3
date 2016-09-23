@@ -33,7 +33,7 @@ def euclidean_distance(X):
     """Calculate the euclidean distances between all pairs of vectors in `X`."""
     return squareform(pdist(X, 'euclidean'))
 
-def sample_distance(X, metric, sample_size, strategy):
+def sample_distance(X, y, metric, sample_size, strategy):
     """Calculate incomplete distance matrix.
     
     Only calculate distances to a fixed number/fraction of all other points.
@@ -45,6 +45,8 @@ def sample_distance(X, metric, sample_size, strategy):
     ----------
     X : ndarray
         Input vector data.
+    y : ndarray
+        Input labels (used for stratified sampling).
     metric : 'cosine' or metric understood by scipy.spatial.distance.pdist
         Metric used to calculate distances.
     sample_size : int or float
@@ -77,14 +79,13 @@ def sample_distance(X, metric, sample_size, strategy):
     if not isinstance(sample_size, int):
         sample_size = int(sample_size * n)
 
-    y = np.arange(n)
     if strategy == 'a':
-        _, _, y_nonsample, _ = next(iter(
+        y_nonsample, _ = next(iter(
             StratifiedKFold(y, n_folds=n//sample_size, shuffle=True)))
         D[:, y_nonsample] = np.nan
     elif strategy == 'b':
         for i in range(n):
-            _, _, y_nonsample, _ = next(iter(
+            y_nonsample, _ = next(iter(
                 StratifiedKFold(y, n_folds=n//sample_size, shuffle=True)))
             D[i, y_nonsample] = np.nan
     else:

@@ -91,7 +91,7 @@ def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
     _check_is_nD_array(D, 2, "Distance/similarity")
     _check_is_nD_array(idx, 1, "Index")
     if D.shape[1] != idx.size:
-        raise TypeError("Number of samples in index array does not match"
+        raise TypeError("Number of samples in index array does not match "
                         "the number of samples in the data matrix.")
     
 def _check_valid_metric_parameter(metric:str):

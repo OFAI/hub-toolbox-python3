@@ -58,23 +58,42 @@ def load_dexter():
     D = cosine_distance(vectors)
     return D, classes, vectors
 
+def _check_is_nD_array(arr:np.ndarray, n:int, arr_type=''):
+    """ Check that array is exactly n dimensional. """
+    if arr.ndim != n:
+        raise TypeError(arr_type + " array must be a " + n + "D array, but was "
+                        "found to be a {}D array.".format(arr.ndim))
+
 def _check_distance_matrix_shape(D:np.ndarray):
     """ Check that matrix is quadratic. """
+    _check_is_nD_array(D, n=2, arr_type="Distance/similarity")
     if D.shape[0] != D.shape[1]:
         raise TypeError("Distance/similarity matrix is not quadratic.")
 
 def _check_distance_matrix_shape_fits_vectors(D:np.ndarray, vectors:np.ndarray):
     """ Check number of points in distance matrix equal number of vectors. """
+    _check_is_nD_array(D, 2, "Distance/similarity")
+    _check_is_nD_array(vectors, 2, "Data vectors")
     if D.shape[0] != vectors.shape[0]:
         raise TypeError("Data vectors dimension does not match "
                         "distance matrix (D) dimension.")
 
 def _check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
-    """ Check the number of points in distance matrix equal number of labels"""
+    """ Check the number of points in distance matrix equal number of labels."""
+    _check_is_nD_array(D, 2, "Distance/similarity")
+    _check_is_nD_array(classes, 1, "Class label")
     if classes.size != D.shape[0]:
         raise TypeError("Number of class labels does not "
                         "match number of points.")
 
+def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
+    """ Check that number of columns in ``D`` equals the size of ``idx``. """
+    _check_is_nD_array(D, 2, "Distance/similarity")
+    _check_is_nD_array(idx, 1, "Index")
+    if D.shape[1] != idx.size:
+        raise TypeError("Number of samples in index array does not match"
+                        "the number of samples in the data matrix.")
+    
 def _check_valid_metric_parameter(metric:str):
     """ Check parameter is either 'distance' or 'similarity'. """
     if metric != 'distance' and metric != 'similarity':

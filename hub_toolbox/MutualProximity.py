@@ -22,8 +22,8 @@ from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
 from hub_toolbox import IO, Logging
 
-def mutual_proximity_empiric_sample(D:np.ndarray, metric:str='distance', 
-    test_set_ind:np.ndarray=None, verbose:int=0):
+def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray, 
+    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
     NOTE: this docstring does not yet fully reflect the properties of this 
@@ -35,18 +35,16 @@ def mutual_proximity_empiric_sample(D:np.ndarray, metric:str='distance',
     
     Parameters
     ----------
-    D : ndarray or csr_matrix
-        - ndarray: The ``n x n`` symmetric distance or similarity matrix.
-        - csr_matrix: The ``n x n`` symmetric similarity matrix.
-          
-        NOTE: In case of sparse ``D`, zeros are interpreted as missing values 
-        and ignored during calculations. Thus, results may differ 
-        from using a dense version.
+    D : ndarray
+        The ``n x s`` distance or similarity matrix, where ``n`` and ``s``
+        are the dataset and sample size, respectively.
+
+    idx : ndarray
+        The index array that determines, to which data points the columns in
+        `D` correspond.  
     
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix.
-        
-        NOTE: In case of sparse `D`, only 'similarity' is supported.
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
@@ -68,25 +66,28 @@ def mutual_proximity_empiric_sample(D:np.ndarray, metric:str='distance',
            Local and global scaling reduce hubs in space. The Journal of Machine 
            Learning Research, 13(1), 2871–2902.
     """
-    # Initialization
-    n = D.shape[0]
+    # Initialization and checking input
     log = Logging.ConsoleLogging()
-    
-    # Check input
-    IO._check_distance_matrix_shape(D)
+    IO._check_sample_shape_fits(D, idx)
     IO._check_valid_metric_parameter(metric)
+    n = D.shape[0]
+    s = D.shape[1]
+    j = np.ones(n, int)
+    j *= (n+1) # illegal indices will throw index out of bounds error
+    j[idx] = np.arange(s)
     if metric == 'similarity':
         self_value = 1
-        exclude_value = np.inf
+        exclude_value = -np.inf
     else: # metric == 'distance':
         self_value = 0
-        exclude_value = -np.inf
+        exclude_value = np.inf
         if issparse(D):
             raise ValueError("MP sparse only supports similarity matrices.")
     if test_set_ind is None:
         pass # TODO implement
         #train_set_ind = slice(0, n)
-    elif not np.all(~test_set_ind):
+    #elif not np.all(~test_set_ind):
+    else:
         raise NotImplementedError("MP empiric does not yet support train/"
                                   "test splits.")
         #train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
@@ -96,28 +97,26 @@ def mutual_proximity_empiric_sample(D:np.ndarray, metric:str='distance',
     
     if issparse(D):
         raise NotImplementedError
-        return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log)
+        #return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log)
         
     # ensure correct self distances (NOT done for sparse matrices!)
-    np.fill_diagonal(D, exclude_value)
-    
-    D_mp = np.zeros_like(D)
+    for j, sample in enumerate(idx):
+        D[sample, j] = exclude_value
+
+    D_mp = np.zeros_like(D) * np.nan
      
     # Calculate MP empiric
-    for i in range(n-1):
+    for i in range(n):
         if verbose and ((i+1)%1000 == 0 or i == n-2):
             log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-        dI = D[i, :]
-        for j in range(i+1, n):
-            if np.isfinite(D[i, j]):
-                dJ = D[j, :]
-                d = D[i, j]
-                assert len(dJ) == len(dI)
-                n_pts = len(dI)
-                if metric == 'similarity':
-                    D_mp[i, j] = np.sum((dI <= d) & (dJ <= d)) / n_pts
-                else: # metric == 'distance':
-                    D_mp[i, j] = 1 - (np.sum((dI > d) & (dJ > d)) / n_pts)
+        dI = D[i, :][np.newaxis, :]
+        dJ = D[idx, :]
+        d = D[i, :][:, np.newaxis]
+        n_pts = (~np.isnan(dI) == ~np.isnan(dJ)).sum(1)
+        if metric == 'similarity':
+            D_mp[i, :] = np.sum((dI <= d) & (dJ <= d), 1) / n_pts
+        else: # metric == 'distance':
+            D_mp[i, :] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n_pts)
     #===========================================================================
     #        # Calculate only triu part of matrix
     #        j_idx = i + 1
@@ -134,11 +133,10 @@ def mutual_proximity_empiric_sample(D:np.ndarray, metric:str='distance',
     #            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n_pts)
     #===========================================================================
          
-    # Mirror, so that matrix is symmetric
-    D_mp += D_mp.T
-    np.fill_diagonal(D_mp, self_value)
-    D_mp[D_mp == 0] = np.nan
-
+    # Ensure correct self distances
+    for j, sample in enumerate(idx):
+        D_mp[sample, j] = self_value
+    
     return D_mp
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
@@ -193,10 +191,10 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     IO._check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
-        exclude_value = np.inf
+        exclude_value = -np.inf
     else: # metric == 'distance':
         self_value = 0
-        exclude_value = -np.inf
+        exclude_value = np.inf
         if issparse(D):
             raise ValueError("MP sparse only supports similarity matrices.")
     if test_set_ind is None:

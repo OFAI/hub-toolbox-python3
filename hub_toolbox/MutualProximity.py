@@ -77,10 +77,10 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     j[idx] = np.arange(s)
     if metric == 'similarity':
         self_value = 1
-        exclude_value = -np.inf
+        exclude_value = np.inf
     else: # metric == 'distance':
         self_value = 0
-        exclude_value = np.inf
+        exclude_value = -np.inf
         if issparse(D):
             raise ValueError("MP sparse only supports similarity matrices.")
     if test_set_ind is None:
@@ -112,7 +112,7 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
         dI = D[i, :][np.newaxis, :]
         dJ = D[idx, :]
         d = D[i, :][:, np.newaxis]
-        n_pts = (~np.isnan(dI) == ~np.isnan(dJ)).sum(1)
+        n_pts = (np.isfinite(dI) == np.isfinite(dJ)).sum(1)
         if metric == 'similarity':
             D_mp[i, :] = np.sum((dI <= d) & (dJ <= d), 1) / n_pts
         else: # metric == 'distance':
@@ -191,10 +191,10 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     IO._check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
-        exclude_value = -np.inf
+        exclude_value = np.inf
     else: # metric == 'distance':
         self_value = 0
-        exclude_value = np.inf
+        exclude_value = -np.inf
         if issparse(D):
             raise ValueError("MP sparse only supports similarity matrices.")
     if test_set_ind is None:

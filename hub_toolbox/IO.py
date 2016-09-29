@@ -25,8 +25,10 @@ def load_dexter():
     -------
     D : ndarray
         Distance matrix
+
     classes : ndarray
         Class label vector
+
     vectors : ndarray
         Vector data matrix
     """
@@ -148,8 +150,10 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4): # pragma: no cover
     ----------
     rows, cols : int 
         Shape of matrix that should be split.
+
     elem_size : int 
         memory requirement per matrix element in bytes. E.g. 8 bytes for float64
+
     nr_matrices : int 
         How many times must the split matrix fit into memory?
         This depends on the subsequent operations.
@@ -158,6 +162,7 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4): # pragma: no cover
     -------
     nr_batches : int
         number of submatrices
+
     nr_rows : int
         number of rows per submatrix.
     

@@ -17,7 +17,6 @@ import os
 import sys
 import numpy as np
 from scipy import sparse
-from hub_toolbox.Distances import cosine_distance
 
 def load_dexter():
     """Load the example data set (dexter).
@@ -31,6 +30,7 @@ def load_dexter():
     vectors : ndarray
         Vector data matrix
     """
+    from hub_toolbox.Distances import cosine_distance
         
     n = 300
     dim = 20000

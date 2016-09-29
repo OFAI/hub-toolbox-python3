@@ -86,6 +86,14 @@ def _check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
         raise TypeError("Number of class labels does not "
                         "match number of points.")
 
+def _check_vector_matrix_shape_fits_labels(X:np.ndarray, classes:np.ndarray):
+    """ Check the number of points in vector matrix equal number of labels."""
+    _check_is_nD_array(X, 2, "Data vectors")
+    _check_is_nD_array(classes, 1, "Class label")
+    if classes.size != X.shape[0]:
+        raise TypeError("Number of class labels does not "
+                        "match number of points.")
+
 def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
     """ Check that number of columns in ``D`` equals the size of ``idx``. """
     _check_is_nD_array(D, 2, "Distance/similarity")

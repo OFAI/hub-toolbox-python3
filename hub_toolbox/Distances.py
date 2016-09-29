@@ -41,15 +41,19 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     ----------
     X : ndarray
         Input vector data.
+
     y : ndarray
         Input labels (used for stratified sampling).
+
     sample_size : int or float
         If float, must be between 0.0 and 1.0 and represent the proportion of
         the dataset for which distances should be calculated to.
         If int, represents the absolute number of sample distances.
         NOTE: See also the notes to the return value `y_sample`!
+
     metric : any scipy.spatial.distance.cdist metric (default: 'euclidean')
         Metric used to calculate distances.
+
     strategy : 'a', 'b' (default: 'a')
         
         - 'a': Stratified sampling, for all points the distances to the
@@ -63,6 +67,7 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     D : ndarray
         The `n x s` distance matrix, where ``n`` is the dataset size and ``s``
         is the sample size.
+
     y_sample : ndarray
         The index array that determines, which column in `D` corresponds
         to which data point.

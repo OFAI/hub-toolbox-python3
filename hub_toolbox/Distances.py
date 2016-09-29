@@ -17,7 +17,7 @@ from enum import Enum
 import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 from sklearn.cross_validation import StratifiedKFold
-from hub_toolbox import IO
+from hub_toolbox.IO import _check_vector_matrix_shape_fits_labels
 
 def cosine_distance(X):
     """Calculate the cosine distance between all pairs of vectors in `X`."""
@@ -34,7 +34,7 @@ def euclidean_distance(X):
     """Calculate the euclidean distances between all pairs of vectors in `X`."""
     return squareform(pdist(X, 'euclidean'))
 
-def sample_distance(X, y, sample_size, metric, strategy='a'):
+def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     """Calculate incomplete distance matrix.
     
     Parameters
@@ -47,8 +47,8 @@ def sample_distance(X, y, sample_size, metric, strategy='a'):
         If float, must be between 0.0 and 1.0 and represent the proportion of
         the dataset for which distances should be calculated to.
         If int, represents the absolute number of sample distances.
-        NOTE: distances are calculated
-    metric : metric understood by scipy.spatial.distance.cdist
+        NOTE: See also the notes to the return value `y_sample`!
+    metric : any scipy.spatial.distance.cdist metric (default: 'euclidean')
         Metric used to calculate distances.
     strategy : 'a', 'b' (default: 'a')
         
@@ -66,6 +66,10 @@ def sample_distance(X, y, sample_size, metric, strategy='a'):
     y_sample : ndarray
         The index array that determines, which column in `D` corresponds
         to which data point.
+        
+        NOTE: The size of `y_sample` may be slightly higher than defined by
+        `sample_size` in order to meet stratification requirements!
+        Thus, please always check the size in the downstream workflow.
 
     Notes
     -----
@@ -75,7 +79,7 @@ def sample_distance(X, y, sample_size, metric, strategy='a'):
     in the sample to obtain a `n x s` distance matrix.
     
     """
-    IO._check_vector_matrix_shape_fits_labels(X, y)
+    _check_vector_matrix_shape_fits_labels(X, y)
     n = X.shape[0]
     if not isinstance(sample_size, int):
         sample_size = int(sample_size * n)

@@ -16,7 +16,10 @@ Contact: <roman.feldbauer@ofai.at>
 from enum import Enum
 import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
-from sklearn.cross_validation import StratifiedKFold
+try: # for scikit-learn >= 0.18
+    from sklearn.model_selection import StratifiedShuffleSplit
+except ImportError: # lower scikit-learn versions
+    from sklearn.cross_validation import StratifiedShuffleSplit
 from hub_toolbox.IO import _check_vector_matrix_shape_fits_labels
 
 def cosine_distance(X):
@@ -65,8 +68,8 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     Returns
     -------
     D : ndarray
-        The `n x s` distance matrix, where ``n`` is the dataset size and ``s``
-        is the sample size.
+        The ``n x s`` distance matrix, where ``n`` is the dataset size and
+        ``s`` is the sample size.
 
     y_sample : ndarray
         The index array that determines, which column in `D` corresponds
@@ -78,10 +81,10 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
 
     Notes
     -----
-    Only calculate distances to a fixed number/fraction of all `n` points.
-    These `s` points are sampled according to the chosen strategy (see below).
+    Only calculate distances to a fixed number/fraction of all ``n`` points.
+    These ``s`` points are sampled according to the chosen strategy (see above).
     In other words, calculate the distance from all points to each point
-    in the sample to obtain a `n x s` distance matrix.
+    in the sample to obtain a ``n x s`` distance matrix.
     
     """
     _check_vector_matrix_shape_fits_labels(X, y)
@@ -89,13 +92,18 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     if not isinstance(sample_size, int):
         sample_size = int(sample_size * n)
     if strategy == 'a':
-        _, y_sample = next(iter(
-            StratifiedKFold(y, n_folds=n//sample_size, shuffle=True)))
+        try: # scikit-learn < 0.18
+            sss = StratifiedShuffleSplit(y=y, n_iter=1, test_size=sample_size)
+            _, y_sample = next(iter(sss))
+            #StratifiedKFold(y, n_folds=n//sample_size, shuffle=True))) # OLD
+        except: # scikit-learn >= 0.18
+            sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_size)
+            _, y_sample = sss.split(X=y, y=y)
     elif strategy == 'b':
         raise NotImplementedError("Strategy 'b' is not yet implemented.")
-        for _ in range(n):
-            _, y_sample = next(iter(
-                StratifiedKFold(y, n_folds=n//sample_size, shuffle=True)))
+        #for _ in range(n):
+        #    _, y_sample = next(iter(
+        #        StratifiedKFold(y, n_folds=n//sample_size, shuffle=True)))
     else:
         raise NotImplementedError("Strategy", strategy, "unknown.")
     

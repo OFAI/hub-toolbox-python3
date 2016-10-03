@@ -17,6 +17,7 @@ import os
 import sys
 import numpy as np
 from scipy import sparse
+from scipy.sparse.base import issparse
 
 def load_dexter():
     """Load the example data set (dexter).
@@ -62,9 +63,13 @@ def load_dexter():
 
 def _check_is_nD_array(arr:np.ndarray, n:int, arr_type=''):
     """ Check that array is exactly n dimensional. """
-    if arr.ndim != n:
-        raise TypeError(arr_type + " array must be a " + n + "D array, but was "
-                        "found to be a {}D array.".format(arr.ndim))
+    try:
+        if arr.ndim != n:
+            raise TypeError(arr_type + " array must be a " + str(n) +
+                            "D array, but was found to be a " +
+                            str(arr.ndim) + "D array.")
+    except AttributeError:
+        raise TypeError("Object 'arr' does not seem to be an array.")
 
 def _check_distance_matrix_shape(D:np.ndarray):
     """ Check that matrix is quadratic. """
@@ -98,6 +103,8 @@ def _check_vector_matrix_shape_fits_labels(X:np.ndarray, classes:np.ndarray):
 
 def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
     """ Check that number of columns in ``D`` equals the size of ``idx``. """
+    if issparse(D) or issparse(idx):
+        raise TypeError("Sparse matrices are not supported for SampleMP.")
     _check_is_nD_array(D, 2, "Distance/similarity")
     _check_is_nD_array(idx, 1, "Index")
     if D.shape[1] > D.shape[0]:

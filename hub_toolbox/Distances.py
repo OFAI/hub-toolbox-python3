@@ -92,18 +92,26 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     if not isinstance(sample_size, int):
         sample_size = int(sample_size * n)
     if strategy == 'a':
-        try: # scikit-learn < 0.18
-            sss = StratifiedShuffleSplit(y=y, n_iter=1, test_size=sample_size)
-            _, y_sample = next(iter(sss))
-            #StratifiedKFold(y, n_folds=n//sample_size, shuffle=True))) # OLD
-        except: # scikit-learn >= 0.18
+        try: # scikit-learn >= 0.18
             sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_size)
             _, y_sample = sss.split(X=y, y=y)
+        except TypeError: # scikit-learn < 0.18
+            sss = StratifiedShuffleSplit(y=y, n_iter=1, test_size=sample_size)
+            _, y_sample = next(iter(sss))
     elif strategy == 'b':
         raise NotImplementedError("Strategy 'b' is not yet implemented.")
-        #for _ in range(n):
-        #    _, y_sample = next(iter(
-        #        StratifiedKFold(y, n_folds=n//sample_size, shuffle=True)))
+        #=======================================================================
+        # y_sample = np.zeros((n, sample_size))
+        # try: # scikit-learn >= 0.18
+        #     for i in range(n):
+        #         sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_size)
+        #         _, y_sample[i, :] = sss.split(X=y, y=y)
+        # except TypeError: # scikit-learn < 0.18
+        #     for i in range(n):
+        #         sss = StratifiedShuffleSplit(y=y, n_iter=1, test_size=sample_size)
+        #         _, y_sample[i, :] = next(iter(sss))
+        # # TODO will need to adapt cdist call below...
+        #=======================================================================
     else:
         raise NotImplementedError("Strategy", strategy, "unknown.")
     

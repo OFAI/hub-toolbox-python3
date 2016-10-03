@@ -100,6 +100,10 @@ def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
     """ Check that number of columns in ``D`` equals the size of ``idx``. """
     _check_is_nD_array(D, 2, "Distance/similarity")
     _check_is_nD_array(idx, 1, "Index")
+    if D.shape[1] > D.shape[0]:
+        raise ValueError("Number of samples is higher than number of points. "
+                         "Must be less than or equal. In the latter case, "
+                         "consider not using samples at all for efficiency.")
     if D.shape[1] != idx.size:
         raise TypeError("Number of samples in index array does not match "
                         "the number of samples in the data matrix.")

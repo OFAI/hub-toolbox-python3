@@ -18,6 +18,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 from hub_toolbox.HubnessAnalysis import load_dexter
 from hub_toolbox.KnnClassification import score
+from hub_toolbox.Distances import sample_distance
 
 class TestKnnClassification(unittest.TestCase):
 
@@ -80,6 +81,21 @@ class TestKnnClassification(unittest.TestCase):
             msg = """Accuracies of hub toolbox k-NN and sklearn-kNN are almost 
                      equal, but the predictions per data point are not."""
             return self.assertTrue(equal_prediction, msg)
+
+    def test_sample_knn(self):
+        """ Make sure that sample-kNN works correctly. """
+        X = np.array([[1., 2.],
+                      [2., 2.],
+                      [2., 3.],
+                      [3., .5],
+                      [4., 1.5]])
+        y = np.array([0, 1, 0, 1, 1])
+        s = 2
+        D, sample_idx = sample_distance(X, y, s)
+        acc, _, _ = score(D, y, 2, 'distance', sample_idx=sample_idx)
+        print("Samples:", sample_idx)
+        print("Accuracy:", acc)
+        return self.fail("Not fully implemented test.")
 
 if __name__ == "__main__":
     unittest.main()

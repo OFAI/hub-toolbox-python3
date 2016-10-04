@@ -15,7 +15,8 @@ import unittest
 import numpy as np
 from hub_toolbox.Distances import euclidean_distance
 from hub_toolbox.MutualProximity import mutual_proximity_empiric,\
-    mutual_proximity_gauss, mutual_proximity_gaussi, mutual_proximity_gammai
+    mutual_proximity_gauss, mutual_proximity_gaussi, mutual_proximity_gammai,\
+    mutual_proximity_empiric_sample
 from scipy.sparse.csr import csr_matrix
 from scipy.spatial.distance import squareform
 
@@ -42,6 +43,44 @@ class TestMutualProximity(unittest.TestCase):
 
     def tearDown(self):
         del self.dist, self.label, self.vector
+
+    def test_mp_empiric_sample(self):
+        """Test MP Emp Sample equals MP Emp when sample == population"""
+        self.setUpMod('toy')
+        mp_dist = mutual_proximity_empiric(self.dist, 'distance')
+        y = np.array([0, 1, 2, 3, 4])
+        mp_sample_dist = mutual_proximity_empiric_sample(self.dist, y, 'distance')
+        mp_sample_equal_pop = np.alltrue(mp_dist == mp_sample_dist)
+        print(self.dist)
+        print(mp_dist)
+        print(mp_sample_dist)
+        y2 = np.array([1, 2, 4])
+        mp_sample_dist2 = mutual_proximity_empiric_sample(self.dist[:, y2], y2)
+        print(self.dist[:, y2])
+        print(mp_sample_dist2)
+        return self.assertTrue(mp_sample_equal_pop)
+
+    def test_mp_gaussi_sample(self):
+        """Test MP Gaussi Sample."""
+        self.setUpMod('toy')
+        mp_dist = mutual_proximity_gaussi(self.dist)
+        y = np.array([0, 1, 2, 3, 4])
+        mp_sample_dist = mutual_proximity_gaussi(self.dist[:, y], idx=y)
+        mp_sample_equal_pop = np.alltrue(mp_dist == mp_sample_dist)
+        #=======================================================================
+        # print(self.dist)
+        # print(mp_dist)
+        # print(mp_sample_dist)
+        #=======================================================================
+        print("SampleMP-Gaussi with all pts equals MP-Gaussi:", mp_sample_equal_pop)
+        y2 = np.array([1, 2, 4])
+        mp_sample_dist2 = mutual_proximity_gaussi(self.dist[:, y2], idx=y2)
+        print(self.dist[:, y2])
+        print(mp_dist[:, y2])
+        print(mp_sample_dist2)
+        print(mp_sample_dist)
+        #return self.assertTrue(mp_sample_equal_pop)
+        return self.fail()
 
     def test_mp_empiric(self):
         """Test MP Empiric for toy example (ground truth calc by hand)"""

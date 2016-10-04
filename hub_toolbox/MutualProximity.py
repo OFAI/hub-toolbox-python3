@@ -453,6 +453,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
         return _mutual_proximity_gaussi_sparse(D, sample_size, test_set_ind, 
                                                verbose, log)
 
+    # ignore self dist/sim for parameter estimation
     if idx is None:
         np.fill_diagonal(D, np.nan)
     else:
@@ -471,6 +472,13 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     else:
         mu = np.nanmean(D, 1)
         sd = np.nanstd(D, 1, ddof=0)
+    # set self dist/sim back to self_value to avoid scipy warnings
+    if idx is None:
+        np.fill_diagonal(D, self_value)
+    else:
+        for j, i in enumerate(idx):
+            D[i, j] = self_value
+
     # MP Gaussi
     D_mp = np.zeros_like(D)
     for i in range(n):

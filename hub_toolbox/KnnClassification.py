@@ -158,37 +158,26 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             rp = train_set_ind
         else:
             rp = np.arange(len(sample_idx))
-            #sample_row = row[sample_idx]
         rp = np.random.permutation(rp)
         d2 = row[rp]
         d2idx = np.argsort(d2, axis=0)[::sort_order]
         idx = rp[d2idx]
-        #=======================================================================
-        # if sample_idx is not None:
-        #     idx = j[idx]    
-        #=======================================================================
         
         # More than one k is useful for cheap multiple k-NN experiments at once
         for j in range(k_length):
-            #===================================================================
-            # assert np.alltrue(np.isfinite(row[idx[0:k[j]]])), \
-            #     "Non-finite distances were used in k-NN classification:"+\
-            #     "{} at i={}, j={}\nSortedRow: {}".format(row[idx[0:k[j]]], i, j, np.sort(row))
-            #===================================================================
             # Make sure no inf/-inf/nan values are used for classification
             finite_val = np.isfinite(row[idx[0:k[j]]])
+            # However, if no values are finite, classify randomly
+            if finite_val.sum() == 0:
+                finite_val = np.ones_like(finite_val)
+                log.warning("Query was classified randomly, because all "
+                            "distances were non-finite numbers.")
             if sample_idx is None:
                 nn_class = classes[idx[0:k[j]]][finite_val]
             else:
                 #finite_val = np.isfinite(sample_row[idx[0:k[j]]])
                 nn_class = sample_classes[idx[0:k[j]]][finite_val]
             cs = np.bincount(nn_class.astype(int))
-            #===================================================================
-            # print("i=", i, ", j=", j, sep='')
-            # print(nn_class)
-            # print(cs)
-            # print(row[np.isfinite(row)])
-            #===================================================================
             max_cs = np.where(cs == np.max(cs))[0]
             
             # "tie": use nearest neighbor

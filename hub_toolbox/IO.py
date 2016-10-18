@@ -75,31 +75,35 @@ def _check_distance_matrix_shape(D:np.ndarray):
     """ Check that matrix is quadratic. """
     _check_is_nD_array(D, n=2, arr_type="Distance/similarity")
     if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
+        raise TypeError("Distance/similarity matrix is not quadratic. "
+                        "Shape: {}".format(D.shape))
 
 def _check_distance_matrix_shape_fits_vectors(D:np.ndarray, vectors:np.ndarray):
     """ Check number of points in distance matrix equal number of vectors. """
     _check_is_nD_array(D, 2, "Distance/similarity")
     _check_is_nD_array(vectors, 2, "Data vectors")
     if D.shape[0] != vectors.shape[0]:
-        raise TypeError("Data vectors dimension does not match "
-                        "distance matrix (D) dimension.")
+        raise TypeError("Number of points in `vectors` does not match "
+                        "number of points in `D`. Shape of `vectors`: {}, "
+                        "shape of `D`: {}".format(vectors.shape[0], D.shape[0]))
 
 def _check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
     """ Check the number of points in distance matrix equal number of labels."""
     _check_is_nD_array(D, 2, "Distance/similarity")
     _check_is_nD_array(classes, 1, "Class label")
     if classes.size != D.shape[0]:
-        raise TypeError("Number of class labels does not "
-                        "match number of points.")
+        raise TypeError("Number of class labels does not match number of "
+                        "points. Labels: {}, points: {}."
+                        .format(classes.size, D.shape[0]))
 
 def _check_vector_matrix_shape_fits_labels(X:np.ndarray, classes:np.ndarray):
     """ Check the number of points in vector matrix equal number of labels."""
     _check_is_nD_array(X, 2, "Data vectors")
     _check_is_nD_array(classes, 1, "Class label")
     if classes.size != X.shape[0]:
-        raise TypeError("Number of class labels does not "
-                        "match number of points.")
+        raise TypeError("Number of class labels does not match number of "
+                        "points. Labels: {}, points: {}."
+                        .format(classes.size, X.shape[0]))
 
 def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
     """ Check that number of columns in ``D`` equals the size of ``idx``. """
@@ -110,16 +114,20 @@ def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
     if D.shape[1] > D.shape[0]:
         raise ValueError("Number of samples is higher than number of points. "
                          "Must be less than or equal. In the latter case, "
-                         "consider not using samples at all for efficiency.")
+                         "consider not using samples at all for efficiency. "
+                         "Shape of `D`: {}.".format(D.shape))
     if D.shape[1] != idx.size:
         raise TypeError("Number of samples in index array does not match "
-                        "the number of samples in the data matrix.")
+                        "the number of samples in the data matrix. "
+                        "Size of `idx`: {}, Columns in `D`: {}."
+                        .format(idx.size, D.shape[1]))
     
 def _check_valid_metric_parameter(metric:str):
     """ Check parameter is either 'distance' or 'similarity'. """
     if metric != 'distance' and metric != 'similarity':
         raise ValueError("Parameter 'metric' must be "
-                         "'distance' or 'similarity'.")
+                         "'distance' or 'similarity'."
+                         "Got: " + metric.__str__())
 
 def copy_D_or_load_memmap(D, writeable=False): # pragma: no cover
     """Return a deep copy of a numpy array (if `D` is an ndarray), 

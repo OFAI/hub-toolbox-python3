@@ -23,7 +23,8 @@ from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
 from hub_toolbox import IO, Logging
 
 def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray, 
-    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
+    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0,
+    transpose=False):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
     NOTE: this docstring does not yet fully reflect the properties of this 
@@ -42,32 +43,37 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     idx : ndarray
         The index array that determines, to which data points the columns in
         `D` correspond.
-    
+
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix.
-        
+
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
-        
+
         - None : Rescale all distances
-        - ndarray : Hold out points indexed in this array as test set. 
-        
+        - ndarray : Hold out points indexed in this array as test set.
+
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
-        
+
+    transpose : bool, optional, default: False
+        If True, transpose `D` in case ``s > n``.
+
     Returns
     -------
     D_mp : ndarray
         Secondary distance MP empiric matrix.
-    
+
     References
     ----------
-    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
-           Local and global scaling reduce hubs in space. The Journal of Machine 
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012).
+           Local and global scaling reduce hubs in space. The Journal of Machine
            Learning Research, 13(1), 2871–2902.
     """
     # Initialization and checking input
     log = Logging.ConsoleLogging()
+    if transpose and D.shape[1] > D.shape[0]:
+        D = D.T
     IO._check_sample_shape_fits(D, idx)
     IO._check_valid_metric_parameter(metric)
     n = D.shape[0]

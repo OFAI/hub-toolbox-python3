@@ -23,8 +23,7 @@ from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
 from hub_toolbox import IO, Logging
 
 def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray, 
-    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0,
-    transpose=False):
+    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
     NOTE: this docstring does not yet fully reflect the properties of this 
@@ -56,9 +55,6 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
 
-    transpose : bool, optional, default: False
-        If True, transpose `D` in case ``s > n``.
-
     Returns
     -------
     D_mp : ndarray
@@ -72,8 +68,6 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     """
     # Initialization and checking input
     log = Logging.ConsoleLogging()
-    if transpose and D.shape[1] > D.shape[0]:
-        D = D.T
     IO._check_sample_shape_fits(D, idx)
     IO._check_valid_metric_parameter(metric)
     n = D.shape[0]
@@ -90,12 +84,12 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
         if issparse(D):
             raise ValueError("MP sparse only supports similarity matrices.")
     if test_set_ind is None:
-        pass # TODO implement
-        #train_set_ind = slice(0, n)
+        n_ind = range(n)
     #elif not np.all(~test_set_ind):
     else:
-        raise NotImplementedError("MP empiric does not yet support train/"
-                                  "test splits.")
+        n_ind = test_set_ind
+        #raise NotImplementedError("MP empiric does not yet support train/"
+        #                          "test splits.")
         #train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
 
     # Start MP
@@ -112,7 +106,7 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     D_mp = np.zeros_like(D) * np.nan
      
     # Calculate MP empiric
-    for i in range(n):
+    for i in n_ind: #range(n):
         if verbose and ((i+1)%1000 == 0 or i == n-2):
             log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
         dI = D[i, :][np.newaxis, :] # broadcasted afterwards
@@ -128,7 +122,10 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     for j, sample in enumerate(idx):
         D_mp[sample, j] = self_value
     
-    return D_mp
+    if test_set_ind is None:
+        return D_mp
+    else:
+        return D_mp[test_set_ind]
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
                              test_set_ind:np.ndarray=None, verbose:int=0):

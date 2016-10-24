@@ -371,6 +371,118 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     np.fill_diagonal(D_mp, self_value)
     return D_mp
 
+def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray, 
+    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
+    """Transform a distance matrix with Mutual Proximity (empiric distribution).
+    
+    NOTE: this docstring does not yet fully reflect the properties of this 
+    proof-of-concept function!
+    
+    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using 
+    the empiric data distribution (EXACT, rather SLOW). The resulting 
+    secondary distance/similarity matrix should show lower hubness.
+    
+    Parameters
+    ----------
+    D : ndarray
+        The ``n x s`` distance or similarity matrix, where ``n`` and ``s``
+        are the dataset and sample size, respectively.
+
+    idx : ndarray
+        The index array that determines, to which data points the columns in
+        `D` correspond.
+
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix `D` is a distance or similarity matrix.
+
+    test_set_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set.
+
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+
+    Returns
+    -------
+    D_mp : ndarray
+        Secondary distance MP empiric matrix.
+
+    References
+    ----------
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012).
+           Local and global scaling reduce hubs in space. The Journal of Machine
+           Learning Research, 13(1), 2871–2902.
+    """
+    # Initialization and checking input
+    log = Logging.ConsoleLogging()
+    IO._check_sample_shape_fits(D, idx)
+    IO._check_valid_metric_parameter(metric)
+    n = D.shape[0]
+    s = D.shape[1]
+    j = np.ones(n, int)
+    j *= (n+1) # illegal indices will throw index out of bounds error
+    j[idx] = np.arange(s)
+    if metric == 'similarity':
+        self_value = 1
+        exclude_value = np.inf
+    else: # metric == 'distance':
+        self_value = 0
+        exclude_value = -np.inf
+    if test_set_ind is None:
+        n_ind = range(n)
+    else:
+        n_ind = test_set_ind
+        
+    # Start MP
+    D = D.copy()
+    
+    if issparse(D):
+        raise NotImplementedError
+        
+    # ensure correct self distances (NOT done for sparse matrices!)
+    for j, sample in enumerate(idx):
+        D[sample, j] = exclude_value
+
+    # Calculate mean and std
+    mu = np.nanmean(D[idx], 1)
+    sd = np.nanstd(D[idx], 1, ddof=0)
+    # set self dist/sim back to self_value to avoid scipy warnings
+    for j, i in enumerate(idx):
+        D[i, j] = self_value
+
+    # MP Gaussi
+    D_mp = np.zeros_like(D)
+    for i in n_ind:
+        if verbose and ((i+1)%1000 == 0 or i+1 == n):
+            log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
+        j = slice(0, s)
+        j_mom = idx[j]
+        
+        if metric == 'similarity':
+            p1 = norm.cdf(D[i, j], mu[i], sd[i])
+            p2 = norm.cdf(D[i, j], mu[j_mom], sd[j_mom])
+            D_mp[i, j] = (p1 * p2).ravel()
+        else:
+            # Survival function sf(.) := 1 - cdf(.)
+            p1 = norm.sf(D[i, j], mu[i], sd[i])
+            p2 = norm.sf(D[i, j], mu[j_mom], sd[j_mom])
+            D_mp[i, j] = (1 - p1 * p2).ravel()
+
+    # Ensure correct self distances
+    for j, sample in enumerate(idx):
+        D_mp[sample, j] = self_value
+
+    # Ensure correct self distances
+    for j, sample in enumerate(idx):
+        D_mp[sample, j] = self_value
+    
+    if test_set_ind is None:
+        return D_mp
+    else:
+        return D_mp[test_set_ind]
+
 def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
                             sample_size:int=0, test_set_ind:np.ndarray=None,
                             verbose:int=0, idx:np.ndarray=None,):

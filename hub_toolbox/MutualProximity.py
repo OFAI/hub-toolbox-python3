@@ -426,10 +426,9 @@ def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray,
     j[idx] = np.arange(s)
     if metric == 'similarity':
         self_value = 1
-        exclude_value = np.inf
     else: # metric == 'distance':
         self_value = 0
-        exclude_value = -np.inf
+    exclude_value = np.nan
     if test_set_ind is None:
         n_ind = range(n)
     else:
@@ -445,34 +444,30 @@ def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray,
     for j, sample in enumerate(idx):
         D[sample, j] = exclude_value
 
-    # Calculate mean and std
-    mu = np.nanmean(D[idx], 1)
-    sd = np.nanstd(D[idx], 1, ddof=0)
+    # Calculate mean and std per row, w/o self values (nan)
+    mu = np.nanmean(D, 1)
+    sd = np.nanstd(D, 1, ddof=0)
+
     # set self dist/sim back to self_value to avoid scipy warnings
     for j, i in enumerate(idx):
         D[i, j] = self_value
 
     # MP Gaussi
     D_mp = np.zeros_like(D)
-    for i in n_ind:
+    for sample, i in enumerate(n_ind):
         if verbose and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
         j = slice(0, s)
-        j_mom = idx[j]
         
         if metric == 'similarity':
             p1 = norm.cdf(D[i, j], mu[i], sd[i])
-            p2 = norm.cdf(D[i, j], mu[j_mom], sd[j_mom])
+            p2 = norm.cdf(D[i, j], mu[idx], sd[idx])
             D_mp[i, j] = (p1 * p2).ravel()
         else:
-            # Survival function sf(.) := 1 - cdf(.)
+            # Survival function: sf(.) := 1 - cdf(.)
             p1 = norm.sf(D[i, j], mu[i], sd[i])
-            p2 = norm.sf(D[i, j], mu[j_mom], sd[j_mom])
+            p2 = norm.sf(D[i, j], mu[idx], sd[idx])
             D_mp[i, j] = (1 - p1 * p2).ravel()
-
-    # Ensure correct self distances
-    for j, sample in enumerate(idx):
-        D_mp[sample, j] = self_value
 
     # Ensure correct self distances
     for j, sample in enumerate(idx):

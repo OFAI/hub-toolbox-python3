@@ -67,7 +67,8 @@ def _check_is_nD_array(arr:np.ndarray, n:int, arr_type=''):
         if arr.ndim != n:
             raise TypeError(arr_type + " array must be a " + str(n) +
                             "D array, but was found to be a " +
-                            str(arr.ndim) + "D array.")
+                            str(arr.ndim) + "D array with shape: " +
+                            str(arr.shape))
     except AttributeError:
         raise TypeError("Object 'arr' does not seem to be an array.")
 

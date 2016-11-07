@@ -17,6 +17,101 @@ import sys
 import numpy as np
 from hub_toolbox import IO
 
+def snn_sample(D:np.ndarray, k:int=10, metric='distance', 
+               train_ind:np.ndarray=None, test_ind:np.ndarray=None):
+    """Transform distance matrix using shared nearest neighbors [1]_.
+    
+    __DRAFT_VERSION__
+    
+    SNN similarity is based on computing the overlap between the `k` nearest 
+    neighbors of two objects. SNN approaches try to symmetrize nearest neighbor 
+    relations using only rank and not distance information [2]_.
+    
+    Parameters
+    ----------
+    D : np.ndarray
+        The ``n x n`` symmetric distance (similarity) matrix.
+        
+    k : int, optional (default: 10)
+        Neighborhood radius: The `k` nearest neighbors are used to calculate SNN.
+        
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether the matrix `D` is a distance or similarity matrix
+
+    train_ind : ndarray, optional
+        If given, use only these data points as neighbors for rescaling.
+
+    test_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+        
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set. 
+
+    Returns
+    -------
+    D_snn : ndarray
+        Secondary distance SNN matrix
+
+    References
+    ---------- 
+    .. [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure 
+           based on shared near neighbors,” IEEE Transactions on Computers, 
+           vol. 22, pp. 1025–1034, 1973.
+
+    .. [2] Flexer, A., & Schnitzer, D. (2013). Can Shared Nearest Neighbors 
+           Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th 
+           International Conference on Data Mining Workshops, 460–467. 
+           http://doi.org/10.1109/ICDMW.2013.101
+    """
+    IO._check_sample_shape_fits(D, train_ind)
+    IO._check_valid_metric_parameter(metric)
+    if metric == 'distance':
+        self_value = 0.
+        sort_order = 1
+        exclude = np.inf
+    if metric == 'similarity':
+        self_value = 1.
+        sort_order = -1
+        exclude = -np.inf
+    distance = D.copy()
+    n = distance.shape[0]
+    if test_ind is None:
+        n_ind = range(n)    
+    else:
+        n_ind = test_ind
+    # Exclude self distances
+    for j, sample in enumerate(train_ind):
+        distance[sample, j] = exclude
+
+    knn = np.zeros_like(distance, bool)
+    
+    # find nearest neighbors for each point
+    for i in range(n):
+        di = distance[i, :]
+        nn = np.argsort(di)[::sort_order]
+        knn[i, nn[0:k]] = True
+    
+    D_snn = np.zeros_like(distance)
+    for i in n_ind:
+        knn_i = knn[i, :]
+        
+        # using broadcasting
+        Dij = np.sum(np.logical_and(knn_i, knn[train_ind, :]), 1)
+        if metric == 'distance':
+            D_snn[i, :] = 1. - Dij / k
+        else: # metric == 'similarity':
+            D_snn[i, :] = Dij / k
+
+    # Ensure correct self distances and return sec. dist. matrix
+    if test_ind is None:
+        np.fill_diagonal(D_snn, self_value)
+        return D_snn
+    else:
+        for j, sample in enumerate(train_ind):
+            D_snn[sample, j] = self_value
+        return D_snn[test_ind]
+
+
 def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     """Transform distance matrix using shared nearest neighbors [1]_.
     

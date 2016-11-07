@@ -292,10 +292,8 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
             
     n = D.shape[0]
     if test_ind is None:
-        train_set_ind = slice(0, n) #take all
         n_ind = range(n)    
     else:
-        train_set_ind = np.setdiff1d(np.arange(n), test_ind)
         n_ind = test_ind
     # Exclude self distances
     for j, sample in enumerate(train_ind):
@@ -305,9 +303,7 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
     knn = np.zeros((n, k))
     r = np.zeros(n)
     for i in range(n):
-        di = D[i, :].copy()
-        di[i] = exclude
-        di = di[train_set_ind]
+        di = D[i, :]
         nn = np.argsort(di)[::sort_order]
         knn[i, :] = di[nn[0:k]] # largest sim. or smallest dist.
         r[i] = np.mean(knn[i]) 
@@ -326,7 +322,7 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
     else:
         for j, sample in enumerate(train_ind):
             D_nicdm[sample, j] = self_value
-        return D_nicdm
+        return D_nicdm[test_ind]
 
 
 def nicdm(D:np.ndarray, k:int=7, metric:str='distance', 

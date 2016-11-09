@@ -37,6 +37,24 @@ def euclidean_distance(X):
     """Calculate the euclidean distances between all pairs of vectors in `X`."""
     return squareform(pdist(X, 'euclidean'))
 
+def lp_norm(X:np.ndarray, p:float):
+    """Calculate Minkowski distances between all pairs of vectors in `X`.
+
+    Parameters
+    ----------
+    X : ndarray
+        Input vector data
+
+    p : float
+        Minkowski norm
+
+    Returns
+    -------
+    D : ndarray
+        Distance matrix based on Lp-norm
+    """
+    return squareform(pdist(X, 'minkowski', p))
+
 def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     """Calculate incomplete distance matrix.
     

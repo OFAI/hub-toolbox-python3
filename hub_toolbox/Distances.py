@@ -37,15 +37,23 @@ def euclidean_distance(X):
     """Calculate the euclidean distances between all pairs of vectors in `X`."""
     return squareform(pdist(X, 'euclidean'))
 
-def lp_norm(X:np.ndarray, p:float):
-    """Calculate Minkowski distances between all pairs of vectors in `X`.
+def lp_norm(X:np.ndarray, Y:np.ndarray=None, p:float=None):
+    """Calculate Minkowski distances with L^p norm.
+    
+    Calculate distances between all pairs of vectors within `X`, if `Y` is None.
+    Otherwise calculate distances distances between all vectors in `X` against
+    all vectors in `Y`. For example, this is useful if only distances from
+    test data to training data are required.
 
     Parameters
     ----------
     X : ndarray
-        Input vector data
+        Vector data (e.g. test set)
 
-    p : float
+    Y : ndarray, optional, default: None
+        Vector data (e.g. training set)
+
+    p : float, default: None
         Minkowski norm
 
     Returns
@@ -53,7 +61,12 @@ def lp_norm(X:np.ndarray, p:float):
     D : ndarray
         Distance matrix based on Lp-norm
     """
-    return squareform(pdist(X, 'minkowski', p))
+    if p is None:
+        raise ValueError("Please define the `p` parameter for lp_norm().")
+    if Y is None:
+        return squareform(pdist(X, 'minkowski', p))
+    else:
+        return cdist(X, Y, 'm', p)
 
 def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     """Calculate incomplete distance matrix.

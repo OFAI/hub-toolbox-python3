@@ -20,6 +20,7 @@ try: # for scikit-learn >= 0.18
     from sklearn.model_selection import StratifiedShuffleSplit
 except ImportError: # lower scikit-learn versions
     from sklearn.cross_validation import StratifiedShuffleSplit
+from sklearn.metrics.pairwise import pairwise_distances
 from hub_toolbox.IO import _check_vector_matrix_shape_fits_labels
 
 def cosine_distance(X):
@@ -37,7 +38,7 @@ def euclidean_distance(X):
     """Calculate the euclidean distances between all pairs of vectors in `X`."""
     return squareform(pdist(X, 'euclidean'))
 
-def lp_norm(X:np.ndarray, Y:np.ndarray=None, p:float=None):
+def lp_norm(X:np.ndarray, Y:np.ndarray=None, p:float=None, n_jobs:int=1):
     """Calculate Minkowski distances with L^p norm.
     
     Calculate distances between all pairs of vectors within `X`, if `Y` is None.
@@ -56,17 +57,31 @@ def lp_norm(X:np.ndarray, Y:np.ndarray=None, p:float=None):
     p : float, default: None
         Minkowski norm
 
+    n_jobs : int, default: 1
+        Parallel computation with multiple processes. See the scikit-learn
+        docs for for more details.
+
     Returns
     -------
     D : ndarray
         Distance matrix based on Lp-norm
+
+    See also
+    --------
+    http://scikit-learn.org/stable/modules/generated/sklearn.metrics.pairwise.pairwise_distances.html
     """
     if p is None:
         raise ValueError("Please define the `p` parameter for lp_norm().")
-    if Y is None:
-        return squareform(pdist(X, 'minkowski', p))
-    else:
-        return cdist(X, Y, 'm', p)
+    elif p == 1.: # Use efficient version for cityblock distances
+        return pairwise_distances(X=X, Y=Y, metric='l1',
+                                  n_jobs=n_jobs)
+    elif p == 2.: # Use efficient version for Euclidean distances
+        return pairwise_distances(X=X, Y=Y, metric='l2',
+                                  n_jobs=n_jobs)
+    else: # Use general, less efficient version for general Minkowski distances
+        return pairwise_distances(X=X, Y=Y, metric='minkowski',
+                                  n_jobs=n_jobs, **{'p' : p})
+
 
 def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     """Calculate incomplete distance matrix.

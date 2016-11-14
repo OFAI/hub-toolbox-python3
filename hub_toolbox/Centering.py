@@ -16,43 +16,49 @@ import sys
 import numpy as np
 from hub_toolbox.Distances import cosine_distance as cos
 from hub_toolbox.Distances import euclidean_distance as l2
+from hub_toolbox.IO import _check_distance_matrix_shape
 #DEPRECATED
 from hub_toolbox.Distances import Distance
 
 def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
     """
     Perform  centering, i.e. shift the origin to the data centroid.
-    
-    Centering of vector data `X` with n objects in an m-dimensional feature 
-    space. The mean of each feature is calculated and subtracted from each 
-    point [1]_. In distance based mode, it must be checked upstream, that 
+
+    Centering of vector data `X` with ``n`` objects in an ``m``-dimensional
+    feature space.
+    The mean of each feature is calculated and subtracted from each
+    point [1]_. In distance based mode, it must be checked upstream, that
     the distance matrix is a gram matrix as described below!
-    
+
     Parameters
     ----------
     X : ndarray
-        - An (m x n) vector data matrix with n objects in an 
-          m-dimensional feature space 
-        - An (n x n) distance matrix 
-          of form ``K = X(X.T)``, if `X` is an ``(n x m)`` matrix; 
-          and of form ``K = (X.T)X``, if `X` is an ``(m x n)`` matrix, 
+        - An ``(n x m)`` vector data matrix with ``n`` objects in an
+          ``m``-dimensional feature space
+        - An ``(n x n)`` distance matrix
+          of form ``K = X(X.T)``, if `X` is an ``(n x m)`` matrix;
+          and of form ``K = (X.T)X``, if `X` is an ``(m x n)`` matrix,
           where ``X.T`` denotes the transpose of `X`.
-        
+
         NOTE: The type must be defined via parameter 'metric'!
-        
-    metric : {'vector', 'distance'}, optional (Default: 'vector')
-        Define, whether `X` is vector data or a distance matrix.
-        
+
+    metric : {'vector', 'inner'}, optional (Default: 'vector')
+        Define, whether `X` is vector data or a Gram matrix of inner product
+        similarities as described above.
+
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 
         data (training set).
-    
+
     Returns
     ------- 
     X_cent : ndarray
-    
-        - Centered vectors, when given vector data
-        - Centered gram matrix, when given distance data.
+
+        Centered vectors with shape (n, m), if given vector data.
+
+    K_cent : ndarray
+
+        Centered inner product similarities with shape (n, n), if given Gram matrix.
         
     References
     ----------
@@ -62,28 +68,29 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
            (pp 613–623). 
            Retrieved from https://www.aclweb.org/anthology/D/D13/D13-1058.pdf
     """
-    
-    if metric == 'distance':
+    # Kernel based centering requires inner product similarities, NOT distances.
+    # Since the parameter was previously erroneously called 'distance',
+    # this is kept for compatibility reasons.
+    if metric in ('similarity', 'distance', 'inner', 'inner_product'):
         if test_set_mask is not None:
-            raise NotImplementedError("Distance based centering does not "
+            raise NotImplementedError("Kernel based centering does not "
                                       "support train/test splits so far.")
+        _check_distance_matrix_shape(X)
         n = X.shape[0]
-        H = np.identity(n) - (1.0/n) * np.ones((n, n))
-        K = X # K = X.T.X must be provided upstream
-        X_cent = H.dot(K).dot(H)
-        return X_cent
+        H = np.identity(n) - np.ones((n, n)) / n
+        # K = X.T.X must be provided upstream
+        return H.dot(X).dot(H)
     elif metric == 'vector':
         n = X.shape[0]
-        if test_set_mask is not None:
-            train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-        else:
-            train_set_mask = slice(0, n) #np.ones(n, np.bool)
-        
-        vectors_mean = np.mean(X[train_set_mask], 0)
-        X_cent = X - vectors_mean
-        return X_cent
+        if test_set_mask is None:
+            # center among all data
+            return X - np.mean(X, 0)
+        else: 
+            # center among training data
+            train_ind = np.setdiff1d(np.arange(n), test_set_mask)
+            return X - np.mean(X[train_ind], 0)        
     else:
-        raise ValueError("Parameter 'metric' must be 'distance' or 'vector'.")
+        raise ValueError("Parameter 'metric' must be 'inner' or 'vector'.")
 
 def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1., 
                        test_set_mask:np.ndarray=None):

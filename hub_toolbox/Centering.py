@@ -14,6 +14,7 @@ Contact: <roman.feldbauer@ofai.at>
 
 import sys
 import numpy as np
+from scipy.spatial.distance import cosine
 from hub_toolbox.Distances import cosine_distance as cos
 from hub_toolbox.Distances import euclidean_distance as l2
 from hub_toolbox.IO import _check_distance_matrix_shape
@@ -163,8 +164,8 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
     X_wcent = X - vectors_mean_weighted
     return X_wcent
 
-def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40, 
-                        gamma:float=1., test_set_mask:np.ndarray=None):
+def localized_centering(X:np.ndarray, Y:np.ndarray=None,
+                        kappa:int=40, gamma:float=1.):
     """
     Perform localized centering.
     
@@ -173,14 +174,13 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
     Parameters
     ----------
     X : ndarray
-        An ``m x n`` vector data matrix with ``n`` objects in an 
-        ``m`` dimensional feature space 
-        
-    metric : {'cosine', 'euclidean'}
-        Distance measure used to place more weight on objects that are more 
-        likely to become hubs. (Defined for 'cosine' in [1]_, 'euclidean' does 
-        not make much sense and might be removed in the future).
-        
+        An ``n x m`` vector data matrix with ``n`` objects in an 
+        ``m`` dimensional feature space
+
+    Y : ndarray, optional
+        If Y is given, calculate similarities between all test data in `X`
+        versus all training data in `Y`.
+    
     kappa : int, optional (default: 40)
         Local segment size, determines the size of the local neighborhood for 
         calculating the local affinity. When ``kappa=n`` localized centering 
@@ -193,11 +193,7 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
         is smaller depending on how likely a point is to become a hub.
         "Parameter γ can be tuned so as to maximally reduce the skewness 
         of the Nk distribution" [2]_.
-        
-    test_set_mask : ndarray, optional (default: None)
-        Hold back data as a test set and perform centering on the remaining 
-        data (training set).
-    
+
     Returns
     ------- 
     S_lcent : ndarray
@@ -217,43 +213,29 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
            Proceedings of the 29th AAAI Conference on Artificial Intelligence 
            (pp. 2645–2651).
     """
-    if test_set_mask is None:
-        test_set_mask = np.zeros(X.shape[0], np.bool)
-    
-    if metric == 'cosine':
-        # Rescale vectors to unit length
-        v = X / np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
-        # for unit vectors it holds inner() == cosine()
-        sim = 1 - cos(v)
-    # Localized centering meaningful for Euclidean?
-    elif metric == 'euclidean':
-        v = X # no scaling here...
-        sim = 1 / (1 + l2(v))
-    else:
-        raise ValueError("Localized centering only supports cosine distances.")
-    
-    n = sim.shape[0]
+    # Rescale vectors to unit length
+    v = X / np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
+    if Y is None: # calc all-against-all in X
+        w = v
+        n, _ = X.shape
+        sim = v.dot(w.T)
+        sim_train = sim
+    else: # calc sim from test data in X against train data in Y
+        w = Y / np.sqrt((Y ** 2).sum(-1))[..., np.newaxis]
+        n, _ = Y.shape
+        sim = v.dot(w.T)
+        sim_train = w.dot(w.T)   
+
     local_affinity = np.zeros(n)
     for i in range(n):
-        x = v[i]
-        sim_i = sim[i, :].copy()
-        # set similarity of test examples to zero to exclude them from fit
-        sim_i[test_set_mask] = 0
-        # also exclude self
-        sim_i[i] = 0
-        nn = np.argsort(sim_i)[::-1][1 : kappa+1]
-        c_kappa_x = np.mean(v[nn], 0)
-        if metric == 'cosine':
-            # c_kappa_x has no unit length in general
-            local_affinity[i] = np.inner(x, c_kappa_x)
-            #local_affinity[i] = cosine(x, c_kappa_x)
-        elif metric == 'euclidean':
-            local_affinity[i] = 1 / (1 + np.linalg.norm(x-c_kappa_x))
-        else:
-            raise ValueError("Localized centering only "
-                             "supports cosine distances.")
-    sim_lcent = sim - (local_affinity ** gamma)
-    return sim_lcent
+        # Get the kappa nearest neighbors (highest similarity)
+        nn = np.argsort(sim_train[i, :])[-1:-kappa-1:-1]
+        # Local centroid
+        c_kappa_x = w[nn, :].mean(axis=0)
+        local_affinity[i] = np.inner(w[i, :], c_kappa_x)
+    local_affinity **= gamma
+    sim -= local_affinity
+    return sim
 
 def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
     """

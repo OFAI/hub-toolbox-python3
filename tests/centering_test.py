@@ -49,7 +49,7 @@ class TestCentering(unittest.TestCase):
         """Test whether hubness and k-NN accuracy improve for dexter"""
         h_orig = hubness(self.distance)[0]
         acc_orig = score(self.distance, self.target)[0][0, 0]
-        sim_lcent = localized_centering(self.vectors, 'cosine', 20, 1)
+        sim_lcent = localized_centering(self.vectors, kappa=20, gamma=1.)
         h_lcent = hubness(sim_lcent, metric='similarity')[0]
         acc_lcent = score(sim_lcent, self.target, metric='similarity')[0][0, 0]
         result = (h_orig / h_lcent > 1.5) & (acc_lcent - acc_orig > 0.03)

@@ -178,7 +178,7 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
         ``m`` dimensional feature space
 
     Y : ndarray, optional
-        If Y is given, calculate similarities between all test data in `X`
+        If Y is provided, calculate similarities between all test data in `X`
         versus all training data in `Y`.
     
     kappa : int, optional (default: 40)
@@ -239,24 +239,24 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
     sim -= local_affinity
     return sim
 
-def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
+def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
     """
     Calculate dissimilarity based on global 'sample-wise centrality' [1]_.
     
     Parameters
     ----------
     X : ndarray
-        An ``m x n`` vector data matrix with ``n`` objects in an 
+        An ``n x m`` vector data matrix with ``n`` objects in an 
         ``m`` dimensional feature space
-          
-    test_set_mask : ndarray, optional (default: None)
-        Hold back data as a test set and perform centering on the remaining 
-        data (training set).
-        
+
+    Y : ndarray, optional
+        If Y is provided, calculate dissimilarities between all test data
+        in `X` and all training data in `Y`.
+
     Returns
     -------
     D_dsg : ndarray
-        Secondary distance (DisSimGlobal) matrix.
+        Secondary dissimilarity (DisSimGlobal) matrix.
         
     References
     ----------
@@ -267,21 +267,21 @@ def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
            1659–1665. Retrieved from http://www.aaai.org/ocs/index.php/AAAI/
            AAAI16/paper/download/12055/11787
     """
-    
-    n = X.shape[0]
-
-    if test_set_mask is not None:
-        train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-    else:
-        train_set_mask = slice(0, n)
-    
-    c = X[train_set_mask].mean(0)
-    xq_c = ((X - c) ** 2).sum(1)
-    D_dsg = np.zeros((n, n))
-    for x in range(n):
-        for q in range(n):
-            x_q = ((X[x, :] - X[q, :]) ** 2).sum()
-            D_dsg[x, q] = x_q - xq_c[x] - xq_c[q]
+    if Y is None:
+        Y = X
+    n_test = X.shape[0]
+    n_train = Y.shape[0]
+    c = Y.mean(0)
+    x_c = ((Y - c) ** 2).sum(1)
+    if id(X) != id(Y): # i.e. not Y was provided
+        q_c = ((X - c) ** 2).sum(1)
+    else: # avoid duplicate calculations
+        q_c = x_c
+    D_dsg = np.zeros((n_test, n_train))
+    for q in range(n_test):
+        # vectorized inner loop
+        x_q = ((Y - X[q, :]) ** 2).sum(axis=1)
+        D_dsg[q, :] = x_q - x_c - q_c[q]
     return D_dsg
 
 def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):

@@ -233,7 +233,9 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
         # Local centroid
         c_kappa_x = w[nn, :].mean(axis=0)
         local_affinity[i] = np.inner(w[i, :], c_kappa_x)
-    local_affinity **= gamma
+    # Only change penalty, if all values are positive 
+    if gamma != 1 and (local_affinity < 0).sum() == 0:
+        local_affinity **= gamma
     sim -= local_affinity
     return sim
 

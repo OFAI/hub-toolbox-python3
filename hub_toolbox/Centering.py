@@ -14,9 +14,8 @@ Contact: <roman.feldbauer@ofai.at>
 
 import sys
 import numpy as np
-from scipy.spatial.distance import cosine
+from sklearn.metrics.pairwise import euclidean_distances
 from hub_toolbox.Distances import cosine_distance as cos
-from hub_toolbox.Distances import euclidean_distance as l2
 from hub_toolbox.IO import _check_distance_matrix_shape
 #DEPRECATED
 from hub_toolbox.Distances import Distance
@@ -284,27 +283,27 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
         D_dsg[q, :] = x_q - x_c - q_c[q]
     return D_dsg
 
-def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
+def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
     """Calculate dissimilarity based on local 'sample-wise centrality' [1]_.
     
     Parameters
     ----------
     X : ndarray
-        An ``m x n`` vector data matrix with ``n`` objects in an 
-        ``m`` dimensional feature space
-          
+        An ``n x m`` vector data matrix with ``n`` objects in an 
+        ``m`` dimensional feature space.
+
+    Y : ndarray, optional
+        If Y is provided, calculate dissimilarities between all test data
+        in `X` and all training data in `Y`.
+
     k : int, optional (default: 10)
         Neighborhood size used for determining the local centroids.
         Can be optimized as to maximally reduce hubness [1]_.
-          
-    test_set_mask : ndarray, optional (default: None)
-        Hold back data as a test set and perform centering on the remaining 
-        data (training set).
-        
+
     Returns
     -------
     D_dsl : ndarray
-        Secondary distance (DisSimLocal) matrix.
+        Secondary dissimiliarity (DisSimLocal) matrix.
         
     References
     ----------
@@ -315,29 +314,58 @@ def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
            1659–1665. Retrieved from http://www.aaai.org/ocs/index.php/AAAI/
            AAAI16/paper/download/12055/11787
     """
-    
-    n = X.shape[0]
-    D = l2(X)
-    # Exclude self distances from kNN lists:
-    np.fill_diagonal(D, np.inf)
-    c_k = np.zeros_like(X)
-    
-    if test_set_mask is not None:
-        train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-        for i in range(n):
-            knn_idx = np.argsort(D[i, train_set_mask])[0:k]
-            c_k[i] = X[train_set_mask[knn_idx]].mean(0)
-    else: # take all
-        for i in range(n):
-            knn_idx = np.argsort(D[i, :])[0:k]
-            c_k[i] = X[knn_idx].mean(0)
-    c_k_xy = ((X - c_k) ** 2).sum(1)
-    disSim = np.zeros_like(D)
-    for x in range(n):
-        for y in range(x, n):
-            x_y = ((X[x] - X[y]) ** 2).sum()
-            disSim[x, y] = x_y - c_k_xy[x] - c_k_xy[y]
-    return disSim + disSim.T - np.diag(np.diag(disSim))
+    # all-against-all dissimilarities?
+    if Y is None:
+        Y = X
+
+    # dataset size and dimensionality
+    n_test, m_test = X.shape
+    n_train, m_train = Y.shape
+    if m_test == m_train:
+        n_features = m_test
+    else:
+        raise ValueError("X and Y must have same number of features.")
+
+    # Calc euclidean distances to find nearest neighbors among training data
+    D_train = euclidean_distances(Y)
+    if id(Y) == id(X):
+        # Exclude self distances from kNN lists:
+        np.fill_diagonal(D_train, np.inf)
+        D_test = D_train
+    else:
+        # ... and between test and training data
+        D_test = euclidean_distances(X, Y)
+
+    # Local centroid for each point among its k-nearest training neighbors
+    c_k_X = np.zeros_like(X)
+    for i in range(n_test):
+        knn_idx = np.argsort(D_test[i, :])[:k]
+        c_k_X[i] = Y[knn_idx].mean(axis=0)
+    x_c_k = ((X - c_k_X) ** 2).sum(axis=1)
+    if id(Y) == id(X):
+        c_k_Y = c_k_X
+        y_c_k = x_c_k
+    else:
+        c_k_Y = np.zeros_like(Y)
+        for i in range(n_train):
+            knn_idx = np.argsort(D_train[i, :])[:k]
+            c_k_Y[i] = Y[knn_idx].mean(axis=0)
+        y_c_k = ((Y - c_k_Y) ** 2).sum(axis=1)
+
+    # Calculate dissimilarities
+    disSim = np.zeros_like(D_test)
+    if n_features < 2000:
+        # use vectorized code for low-dimensional data
+        for x in range(n_test):
+            x_y = ((X[x] - Y) ** 2).sum(axis=1)
+            disSim[x, :] = x_y - x_c_k[x] - y_c_k
+    else:
+        # use non-vectorized code for high-dimensional data
+        for x in range(n_test):
+            for y in range(n_train):
+                x_y = ((X[x] - Y[y]) ** 2).sum()
+                disSim[x, y] = x_y - x_c_k[x] - y_c_k[y]
+    return disSim
 
 ###############################################################################
 #
@@ -452,7 +480,7 @@ if __name__ == '__main__':
     print("Weighted centering: .... \n{}".
           format(weighted_centering(VECT_DATA, 'cosine', 0.4)))
     print("Localized centering: ... \n{}".
-          format(localized_centering(VECT_DATA, 'cosine', 2, 1)))
+          format(localized_centering(VECT_DATA, kappa=2, gamma=1)))
     print("DisSim (global): ....... \n{}".
           format(dis_sim_global(VECT_DATA)))
     print("DisSim (local): ........ \n{}".

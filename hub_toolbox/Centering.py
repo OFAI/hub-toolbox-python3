@@ -268,8 +268,12 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
     """
     if Y is None:
         Y = X
-    n_test = X.shape[0]
-    n_train = Y.shape[0]
+    n_test, m_test = X.shape
+    n_train, m_train = Y.shape
+    if m_test == m_train:
+        n_features = m_test
+    else:
+        raise ValueError("X and Y must have same number of features.")
     c = Y.mean(0)
     x_c = ((Y - c) ** 2).sum(1)
     if id(X) != id(Y): # i.e. not Y was provided
@@ -277,10 +281,17 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
     else: # avoid duplicate calculations
         q_c = x_c
     D_dsg = np.zeros((n_test, n_train))
-    for q in range(n_test):
-        # vectorized inner loop
-        x_q = ((Y - X[q, :]) ** 2).sum(axis=1)
-        D_dsg[q, :] = x_q - x_c - q_c[q]
+    if n_features < 2000:
+        # vectorized code faster for low dimensional data
+        for q in range(n_test):
+            x_q = ((Y - X[q, :]) ** 2).sum(axis=1)
+            D_dsg[q, :] = x_q - x_c - q_c[q]
+    else:
+        # non-vectorized code faster for high dimensional data
+        for q in range(n_test):
+            for x in range(n_train):
+                x_q = ((Y[x, :] - X[q, :]) ** 2).sum()
+                D_dsg[q, x] = x_q - x_c[x] - q_c[q]
     return D_dsg
 
 def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):

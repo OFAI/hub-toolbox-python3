@@ -16,9 +16,10 @@ import sys
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
 from hub_toolbox.Distances import cosine_distance as cos
-from hub_toolbox.IO import _check_distance_matrix_shape
+from hub_toolbox import IO
 #DEPRECATED
 from hub_toolbox.Distances import Distance
+from zmq.backend import exc
 
 def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
     """
@@ -75,7 +76,7 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
         if test_set_mask is not None:
             raise NotImplementedError("Kernel based centering does not "
                                       "support train/test splits so far.")
-        _check_distance_matrix_shape(X)
+        IO._check_distance_matrix_shape(X)
         n = X.shape[0]
         H = np.identity(n) - np.ones((n, n)) / n
         # K = X.T.X must be provided upstream

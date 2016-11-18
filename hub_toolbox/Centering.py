@@ -19,7 +19,6 @@ from hub_toolbox.Distances import cosine_distance as cos
 from hub_toolbox import IO
 #DEPRECATED
 from hub_toolbox.Distances import Distance
-from zmq.backend import exc
 
 def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
     """

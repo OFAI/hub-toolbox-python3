@@ -234,7 +234,7 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     sort_order = 1
     exclude = np.inf
     distance = D.copy()
-    n, s = distance.shape
+    n, m = distance.shape
     if test_ind is None:
         n_ind = range(n)    
     else:
@@ -256,30 +256,35 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     del distance
     
     # "Occurence informativeness"
-    occ_inf_knn = knn.copy()
-    for j, sample in enumerate(train_ind):
-        # treat x as its own 0th neighbor to avoid div/0
-        occ_inf_knn[sample, j] = True
+    occ_inf_knn = knn[:m, :].copy()
+    #if train_ind is None:
+    np.fill_diagonal(occ_inf_knn, True)
+    """
+    else:
+        for j, sample in enumerate(train_ind):
+            # treat x as its own 0th neighbor to avoid div/0
+            occ_inf_knn[sample, j] = True
+    """
     N_s = occ_inf_knn.sum(axis=0)
-    I_n = np.log(n / N_s)
+    I_n = np.log(m / N_s)
     del occ_inf_knn
 
     # simhub calculation
     D_shi = np.zeros_like(D)
-    if s < 2000: # using vectorization and broadcasting
+    if train_ind is None:
+        train_ind = ...
+    if m < 2000: # using vectorization and broadcasting
         for i in n_ind:
             x = np.logical_and(knn[i, :], knn[train_ind, :])
-            D_shi[i, :] = \
-                np.sum(x * I_n, axis=1)
+            D_shi[i, :] = np.sum(x * I_n, axis=1)
     else: # use non-vectorized loops
         for i in n_ind:
-            for j in range(s):
+            for j in range(m):
                 x = np.logical_and(knn[i, :], knn[j, :])
-                D_shi[i, j] = \
-                    np.sum(x * I_n)
+                D_shi[i, j] = np.sum(x * I_n)
     del knn
     # Normalization to [0, 1] range
-    D_shi /= (s * np.log(n))
+    D_shi /= (s * np.log(m))
 
     # Convert to distances
     if return_distances:
@@ -288,15 +293,31 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     else:
         self_value = 1
 
-    # Ensure correct self distances and return sec. dist. matrix
     if test_ind is None:
+        # Ensure correct self distances and return sec. dist. matrix
         np.fill_diagonal(D_shi, self_value)
         return D_shi
     else:
-        for j, sample in enumerate(train_ind):
-            D_shi[sample, j] = self_value
+        # only return test-train-distances (there are no self distances here)
         return D_shi[test_ind]
 
+if __name__ == '__main__':
+    from hub_toolbox.Hubness import hubness
+    from hub_toolbox.KnnClassification import score
+    D, y, X = IO.load_dexter()
+    print("D", D.shape)
+    print("y", y.shape)
+    print("X", X.shape)
+    D_shi = simhubIN(D)
+    D_snn = shared_nearest_neighbors(D, k=50)
+    h = hubness(D_shi, k=5)
+    h_snn = hubness(D_snn, k=5)
+    acc = score(D_shi, y, 5)
+    acc_snn = score(D_snn, y, 5)
+    print("hubness SHI:", h[0])
+    print("hubness SNN:", h_snn[0])
+    print("kNN SHI:", acc[0][0, 0])
+    print("kNN SNN:", acc_snn[0][0, 0])
 
 class SharedNN(): # pragma: no cover
     """

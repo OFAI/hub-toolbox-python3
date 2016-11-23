@@ -22,6 +22,111 @@ from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
 from hub_toolbox import IO, Logging
 
+def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray, 
+    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
+    """Transform a distance matrix with Mutual Proximity (empiric distribution).
+    
+    NOTE: this docstring does not yet fully reflect the properties of this 
+    proof-of-concept function!
+    
+    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using 
+    the empiric data distribution (EXACT, rather SLOW). The resulting 
+    secondary distance/similarity matrix should show lower hubness.
+    
+    Parameters
+    ----------
+    D : ndarray
+        The ``n x s`` distance or similarity matrix, where ``n`` and ``s``
+        are the dataset and sample size, respectively.
+
+    idx : ndarray
+        The index array that determines, to which data points the columns in
+        `D` correspond.
+
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix `D` is a distance or similarity matrix.
+
+    test_sed_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set.
+
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+
+    Returns
+    -------
+    D_mp : ndarray
+        Secondary distance MP empiric matrix.
+
+    References
+    ----------
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012).
+           Local and global scaling reduce hubs in space. The Journal of Machine
+           Learning Research, 13(1), 2871–2902.
+    """
+    # Initialization and checking input
+    log = Logging.ConsoleLogging()
+    IO._check_sample_shape_fits(D, idx)
+    IO._check_valid_metric_parameter(metric)
+    n = D.shape[0]
+    s = D.shape[1]
+    j = np.ones(n, int)
+    j *= (n+1) # illegal indices will throw index out of bounds error
+    j[idx] = np.arange(s)
+    if metric == 'similarity':
+        self_value = 1
+        exclude_value = np.inf
+    else: # metric == 'distance':
+        self_value = 0
+        exclude_value = -np.inf
+        if issparse(D):
+            raise ValueError("MP sparse only supports similarity matrices.")
+    if test_set_ind is None:
+        n_ind = range(n)
+    #elif not np.all(~test_set_ind):
+    else:
+        n_ind = test_set_ind
+        #raise NotImplementedError("MP empiric does not yet support train/"
+        #                          "test splits.")
+        #train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+
+    # Start MP
+    D = D.copy()
+    
+    if issparse(D):
+        raise NotImplementedError
+        #return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log)
+        
+    # ensure correct self distances (NOT done for sparse matrices!)
+    for j, sample in enumerate(idx):
+        D[sample, j] = exclude_value
+
+    D_mp = np.zeros_like(D) * np.nan
+     
+    # Calculate MP empiric
+    for i in n_ind: #range(n):
+        if verbose and ((i+1)%1000 == 0 or i == n-2):
+            log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+        dI = D[i, :][np.newaxis, :] # broadcasted afterwards
+        dJ = D[idx, :] # fancy indexing, thus copy
+        d = dI.T # D[i, :][:, np.newaxis] # both versions are equal
+        n_pts = (np.isfinite(dI) & np.isfinite(dJ)).sum(1)
+        if metric == 'similarity':
+            D_mp[i, :] = np.sum((dI <= d) & (dJ <= d), 1) / n_pts
+        else: # metric == 'distance':
+            D_mp[i, :] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n_pts)
+
+    # Ensure correct self distances
+    for j, sample in enumerate(idx):
+        D_mp[sample, j] = self_value
+    
+    if test_set_ind is None:
+        return D_mp
+    else:
+        return D_mp[test_set_ind]
+
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
                              test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
@@ -111,9 +216,9 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
         d = D[j_idx:n, i][:, np.newaxis]
          
         if metric == 'similarity':
-            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / (n - 1)
+            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / (n - 2)
         else: # metric == 'distance':
-            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / (n - 1))
+            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / (n - 2))
          
     # Mirror, so that matrix is symmetric
     D_mp += D_mp.T
@@ -266,10 +371,117 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     np.fill_diagonal(D_mp, self_value)
     return D_mp
 
-def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance', 
-                            sample_size:int=0, test_set_ind:np.ndarray=None, 
-                            verbose:int=0):
-    """Transform a distance matrix with Mutual Proximity (indep. normal distr.).
+def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray, 
+    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
+    """Transform a distance matrix with Mutual Proximity (empiric distribution).
+    
+    NOTE: this docstring does not yet fully reflect the properties of this 
+    proof-of-concept function!
+    
+    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using 
+    the empiric data distribution (EXACT, rather SLOW). The resulting 
+    secondary distance/similarity matrix should show lower hubness.
+    
+    Parameters
+    ----------
+    D : ndarray
+        The ``n x s`` distance or similarity matrix, where ``n`` and ``s``
+        are the dataset and sample size, respectively.
+
+    idx : ndarray
+        The index array that determines, to which data points the columns in
+        `D` correspond.
+
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix `D` is a distance or similarity matrix.
+
+    test_set_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set.
+
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+
+    Returns
+    -------
+    D_mp : ndarray
+        Secondary distance MP empiric matrix.
+
+    References
+    ----------
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012).
+           Local and global scaling reduce hubs in space. The Journal of Machine
+           Learning Research, 13(1), 2871–2902.
+    """
+    # Initialization and checking input
+    log = Logging.ConsoleLogging()
+    IO._check_sample_shape_fits(D, idx)
+    IO._check_valid_metric_parameter(metric)
+    n = D.shape[0]
+    s = D.shape[1]
+    j = np.ones(n, int)
+    j *= (n+1) # illegal indices will throw index out of bounds error
+    j[idx] = np.arange(s)
+    if metric == 'similarity':
+        self_value = 1
+    else: # metric == 'distance':
+        self_value = 0
+    exclude_value = np.nan
+    if test_set_ind is None:
+        n_ind = range(n)
+    else:
+        n_ind = test_set_ind
+        
+    # Start MP
+    D = D.copy()
+    
+    if issparse(D):
+        raise NotImplementedError
+        
+    # ensure correct self distances (NOT done for sparse matrices!)
+    for j, sample in enumerate(idx):
+        D[sample, j] = exclude_value
+
+    # Calculate mean and std per row, w/o self values (nan)
+    mu = np.nanmean(D, 1)
+    sd = np.nanstd(D, 1, ddof=0)
+
+    # set self dist/sim back to self_value to avoid scipy warnings
+    for j, i in enumerate(idx):
+        D[i, j] = self_value
+
+    # MP Gaussi
+    D_mp = np.zeros_like(D)
+    for sample, i in enumerate(n_ind):
+        if verbose and ((i+1)%1000 == 0 or i+1 == n):
+            log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
+        j = slice(0, s)
+        
+        if metric == 'similarity':
+            p1 = norm.cdf(D[i, j], mu[i], sd[i])
+            p2 = norm.cdf(D[i, j], mu[idx], sd[idx])
+            D_mp[i, j] = (p1 * p2).ravel()
+        else:
+            # Survival function: sf(.) := 1 - cdf(.)
+            p1 = norm.sf(D[i, j], mu[i], sd[i])
+            p2 = norm.sf(D[i, j], mu[idx], sd[idx])
+            D_mp[i, j] = (1 - p1 * p2).ravel()
+
+    # Ensure correct self distances
+    for j, sample in enumerate(idx):
+        D_mp[sample, j] = self_value
+    
+    if test_set_ind is None:
+        return D_mp
+    else:
+        return D_mp[test_set_ind]
+
+def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
+                            sample_size:int=0, test_set_ind:np.ndarray=None,
+                            verbose:int=0, idx:np.ndarray=None,):
+    """Transform distances with Mutual Proximity (indep. normal distributions).
     
     Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix. Gaussi 
     variant assumes independent normal distributions (FAST).
@@ -284,7 +496,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
         NOTE: In case of sparse `D`, zeros are interpreted as missing values 
         and ignored during calculations. Thus, results may differ 
         from using a dense version.
-    
+
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix.
         
@@ -293,16 +505,23 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     sample_size : int, optional (default: 0)
         Define sample size from which Gauss parameters are estimated.
         Use all data when set to ``0``.
+        Ignored in case of SampleMP (i.e. if provided `idx`).
         
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
         
         - None : Rescale all distances
-        - ndarray : Hold out points indexed in this array as test set. 
+        - ndarray : Hold out points indexed in this array as test set.
+
+        Ignored in case of SampleMP (i.e. if provided `idx`).
         
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
-        
+
+    idx : ndarray, optional (default: None)
+        The index array that determines to which data points the columns in
+        `D` correspond. Only required for SampleMP.
+
     Returns
     -------
     D_mp : ndarray
@@ -315,12 +534,17 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
            Learning Research, 13(1), 2871–2902.
     """    
     # Initialization   
-    n = D.shape[0]
     log = Logging.ConsoleLogging()
     
     # Checking input
-    IO._check_distance_matrix_shape(D)
+    if idx is None:
+        IO._check_distance_matrix_shape(D)
+    else:
+        IO._check_sample_shape_fits(D, idx)
     IO._check_valid_metric_parameter(metric)
+    n = D.shape[0]
+    s = D.shape[1]
+
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':
@@ -339,34 +563,61 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
         return _mutual_proximity_gaussi_sparse(D, sample_size, test_set_ind, 
                                                verbose, log)
 
-    np.fill_diagonal(D, np.nan)
-        
-    # Calculate mean and std
-    if sample_size != 0:
-        samples = np.random.shuffle(train_set_ind)[0:sample_size]
-        mu = np.nanmean(D[samples], 0)
-        sd = np.nanstd(D[samples], 0, ddof=0)
+    # ignore self dist/sim for parameter estimation
+    if idx is None:
+        np.fill_diagonal(D, np.nan)
     else:
-        mu = np.nanmean(D[train_set_ind], 0)
-        sd = np.nanstd(D[train_set_ind], 0, ddof=0)
+        for j, i in enumerate(idx):
+            D[i, j] = np.nan
+
+    # Calculate mean and std
+    if idx is None:
+        if sample_size == 0:
+            mu = np.nanmean(D[train_set_ind], 0)
+            sd = np.nanstd(D[train_set_ind], 0, ddof=0)
+        else:
+            samples = np.random.shuffle(train_set_ind)[0:sample_size]
+            mu = np.nanmean(D[samples], 0)
+            sd = np.nanstd(D[samples], 0, ddof=0)
+    else:
+        mu = np.nanmean(D, 1)
+        sd = np.nanstd(D, 1, ddof=0)
+    # set self dist/sim back to self_value to avoid scipy warnings
+    if idx is None:
+        np.fill_diagonal(D, self_value)
+    else:
+        for j, i in enumerate(idx):
+            D[i, j] = self_value
+
     # MP Gaussi
     D_mp = np.zeros_like(D)
     for i in range(n):
         if verbose and ((i+1)%1000 == 0 or i+1 == n):
             log.message("MP_gaussi: {} of {}.".format(i+1, n), flush=True)
-        j_idx = slice(i+1, n)
+        if idx is None:
+            j = slice(i+1, n)
+            j_mom = j
+        else:
+            j = slice(0, s)
+            j_mom = idx[j]
         
         if metric == 'similarity':
-            p1 = norm.cdf(D[i, j_idx], mu[i], sd[i])
-            p2 = norm.cdf(D[j_idx, i], mu[j_idx], sd[j_idx])
-            D_mp[i, j_idx] = (p1 * p2).ravel()
+            p1 = norm.cdf(D[i, j], mu[i], sd[i])
+            p2 = norm.cdf(D[i, j], mu[j_mom], sd[j_mom])
+            D_mp[i, j] = (p1 * p2).ravel()
         else:
-            p1 = 1 - norm.cdf(D[i, j_idx], mu[i], sd[i])
-            p2 = 1 - norm.cdf(D[j_idx, i], mu[j_idx], sd[j_idx])
-            D_mp[i, j_idx] = (1 - p1 * p2).ravel()
-    D_mp += D_mp.T        
-    np.fill_diagonal(D_mp, self_value)
-    
+            # sf(.) := 1 - cdf(.)
+            p1 = norm.sf(D[i, j], mu[i], sd[i])
+            p2 = norm.sf(D[i, j], mu[j_mom], sd[j_mom])
+            D_mp[i, j] = (1 - p1 * p2).ravel()
+
+    if idx is None:
+        D_mp += D_mp.T        
+        np.fill_diagonal(D_mp, self_value)
+    else:
+        # Ensure correct self distances
+        for j, sample in enumerate(idx):
+            D_mp[sample, j] = self_value
     return D_mp
 
 def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0, 

@@ -14,45 +14,51 @@ Contact: <roman.feldbauer@ofai.at>
 
 import sys
 import numpy as np
+from sklearn.metrics.pairwise import euclidean_distances
 from hub_toolbox.Distances import cosine_distance as cos
-from hub_toolbox.Distances import euclidean_distance as l2
+from hub_toolbox import IO
 #DEPRECATED
 from hub_toolbox.Distances import Distance
 
 def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
     """
     Perform  centering, i.e. shift the origin to the data centroid.
-    
-    Centering of vector data `X` with n objects in an m-dimensional feature 
-    space. The mean of each feature is calculated and subtracted from each 
-    point [1]_. In distance based mode, it must be checked upstream, that 
+
+    Centering of vector data `X` with ``n`` objects in an ``m``-dimensional
+    feature space.
+    The mean of each feature is calculated and subtracted from each
+    point [1]_. In distance based mode, it must be checked upstream, that
     the distance matrix is a gram matrix as described below!
-    
+
     Parameters
     ----------
     X : ndarray
-        - An (m x n) vector data matrix with n objects in an 
-          m-dimensional feature space 
-        - An (n x n) distance matrix 
-          of form ``K = X(X.T)``, if `X` is an ``(n x m)`` matrix; 
-          and of form ``K = (X.T)X``, if `X` is an ``(m x n)`` matrix, 
+        - An ``(n x m)`` vector data matrix with ``n`` objects in an
+          ``m``-dimensional feature space
+        - An ``(n x n)`` distance matrix
+          of form ``K = X(X.T)``, if `X` is an ``(n x m)`` matrix;
+          and of form ``K = (X.T)X``, if `X` is an ``(m x n)`` matrix,
           where ``X.T`` denotes the transpose of `X`.
-        
+
         NOTE: The type must be defined via parameter 'metric'!
-        
-    metric : {'vector', 'distance'}, optional (Default: 'vector')
-        Define, whether `X` is vector data or a distance matrix.
-        
+
+    metric : {'vector', 'inner'}, optional (Default: 'vector')
+        Define, whether `X` is vector data or a Gram matrix of inner product
+        similarities as described above.
+
     test_set_mask : ndarray, optional (default: None)
         Hold back data as a test set and perform centering on the remaining 
         data (training set).
-    
+
     Returns
     ------- 
     X_cent : ndarray
-    
-        - Centered vectors, when given vector data
-        - Centered gram matrix, when given distance data.
+
+        Centered vectors with shape (n, m), if given vector data.
+
+    K_cent : ndarray
+
+        Centered inner product similarities with shape (n, n), if given Gram matrix.
         
     References
     ----------
@@ -62,28 +68,29 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
            (pp 613–623). 
            Retrieved from https://www.aclweb.org/anthology/D/D13/D13-1058.pdf
     """
-    
-    if metric == 'distance':
+    # Kernel based centering requires inner product similarities, NOT distances.
+    # Since the parameter was previously erroneously called 'distance',
+    # this is kept for compatibility reasons.
+    if metric in ('similarity', 'distance', 'inner', 'inner_product'):
         if test_set_mask is not None:
-            raise NotImplementedError("Distance based centering does not "
+            raise NotImplementedError("Kernel based centering does not "
                                       "support train/test splits so far.")
+        IO._check_distance_matrix_shape(X)
         n = X.shape[0]
-        H = np.identity(n) - (1.0/n) * np.ones((n, n))
-        K = X # K = X.T.X must be provided upstream
-        X_cent = H.dot(K).dot(H)
-        return X_cent
+        H = np.identity(n) - np.ones((n, n)) / n
+        # K = X.T.X must be provided upstream
+        return H.dot(X).dot(H)
     elif metric == 'vector':
         n = X.shape[0]
-        if test_set_mask is not None:
-            train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-        else:
-            train_set_mask = slice(0, n) #np.ones(n, np.bool)
-        
-        vectors_mean = np.mean(X[train_set_mask], 0)
-        X_cent = X - vectors_mean
-        return X_cent
+        if test_set_mask is None:
+            # center among all data
+            return X - np.mean(X, 0)
+        else: 
+            # center among training data
+            train_ind = np.setdiff1d(np.arange(n), test_set_mask)
+            return X - np.mean(X[train_ind], 0)        
     else:
-        raise ValueError("Parameter 'metric' must be 'distance' or 'vector'.")
+        raise ValueError("Parameter 'metric' must be 'inner' or 'vector'.")
 
 def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1., 
                        test_set_mask:np.ndarray=None):
@@ -156,8 +163,8 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
     X_wcent = X - vectors_mean_weighted
     return X_wcent
 
-def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40, 
-                        gamma:float=1., test_set_mask:np.ndarray=None):
+def localized_centering(X:np.ndarray, Y:np.ndarray=None,
+                        kappa:int=40, gamma:float=1.):
     """
     Perform localized centering.
     
@@ -166,14 +173,13 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
     Parameters
     ----------
     X : ndarray
-        An ``m x n`` vector data matrix with ``n`` objects in an 
-        ``m`` dimensional feature space 
-        
-    metric : {'cosine', 'euclidean'}
-        Distance measure used to place more weight on objects that are more 
-        likely to become hubs. (Defined for 'cosine' in [1]_, 'euclidean' does 
-        not make much sense and might be removed in the future).
-        
+        An ``n x m`` vector data matrix with ``n`` objects in an 
+        ``m`` dimensional feature space
+
+    Y : ndarray, optional
+        If Y is provided, calculate similarities between all test data in `X`
+        versus all training data in `Y`.
+    
     kappa : int, optional (default: 40)
         Local segment size, determines the size of the local neighborhood for 
         calculating the local affinity. When ``kappa=n`` localized centering 
@@ -186,11 +192,7 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
         is smaller depending on how likely a point is to become a hub.
         "Parameter γ can be tuned so as to maximally reduce the skewness 
         of the Nk distribution" [2]_.
-        
-    test_set_mask : ndarray, optional (default: None)
-        Hold back data as a test set and perform centering on the remaining 
-        data (training set).
-    
+
     Returns
     ------- 
     S_lcent : ndarray
@@ -210,62 +212,50 @@ def localized_centering(X:np.ndarray, metric:str='cosine', kappa:int=40,
            Proceedings of the 29th AAAI Conference on Artificial Intelligence 
            (pp. 2645–2651).
     """
-    if test_set_mask is None:
-        test_set_mask = np.zeros(X.shape[0], np.bool)
-    
-    if metric == 'cosine':
-        # Rescale vectors to unit length
-        v = X / np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
-        # for unit vectors it holds inner() == cosine()
-        sim = 1 - cos(v)
-    # Localized centering meaningful for Euclidean?
-    elif metric == 'euclidean':
-        v = X # no scaling here...
-        sim = 1 / (1 + l2(v))
-    else:
-        raise ValueError("Localized centering only supports cosine distances.")
-    
-    n = sim.shape[0]
+    # Rescale vectors to unit length
+    v = X / np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
+    if Y is None: # calc all-against-all in X
+        w = v
+        n, _ = X.shape
+        sim = v.dot(w.T)
+        sim_train = sim
+    else: # calc sim from test data in X against train data in Y
+        w = Y / np.sqrt((Y ** 2).sum(-1))[..., np.newaxis]
+        n, _ = Y.shape
+        sim = v.dot(w.T)
+        sim_train = w.dot(w.T)   
+
     local_affinity = np.zeros(n)
     for i in range(n):
-        x = v[i]
-        sim_i = sim[i, :].copy()
-        # set similarity of test examples to zero to exclude them from fit
-        sim_i[test_set_mask] = 0
-        # also exclude self
-        sim_i[i] = 0
-        nn = np.argsort(sim_i)[::-1][1 : kappa+1]
-        c_kappa_x = np.mean(v[nn], 0)
-        if metric == 'cosine':
-            # c_kappa_x has no unit length in general
-            local_affinity[i] = np.inner(x, c_kappa_x)
-            #local_affinity[i] = cosine(x, c_kappa_x)
-        elif metric == 'euclidean':
-            local_affinity[i] = 1 / (1 + np.linalg.norm(x-c_kappa_x))
-        else:
-            raise ValueError("Localized centering only "
-                             "supports cosine distances.")
-    sim_lcent = sim - (local_affinity ** gamma)
-    return sim_lcent
+        # Get the kappa nearest neighbors (highest similarity)
+        nn = np.argsort(sim_train[i, :])[-1:-kappa-1:-1]
+        # Local centroid
+        c_kappa_x = w[nn, :].mean(axis=0)
+        local_affinity[i] = np.inner(w[i, :], c_kappa_x)
+    # Only change penalty, if all values are positive 
+    if gamma != 1 and (local_affinity < 0).sum() == 0:
+        local_affinity **= gamma
+    sim -= local_affinity
+    return sim
 
-def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
+def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
     """
     Calculate dissimilarity based on global 'sample-wise centrality' [1]_.
     
     Parameters
     ----------
     X : ndarray
-        An ``m x n`` vector data matrix with ``n`` objects in an 
+        An ``n x m`` vector data matrix with ``n`` objects in an 
         ``m`` dimensional feature space
-          
-    test_set_mask : ndarray, optional (default: None)
-        Hold back data as a test set and perform centering on the remaining 
-        data (training set).
-        
+
+    Y : ndarray, optional
+        If Y is provided, calculate dissimilarities between all test data
+        in `X` and all training data in `Y`.
+
     Returns
     -------
     D_dsg : ndarray
-        Secondary distance (DisSimGlobal) matrix.
+        Secondary dissimilarity (DisSimGlobal) matrix.
         
     References
     ----------
@@ -276,44 +266,55 @@ def dis_sim_global(X:np.ndarray, test_set_mask:np.ndarray=None):
            1659–1665. Retrieved from http://www.aaai.org/ocs/index.php/AAAI/
            AAAI16/paper/download/12055/11787
     """
-    
-    n = X.shape[0]
-
-    if test_set_mask is not None:
-        train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
+    if Y is None:
+        Y = X
+    n_test, m_test = X.shape
+    n_train, m_train = Y.shape
+    if m_test == m_train:
+        n_features = m_test
     else:
-        train_set_mask = slice(0, n)
-    
-    c = X[train_set_mask].mean(0)
-    xq_c = ((X - c) ** 2).sum(1)
-    D_dsg = np.zeros((n, n))
-    for x in range(n):
-        for q in range(n):
-            x_q = ((X[x, :] - X[q, :]) ** 2).sum()
-            D_dsg[x, q] = x_q - xq_c[x] - xq_c[q]
+        raise ValueError("X and Y must have same number of features.")
+    c = Y.mean(0)
+    x_c = ((Y - c) ** 2).sum(1)
+    if id(X) != id(Y): # i.e. not Y was provided
+        q_c = ((X - c) ** 2).sum(1)
+    else: # avoid duplicate calculations
+        q_c = x_c
+    D_dsg = np.zeros((n_test, n_train))
+    if n_features < 2000:
+        # vectorized code faster for low dimensional data
+        for q in range(n_test):
+            x_q = ((Y - X[q, :]) ** 2).sum(axis=1)
+            D_dsg[q, :] = x_q - x_c - q_c[q]
+    else:
+        # non-vectorized code faster for high dimensional data
+        for q in range(n_test):
+            for x in range(n_train):
+                x_q = ((Y[x, :] - X[q, :]) ** 2).sum()
+                D_dsg[q, x] = x_q - x_c[x] - q_c[q]
     return D_dsg
 
-def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
+def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
     """Calculate dissimilarity based on local 'sample-wise centrality' [1]_.
     
     Parameters
     ----------
     X : ndarray
-        An ``m x n`` vector data matrix with ``n`` objects in an 
-        ``m`` dimensional feature space
-          
+        An ``n x m`` vector data matrix with ``n`` objects in an 
+        ``m`` dimensional feature space.
+
+    Y : ndarray, optional
+        If Y is provided, calculate dissimilarities between all test data
+        in `X` and all training data in `Y`.
+
     k : int, optional (default: 10)
         Neighborhood size used for determining the local centroids.
         Can be optimized as to maximally reduce hubness [1]_.
-          
-    test_set_mask : ndarray, optional (default: None)
-        Hold back data as a test set and perform centering on the remaining 
-        data (training set).
-        
+
     Returns
     -------
     D_dsl : ndarray
-        Secondary distance (DisSimLocal) matrix.
+        Secondary dissimiliarity (DisSimLocal) matrix.
         
     References
     ----------
@@ -324,29 +325,58 @@ def dis_sim_local(X:np.ndarray, k:int=10, test_set_mask:np.ndarray=None):
            1659–1665. Retrieved from http://www.aaai.org/ocs/index.php/AAAI/
            AAAI16/paper/download/12055/11787
     """
-    
-    n = X.shape[0]
-    D = l2(X)
-    # Exclude self distances from kNN lists:
-    np.fill_diagonal(D, np.inf)
-    c_k = np.zeros_like(X)
-    
-    if test_set_mask is not None:
-        train_set_mask = np.setdiff1d(np.arange(n), test_set_mask)
-        for i in range(n):
-            knn_idx = np.argsort(D[i, train_set_mask])[0:k]
-            c_k[i] = X[train_set_mask[knn_idx]].mean(0)
-    else: # take all
-        for i in range(n):
-            knn_idx = np.argsort(D[i, :])[0:k]
-            c_k[i] = X[knn_idx].mean(0)
-    c_k_xy = ((X - c_k) ** 2).sum(1)
-    disSim = np.zeros_like(D)
-    for x in range(n):
-        for y in range(x, n):
-            x_y = ((X[x] - X[y]) ** 2).sum()
-            disSim[x, y] = x_y - c_k_xy[x] - c_k_xy[y]
-    return disSim + disSim.T - np.diag(np.diag(disSim))
+    # all-against-all dissimilarities?
+    if Y is None:
+        Y = X
+
+    # dataset size and dimensionality
+    n_test, m_test = X.shape
+    n_train, m_train = Y.shape
+    if m_test == m_train:
+        n_features = m_test
+    else:
+        raise ValueError("X and Y must have same number of features.")
+
+    # Calc euclidean distances to find nearest neighbors among training data
+    D_train = euclidean_distances(Y)
+    if id(Y) == id(X):
+        # Exclude self distances from kNN lists:
+        np.fill_diagonal(D_train, np.inf)
+        D_test = D_train
+    else:
+        # ... and between test and training data
+        D_test = euclidean_distances(X, Y)
+
+    # Local centroid for each point among its k-nearest training neighbors
+    c_k_X = np.zeros_like(X)
+    for i in range(n_test):
+        knn_idx = np.argsort(D_test[i, :])[:k]
+        c_k_X[i] = Y[knn_idx].mean(axis=0)
+    x_c_k = ((X - c_k_X) ** 2).sum(axis=1)
+    if id(Y) == id(X):
+        c_k_Y = c_k_X
+        y_c_k = x_c_k
+    else:
+        c_k_Y = np.zeros_like(Y)
+        for i in range(n_train):
+            knn_idx = np.argsort(D_train[i, :])[:k]
+            c_k_Y[i] = Y[knn_idx].mean(axis=0)
+        y_c_k = ((Y - c_k_Y) ** 2).sum(axis=1)
+
+    # Calculate dissimilarities
+    disSim = np.zeros_like(D_test)
+    if n_features < 2000:
+        # use vectorized code for low-dimensional data
+        for x in range(n_test):
+            x_y = ((X[x] - Y) ** 2).sum(axis=1)
+            disSim[x, :] = x_y - x_c_k[x] - y_c_k
+    else:
+        # use non-vectorized code for high-dimensional data
+        for x in range(n_test):
+            for y in range(n_train):
+                x_y = ((X[x] - Y[y]) ** 2).sum()
+                disSim[x, y] = x_y - x_c_k[x] - y_c_k[y]
+    return disSim
 
 ###############################################################################
 #
@@ -461,7 +491,7 @@ if __name__ == '__main__':
     print("Weighted centering: .... \n{}".
           format(weighted_centering(VECT_DATA, 'cosine', 0.4)))
     print("Localized centering: ... \n{}".
-          format(localized_centering(VECT_DATA, 'cosine', 2, 1)))
+          format(localized_centering(VECT_DATA, kappa=2, gamma=1)))
     print("DisSim (global): ....... \n{}".
           format(dis_sim_global(VECT_DATA)))
     print("DisSim (local): ........ \n{}".

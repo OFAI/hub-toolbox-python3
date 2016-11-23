@@ -17,7 +17,7 @@ import os
 import sys
 import numpy as np
 from scipy import sparse
-from hub_toolbox.Distances import cosine_distance
+from scipy.sparse.base import issparse
 
 def load_dexter():
     """Load the example data set (dexter).
@@ -26,11 +26,14 @@ def load_dexter():
     -------
     D : ndarray
         Distance matrix
+
     classes : ndarray
         Class label vector
+
     vectors : ndarray
         Vector data matrix
     """
+    from hub_toolbox.Distances import cosine_distance
         
     n = 300
     dim = 20000
@@ -58,28 +61,74 @@ def load_dexter():
     D = cosine_distance(vectors)
     return D, classes, vectors
 
+def _check_is_nD_array(arr:np.ndarray, n:int, arr_type=''):
+    """ Check that array is exactly n dimensional. """
+    try:
+        if arr.ndim != n:
+            raise TypeError(arr_type + " array must be a " + str(n) +
+                            "D array, but was found to be a " +
+                            str(arr.ndim) + "D array with shape: " +
+                            str(arr.shape))
+    except AttributeError:
+        raise TypeError("Object 'arr' does not seem to be an array.")
+
 def _check_distance_matrix_shape(D:np.ndarray):
     """ Check that matrix is quadratic. """
+    _check_is_nD_array(D, n=2, arr_type="Distance/similarity")
     if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
+        raise TypeError("Distance/similarity matrix is not quadratic. "
+                        "Shape: {}".format(D.shape))
 
 def _check_distance_matrix_shape_fits_vectors(D:np.ndarray, vectors:np.ndarray):
     """ Check number of points in distance matrix equal number of vectors. """
+    _check_is_nD_array(D, 2, "Distance/similarity")
+    _check_is_nD_array(vectors, 2, "Data vectors")
     if D.shape[0] != vectors.shape[0]:
-        raise TypeError("Data vectors dimension does not match "
-                        "distance matrix (D) dimension.")
+        raise TypeError("Number of points in `vectors` does not match "
+                        "number of points in `D`. Shape of `vectors`: {}, "
+                        "shape of `D`: {}".format(vectors.shape[0], D.shape[0]))
 
 def _check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
-    """ Check the number of points in distance matrix equal number of labels"""
+    """ Check the number of points in distance matrix equal number of labels."""
+    _check_is_nD_array(D, 2, "Distance/similarity")
+    _check_is_nD_array(classes, 1, "Class label")
     if classes.size != D.shape[0]:
-        raise TypeError("Number of class labels does not "
-                        "match number of points.")
+        raise TypeError("Number of class labels does not match number of "
+                        "points. Labels: {}, points: {}."
+                        .format(classes.size, D.shape[0]))
 
+def _check_vector_matrix_shape_fits_labels(X:np.ndarray, classes:np.ndarray):
+    """ Check the number of points in vector matrix equal number of labels."""
+    _check_is_nD_array(X, 2, "Data vectors")
+    _check_is_nD_array(classes, 1, "Class label")
+    if classes.size != X.shape[0]:
+        raise TypeError("Number of class labels does not match number of "
+                        "points. Labels: {}, points: {}."
+                        .format(classes.size, X.shape[0]))
+
+def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
+    """ Check that number of columns in ``D`` equals the size of ``idx``. """
+    if issparse(D) or issparse(idx):
+        raise TypeError("Sparse matrices are not supported for SampleMP.")
+    _check_is_nD_array(D, 2, "Distance/similarity")
+    _check_is_nD_array(idx, 1, "Index")
+    if D.shape[1] > D.shape[0]:
+        raise ValueError("Number of samples is higher than number of points. "
+                         "Must be less than or equal. In the latter case, "
+                         "consider not using samples at all for efficiency. "
+                         "Shape of `D`: {}.".format(D.shape))
+    if D.shape[1] != idx.size:
+        raise TypeError("Number of samples in index array does not match "
+                        "the number of samples in the data matrix. "
+                        "Size of `idx`: {}, Columns in `D`: {}."
+                        .format(idx.size, D.shape[1]))
+    
 def _check_valid_metric_parameter(metric:str):
     """ Check parameter is either 'distance' or 'similarity'. """
     if metric != 'distance' and metric != 'similarity':
         raise ValueError("Parameter 'metric' must be "
-                         "'distance' or 'similarity'.")
+                         "'distance' or 'similarity'."
+                         "Got: " + metric.__str__())
 
 def copy_D_or_load_memmap(D, writeable=False): # pragma: no cover
     """Return a deep copy of a numpy array (if `D` is an ndarray), 
@@ -121,8 +170,10 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4): # pragma: no cover
     ----------
     rows, cols : int 
         Shape of matrix that should be split.
+
     elem_size : int 
         memory requirement per matrix element in bytes. E.g. 8 bytes for float64
+
     nr_matrices : int 
         How many times must the split matrix fit into memory?
         This depends on the subsequent operations.
@@ -131,6 +182,7 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4): # pragma: no cover
     -------
     nr_batches : int
         number of submatrices
+
     nr_rows : int
         number of rows per submatrix.
     

@@ -19,7 +19,8 @@ from scipy.sparse.base import issparse
 from hub_toolbox import Logging, IO
 
 def score(D:np.ndarray, target:np.ndarray, k=5, 
-          metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
+          metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0,
+          sample_idx=None):
     """Perform `k`-nearest neighbor classification.
     
     Use the ``n x n`` symmetric distance matrix `D` and target class 
@@ -75,7 +76,10 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     
     # Check input sanity
     log = Logging.ConsoleLogging()
-    IO._check_distance_matrix_shape(D)
+    if sample_idx is None:
+        IO._check_distance_matrix_shape(D)
+    else:
+        IO._check_sample_shape_fits(D, sample_idx)
     IO._check_distance_matrix_shape_fits_labels(D, target)
     IO._check_valid_metric_parameter(metric)
     if metric == 'distance':
@@ -101,6 +105,9 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
         n = test_set_ind.size
         # Indices of training examples
         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+        if sample_idx is not None:
+            raise NotImplementedError("Sample k-NN does not support train/"
+                                      "test splits at the moment.")
     # Number of k-NN parameters
     try:
         k_length = k.size
@@ -124,7 +131,13 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     for idx, cur_class in enumerate(cl):
         # change labels to 0, 1, ..., len(cl)-1
         classes[target == cur_class] = idx
-    
+    if sample_idx is not None:
+        sample_classes = classes[sample_idx]
+        j = np.ones(n, int)
+        j *= (n+1) # illegal indices will throw index out of bounds error
+        j[sample_idx] = np.arange(len(sample_idx))
+        for j, sample in enumerate(sample_idx):
+            D[sample, j] = d_self
     cl = range(len(cl))
     
     # Classify each point in test set
@@ -135,20 +148,35 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             row = D.getrow(i).toarray().ravel()
         else:
             row = D[i, :]
-        row[i] = d_self
+        if sample_idx is None:
+            row[i] = d_self
         
         # Sort points in training set according to distance
         # Randomize, in case there are several points of same distance
         # (this is especially relevant for SNN rescaling)
-        rp = train_set_ind
+        if sample_idx is None:
+            rp = train_set_ind
+        else:
+            rp = np.arange(len(sample_idx))
         rp = np.random.permutation(rp)
         d2 = row[rp]
         d2idx = np.argsort(d2, axis=0)[::sort_order]
-        idx = rp[d2idx]      
+        idx = rp[d2idx]
         
         # More than one k is useful for cheap multiple k-NN experiments at once
         for j in range(k_length):
-            nn_class = classes[idx[0:k[j]]]
+            # Make sure no inf/-inf/nan values are used for classification
+            finite_val = np.isfinite(row[idx[0:k[j]]])
+            # However, if no values are finite, classify randomly
+            if finite_val.sum() == 0:
+                finite_val = np.ones_like(finite_val)
+                log.warning("Query was classified randomly, because all "
+                            "distances were non-finite numbers.")
+            if sample_idx is None:
+                nn_class = classes[idx[0:k[j]]][finite_val]
+            else:
+                #finite_val = np.isfinite(sample_row[idx[0:k[j]]])
+                nn_class = sample_classes[idx[0:k[j]]][finite_val]
             cs = np.bincount(nn_class.astype(int))
             max_cs = np.where(cs == np.max(cs))[0]
             

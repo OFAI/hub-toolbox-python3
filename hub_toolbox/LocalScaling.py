@@ -18,7 +18,118 @@ import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
 from hub_toolbox import IO, Logging
+
+def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
+                         train_ind:np.ndarray=None, test_ind:np.ndarray=None):
+    """Transform a distance matrix with Local Scaling.
     
+    --- DRAFT version ---
+    
+    Transforms the given distance matrix into new one using local scaling [1]_
+    with the given `k`-th nearest neighbor. There are two types of local
+    scaling methods implemented. The original one and NICDM, both reduce
+    hubness in distance spaces, similarly to Mutual Proximity.
+    
+    Parameters
+    ----------
+    D : ndarray or csr_matrix
+        The ``n x n`` symmetric distance (similarity) matrix.
+    
+    k : int, optional (default: 7)
+        Neighborhood radius for local scaling.
+    
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix `D` is a distance or similarity matrix.
+        
+        NOTE: self similarities in sparse `D_ls` are set to ``np.inf``
+
+    train_ind : ndarray, optional
+        If given, use only these data points as neighbors for rescaling.
+
+    test_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+        
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set. 
+        
+    Returns
+    -------
+    D_ls : ndarray
+        Secondary distance LocalScaling matrix.
+    
+    References
+    ----------
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+           Local and global scaling reduce hubs in space. The Journal of Machine 
+           Learning Research, 13(1), 2871–2902.
+    """
+    log = Logging.ConsoleLogging()
+    # Checking input
+    IO._check_sample_shape_fits(D, train_ind)
+    IO._check_valid_metric_parameter(metric)
+    if metric == 'similarity':
+        if train_ind is not None:
+            raise NotImplementedError
+        sort_order = -1
+        exclude = -np.inf
+        self_value = 1.
+        log.warning("Similarity matrix support for LS is experimental.")
+    else: # metric == 'distance':
+        sort_order = 1
+        exclude = np.inf
+        self_value = 0
+        if issparse(D):
+            log.error("Sparse distance matrices are not supported.")
+            raise NotImplementedError(
+                "Sparse distance matrices are not supported.") 
+            
+    D = np.copy(D)
+    n = D.shape[0]
+    if test_ind is None:
+        train_set_ind = slice(0, n) #take all
+        n_ind = range(n)    
+    else:
+        train_set_ind = np.setdiff1d(np.arange(n), test_ind)
+        n_ind = test_ind
+    # Exclude self distances
+    for j, sample in enumerate(train_ind):
+        D[sample, j] = exclude    
+    r = np.zeros(n)
+    for i in range(n):
+        if train_ind is None:
+            if issparse(D):
+                di = D[i, train_set_ind].toarray()
+            else:
+                di = D[i, train_set_ind]
+        else:
+            di = D[i, :] # all columns are training in this case
+        nn = np.argsort(di)[::sort_order]
+        r[i] = di[nn[k-1]] #largest similarities or smallest distances
+    
+    if issparse(D):
+        D_ls = lil_matrix(D.shape)
+    else:
+        D_ls = np.zeros_like(D)
+
+    for i in n_ind:
+        if metric == 'similarity':
+            D_ls[i, :] = np.exp(-1 * D[i, :]**2 / (r[i] * r[train_ind]))
+        else:
+            D_ls[i, :] = 1 - np.exp(-1 * D[i, :]**2 / (r[i] * r[train_ind]))
+
+    if test_ind is None:
+        if issparse(D):
+            return D_ls.tocsr()
+        else:
+            np.fill_diagonal(D_ls, self_value)
+            return D_ls
+    else:
+        # Ensure correct self distances
+        for j, sample in enumerate(train_ind):
+            D_ls[sample, j] = self_value
+        return D_ls[test_ind]
+
+
 def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
                   test_set_ind:np.ndarray=None):
     """Transform a distance matrix with Local Scaling.
@@ -118,6 +229,101 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     else:
         np.fill_diagonal(D_ls, self_value)
         return D_ls
+
+def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
+                 train_ind:np.ndarray=None, test_ind:np.ndarray=None):
+    """Transform a distance matrix with local scaling variant NICDM.
+    
+    --- DRAFT version ---
+
+    Transforms the given distance matrix into new one using NICDM [1]_
+    with the given neighborhood radius `k` (average). There are two types of 
+    local scaling methods implemented. The original one and the non-iterative 
+    contextual dissimilarity measure, both reduce hubness in distance spaces, 
+    similarly to Mutual Proximity.
+
+    Parameters
+    ----------
+    D : ndarray or csr_matrix
+        The ``n x n`` symmetric distance (similarity) matrix.
+
+    k : int, optional (default: 7)
+        Neighborhood radius for local scaling.
+
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix `D` is a distance or similarity matrix.
+
+        NOTE: self similarities in sparse `D_ls` are set to ``np.inf``
+
+    train_ind : ndarray, optional
+        If given, use only these data points as neighbors for rescaling.
+
+    test_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set. 
+
+    Returns
+    -------
+    D_nicdm : ndarray
+        Secondary distance NICDM matrix.
+
+    References
+    ----------
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+           Local and global scaling reduce hubs in space. The Journal of Machine 
+           Learning Research, 13(1), 2871–2902.
+    """
+    # Checking input
+    IO._check_sample_shape_fits(D, train_ind)
+    IO._check_valid_metric_parameter(metric)
+    if metric == 'similarity':
+        raise NotImplementedError("NICDM does not support similarity matrices "
+                                  "at the moment.")
+    else: # metric == 'distance':
+        D = np.copy(D)
+        sort_order = 1
+        exclude = np.inf
+        self_value = 0
+        if issparse(D):
+            raise NotImplementedError(
+                "Sparse distance matrices are not supported.") 
+            
+    n = D.shape[0]
+    if test_ind is None:
+        n_ind = range(n)    
+    else:
+        n_ind = test_ind
+    # Exclude self distances
+    for j, sample in enumerate(train_ind):
+        D[sample, j] = exclude
+
+    # Statistics
+    knn = np.zeros((n, k))
+    r = np.zeros(n)
+    for i in range(n):
+        di = D[i, :]
+        nn = np.argsort(di)[::sort_order]
+        knn[i, :] = di[nn[0:k]] # largest sim. or smallest dist.
+        r[i] = np.mean(knn[i]) 
+    r_geom = _local_geomean(knn.ravel())
+
+    # Calculate secondary distances
+    D_nicdm = np.zeros_like(D)
+    for i in n_ind:
+        # vectorized inner loop (using broadcasting)
+        D_nicdm[i, :] = (r_geom * D[i, :]) / np.sqrt(r[i] * r[train_ind])
+    
+    # Ensure correct self distances and return sec. dist. matrix
+    if test_ind is None:
+        np.fill_diagonal(D_nicdm, self_value)
+        return D_nicdm 
+    else:
+        for j, sample in enumerate(train_ind):
+            D_nicdm[sample, j] = self_value
+        return D_nicdm[test_ind]
+
 
 def nicdm(D:np.ndarray, k:int=7, metric:str='distance', 
           test_set_ind:np.ndarray=None):

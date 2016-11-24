@@ -140,7 +140,7 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     if strategy == 'a':
         try: # scikit-learn >= 0.18
             sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_size)
-            _, y_sample = sss.split(X=y, y=y)
+            _, y_sample = sss.split(X=X, y=y)
         except TypeError: # scikit-learn < 0.18
             sss = StratifiedShuffleSplit(y=y, n_iter=1, test_size=sample_size)
             _, y_sample = next(iter(sss))

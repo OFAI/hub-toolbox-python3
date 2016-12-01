@@ -257,14 +257,7 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     
     # "Occurence informativeness"
     occ_inf_knn = knn[:m, :].copy()
-    #if train_ind is None:
     np.fill_diagonal(occ_inf_knn, True)
-    """
-    else:
-        for j, sample in enumerate(train_ind):
-            # treat x as its own 0th neighbor to avoid div/0
-            occ_inf_knn[sample, j] = True
-    """
     N_s = occ_inf_knn.sum(axis=0)
     I_n = np.log(m / N_s)
     del occ_inf_knn
@@ -363,6 +356,9 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
     exclude = np.inf
     distance = D.copy()
     n, m = distance.shape
+    if not 0 < s < m:
+        raise ValueError("Neighbor hood size s, must be [1, {}-1], but "
+                         "was {}.".format(m, s))
     if test_ind is None:
         n_ind = range(n)    
     else:
@@ -400,7 +396,7 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
         N_sc += 1
     # In any case: the same for N_s
     N_s += 1
-    
+
     if y is not None:
         # non-homogeneity (inconsistency) in occurrence
         N_sc /= N_s

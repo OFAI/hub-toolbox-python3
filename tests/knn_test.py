@@ -13,7 +13,10 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from sklearn.cross_validation import LeaveOneOut, cross_val_predict
+try: # for scikit-learn >= 0.18
+    from sklearn.model_selection import LeaveOneOut, cross_val_predict
+except ImportError: # lower scikit-learn versions
+    from sklearn.cross_validation import LeaveOneOut, cross_val_predict
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 from hub_toolbox.HubnessAnalysis import load_dexter
@@ -69,7 +72,10 @@ class TestKnnClassification(unittest.TestCase):
         knclassifier = KNeighborsClassifier(n_neighbors=5, algorithm='brute', 
                                             metric='precomputed')
         n = self.distance.shape[0] # for LOO-CV
-        loo_cv = LeaveOneOut(n)
+        try: # sklearn < 0.18
+            loo_cv = LeaveOneOut(n)
+        except TypeError:
+            loo_cv = LeaveOneOut()
         predicted_sklearn = cross_val_predict(
             knclassifier, self.distance, self.label, cv=loo_cv)
         acc_sklearn = accuracy_score(self.label, predicted_sklearn)
@@ -84,6 +90,7 @@ class TestKnnClassification(unittest.TestCase):
 
     def test_sample_knn(self):
         """ Make sure that sample-kNN works correctly. """
+        # TODO create a stricter test
         X = np.array([[1., 2.],
                       [2., 2.],
                       [2., 3.],
@@ -91,11 +98,16 @@ class TestKnnClassification(unittest.TestCase):
                       [4., 1.5]])
         y = np.array([0, 1, 0, 1, 1])
         s = 2
-        D, sample_idx = sample_distance(X, y, s)
-        acc, _, _ = score(D, y, 2, 'distance', sample_idx=sample_idx)
-        print("Samples:", sample_idx)
-        print("Accuracy:", acc)
-        return self.fail("Not fully implemented test.")
+        rnd = 1234
+        D, sample_idx = sample_distance(X, y, s, random_state=rnd)
+        expected_sample_idx = np.array([4, 2])
+        expected_acc = 0.4
+        if not np.setdiff1d(sample_idx, expected_sample_idx).size == \
+               np.setdiff1d(expected_sample_idx, sample_idx).size == 0:
+            return self.fail("Test implementation broken: wrong sample.")
+        acc, _, _ = score(D=D, target=y, k=2, metric='distance', 
+                          sample_idx=sample_idx)
+        return self.assertEqual(expected_acc, acc[0, 0])
 
 if __name__ == "__main__":
     unittest.main()

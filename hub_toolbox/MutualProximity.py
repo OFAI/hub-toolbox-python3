@@ -246,7 +246,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
         dI = S.getrow(i).toarray()
         dJ = S.getrow(j).toarray()
         nz = (dI > 0) & (dJ > 0)
-        S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum() - 1)
+        S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum() - 2)
     
     S_mp += S_mp.T
     for i in range(n):

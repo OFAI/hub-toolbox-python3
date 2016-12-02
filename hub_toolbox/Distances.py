@@ -83,7 +83,8 @@ def lp_norm(X:np.ndarray, Y:np.ndarray=None, p:float=None, n_jobs:int=1):
                                   n_jobs=n_jobs, **{'p' : p})
 
 
-def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
+def sample_distance(X, y, sample_size, metric='euclidean', strategy='a',
+                    random_state=None):
     """Calculate incomplete distance matrix.
     
     Parameters
@@ -110,6 +111,9 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
         - 'b': Stratified sampling, for each point it is chosen independently,
                 to which other points distances are calculated.
                 NOTE: currently not implemented.
+
+    random_state : int or RandomState
+        Pseudo-random number generator state used for random sampling.
 
     Returns
     -------
@@ -138,11 +142,15 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a'):
     if not isinstance(sample_size, int):
         sample_size = int(sample_size * n)
     if strategy == 'a':
-        try: # scikit-learn >= 0.18
-            sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_size)
+        try: # scikit-learn == 0.18
+            sss = StratifiedShuffleSplit(n_splits=1, test_size=sample_size,
+                                         random_state=random_state)
             _, y_sample = sss.split(X=X, y=y)
+        except ValueError: # scikit-learn >= 0.18.1
+            _, y_sample = next(sss.split(X=X, y=y))
         except TypeError: # scikit-learn < 0.18
-            sss = StratifiedShuffleSplit(y=y, n_iter=1, test_size=sample_size)
+            sss = StratifiedShuffleSplit(y=y, n_iter=1, test_size=sample_size,
+                                         random_state=random_state)
             _, y_sample = next(iter(sss))
     elif strategy == 'b':
         raise NotImplementedError("Strategy 'b' is not yet implemented.")

@@ -213,14 +213,18 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
            (pp. 2645–2651).
     """
     # Rescale vectors to unit length
-    v = X / np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
+    div_ = np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
+    div_[div_ == 0] = 1e-7
+    v = X / div_
     if Y is None: # calc all-against-all in X
         w = v
         n, _ = X.shape
         sim = v.dot(w.T)
         sim_train = sim
     else: # calc sim from test data in X against train data in Y
-        w = Y / np.sqrt((Y ** 2).sum(-1))[..., np.newaxis]
+        div_ = np.sqrt((Y ** 2).sum(-1))[..., np.newaxis]
+        div_[div_ == 0] = 1e-7
+        w = Y / div_
         n, _ = Y.shape
         sim = v.dot(w.T)
         sim_train = w.dot(w.T)   

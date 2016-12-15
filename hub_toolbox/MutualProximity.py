@@ -447,6 +447,8 @@ def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray,
     # Calculate mean and std per row, w/o self values (nan)
     mu = np.nanmean(D, 1)
     sd = np.nanstd(D, 1, ddof=0)
+    # Avoid downstream div/0 errors
+    sd[sd == 0] = 1e-7
 
     # set self dist/sim back to self_value to avoid scipy warnings
     for j, i in enumerate(idx):
@@ -582,6 +584,8 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     else:
         mu = np.nanmean(D, 1)
         sd = np.nanstd(D, 1, ddof=0)
+    # Avoid downstream div/0 errors
+    sd[sd == 0] = 1e-7
     # set self dist/sim back to self_value to avoid scipy warnings
     if idx is None:
         np.fill_diagonal(D, self_value)
@@ -753,6 +757,8 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     
     mu = np.nanmean(D[train_set_ind], 0)
     va = np.nanvar(D[train_set_ind], 0, ddof=1)
+    # Avoid downstream div/0 errors
+    va[va == 0] = 1e-7
     A = (mu**2) / va
     B = va / mu
 

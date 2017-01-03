@@ -15,8 +15,7 @@ import unittest
 import numpy as np
 from hub_toolbox.Distances import euclidean_distance
 from hub_toolbox.MutualProximity import mutual_proximity_empiric,\
-    mutual_proximity_gauss, mutual_proximity_gaussi, mutual_proximity_gammai,\
-    mutual_proximity_empiric_sample
+    mutual_proximity_gauss, mutual_proximity_gaussi, mutual_proximity_gammai
 from scipy.sparse.csr import csr_matrix
 from scipy.spatial.distance import squareform
 
@@ -54,7 +53,9 @@ class TestMutualProximity(unittest.TestCase):
         self.setUpMod('toy')
         mp_dist = mutual_proximity_empiric(self.dist, 'distance')
         y = np.array([0, 1, 2, 3, 4])
-        mp_sample_dist = mutual_proximity_empiric_sample(self.dist, y, 'distance')
+        mp_sample_dist = mutual_proximity_empiric(D=self.dist,
+                                                  sample_ind=y,
+                                                  metric='distance')
         mp_sample_equal_pop = np.allclose(mp_dist, mp_sample_dist, atol=1e-15)
         return self.assertTrue(mp_sample_equal_pop)
 

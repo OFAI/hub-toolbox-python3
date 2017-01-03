@@ -242,7 +242,7 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
     sim -= local_affinity
     return sim
 
-def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
+def dis_sim_global(X:np.ndarray, Y:np.ndarray=None, force_vect=False):
     """
     Calculate dissimilarity based on global 'sample-wise centrality' [1]_.
     
@@ -255,6 +255,10 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
     Y : ndarray, optional
         If Y is provided, calculate dissimilarities between all test data
         in `X` and all training data in `Y`.
+
+    force_vect : boolean, optional
+        If False, use vectorized code only for low dimensional datasets.
+        Otherwise, also use it for high dimensional datasets.
 
     Returns
     -------
@@ -280,12 +284,12 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
         raise ValueError("X and Y must have same number of features.")
     c = Y.mean(0)
     x_c = ((Y - c) ** 2).sum(1)
-    if id(X) != id(Y): # i.e. not Y was provided
+    if id(X) != id(Y): # i.e. no Y was provided
         q_c = ((X - c) ** 2).sum(1)
     else: # avoid duplicate calculations
         q_c = x_c
     D_dsg = np.zeros((n_test, n_train))
-    if n_features < 2000:
+    if n_features < 2000 or force_vect:
         # vectorized code faster for low dimensional data
         for q in range(n_test):
             x_q = ((Y - X[q, :]) ** 2).sum(axis=1)

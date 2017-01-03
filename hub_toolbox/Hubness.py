@@ -21,25 +21,25 @@ import sys
 
 def hubness(D:np.ndarray, k:int=5, metric='distance', verbose:int=0):
     """Compute hubness of a distance matrix.
-    
-    Hubness [1]_ is the skewness of the `k`-occurrence histogram (reverse 
-    nearest neighbor count, i.e. how often does a point occur in the 
+
+    Hubness [1]_ is the skewness of the `k`-occurrence histogram (reverse
+    nearest neighbor count, i.e. how often does a point occur in the
     `k`-nearest neighbor lists of other points).
-    
+
     Parameters
     ----------
     D : ndarray
         The ``n x n`` symmetric distance (similarity) matrix.
-    
+
     k : int, optional (default: 5)
         Neighborhood size for `k`-occurence.
-    
+
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix
-    
+
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
-        
+
     Returns
     -------
     S_k : float
@@ -47,13 +47,13 @@ def hubness(D:np.ndarray, k:int=5, metric='distance', verbose:int=0):
     D_k : ndarray
         `k`-nearest neighbor lists
     N_k : ndarray
-        `k`-occurence list    
-    
+        `k`-occurence list
+
     References
     ----------
-    .. [1] Radovanović, M., Nanopoulos, A., & Ivanović, M. (2010). 
-           Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data. 
-           Journal of Machine Learning Research, 11, 2487–2531. Retrieved from 
+    .. [1] Radovanović, M., Nanopoulos, A., & Ivanović, M. (2010).
+           Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data.
+           Journal of Machine Learning Research, 11, 2487–2531. Retrieved from
            http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/
            radovanovic10a.pdf
     """
@@ -66,21 +66,21 @@ def hubness(D:np.ndarray, k:int=5, metric='distance', verbose:int=0):
     if metric == 'similarity':
         d_self = -np.inf
         sort_order = -1
-        
+
     if verbose:
         log.message("Hubness calculation (skewness of {}-occurence)".format(k))
-    D = D.copy()           
+    D = D.copy()
     D_k = np.zeros((k, D.shape[1]), dtype=np.float32)
     n = D.shape[0]
-    
-    if issparse(D): 
+
+    if issparse(D):
         pass # correct self-distance must be ensured upstream for sparse
     else:
         # Set self dist to inf
         np.fill_diagonal(D, d_self)
         # make non-finite (NaN, Inf) appear at the end of the sorted list
         D[~np.isfinite(D)] = d_self
-    
+
     for i in range(n):
         if verbose and ((i+1)%10000==0 or i+1==n):
             log.message("NN: {} of {}.".format(i+1, n), flush=True)
@@ -96,18 +96,18 @@ def hubness(D:np.ndarray, k:int=5, metric='distance', verbose:int=0):
         rp = np.random.permutation(n)
         d2 = d[rp]
         d2idx = np.argsort(d2, axis=0)[::sort_order]
-        D_k[:, i] = rp[d2idx[0:k]]      
-               
+        D_k[:, i] = rp[d2idx[0:k]]
+
     # N-occurence
-    N_k = np.bincount(D_k.astype(int).ravel(), minlength=n)    
+    N_k = np.bincount(D_k.astype(int).ravel(), minlength=n)
     # Hubness
     S_k = stats.skew(N_k)
-     
+
     # return k-hubness, k-nearest neighbors, k-occurence
     if verbose:
         log.message("Hubness calculation done.", flush=True)
-    return S_k, D_k, N_k    
-    
+    return S_k, D_k, N_k
+
 
 class Hubness(): # pragma: no cover
     """
@@ -115,7 +115,7 @@ class Hubness(): # pragma: no cover
               Class will be removed in hub-toolbox 3.0.
               Please use static functions instead.
     """
-    
+
     def __init__(self, D, k:int=5, isSimilarityMatrix:bool=False):
         self.log = Logging.ConsoleLogging()
         if isinstance(D, np.memmap):
@@ -130,10 +130,10 @@ class Hubness(): # pragma: no cover
             self.d_self = np.inf
             self.sort_order = 1 # ascending, interested in smallest distance
         np.random.seed()
-                
+
     def calculate_hubness(self, debug=False):
         """Calculate hubness.
-        
+
         .. note:: Deprecated in hub-toolbox 2.3
                   Class will be removed in hub-toolbox 3.0.
                   Please use static functions instead.
@@ -145,9 +145,8 @@ class Hubness(): # pragma: no cover
             metric = 'similarity'
         else:
             raise ValueError("sort_order must be -1 or 1.")
-        
         return hubness(self.D, self.k, metric, debug)
-    
+
 if __name__ == '__main__':
     # Simple test case
     from hub_toolbox.HubnessAnalysis import load_dexter

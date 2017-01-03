@@ -16,6 +16,7 @@ import numpy as np
 from scipy.spatial.distance import squareform
 from hub_toolbox.Hubness import hubness
 from hub_toolbox.Distances import euclidean_distance
+from hub_toolbox.IO import random_sparse_matrix
 
 class TestHubness(unittest.TestCase):
     """Test hubness calculations"""
@@ -57,9 +58,30 @@ class TestHubness(unittest.TestCase):
         s = m3 / (s2**1.5)
         Sk10_true = s
         correct_Sk10 = Sk10 == Sk10_true
-        return self.assertTrue(correct_dim_Dk10 
-                               and correct_Nk10 
+        return self.assertTrue(correct_dim_Dk10
+                               and correct_Nk10
                                and correct_Sk10)
+
+    def test_parallel_hubness_equal_serial_hubness_distance_based(self):
+        S_k_p, D_k_p, N_k_p = hubness(
+            self.dist, k=5, metric='distance', verbose=True, n_jobs=2)
+        S_k_s, D_k_s, N_k_s = hubness(
+            self.dist, k=5, metric='distance', verbose=False, n_jobs=1)
+        result = np.allclose(S_k_p, S_k_s) & \
+            np.allclose(D_k_p, D_k_s) & \
+            np.allclose(N_k_p, N_k_s)
+        return self.assertTrue(result)
+
+    def test_parallel_hubness_equal_serial_hubness_similarity_based(self):
+        similarity = random_sparse_matrix(size=1000)
+        S_k_p, D_k_p, N_k_p = hubness(
+            similarity, k=5, metric='similarity', verbose=False, n_jobs=-1)
+        S_k_s, D_k_s, N_k_s = hubness(
+            similarity, k=5, metric='similarity', verbose=False, n_jobs=1)
+        result = np.allclose(S_k_p, S_k_s) & \
+            np.allclose(D_k_p, D_k_s) & \
+            np.allclose(N_k_p, N_k_s)
+        return self.assertTrue(result)
 
 if __name__ == "__main__":
     unittest.main()

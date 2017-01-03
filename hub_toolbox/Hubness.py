@@ -178,43 +178,7 @@ def _partial_hubness(k, d_self, log, sort_order,
 
 def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
                                 verbose:int=0):
-    """Compute hubness of a distance matrix.
-
-    Hubness [1]_ is the skewness of the `k`-occurrence histogram (reverse
-    nearest neighbor count, i.e. how often does a point occur in the
-    `k`-nearest neighbor lists of other points).
-
-    Parameters
-    ----------
-    D : ndarray
-        The ``n x n`` symmetric distance (similarity) matrix.
-
-    k : int, optional (default: 5)
-        Neighborhood size for `k`-occurence.
-
-    metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix `D` is a distance or similarity matrix
-
-    verbose : int, optional (default: 0)
-        Increasing level of output (progress report).
-
-    Returns
-    -------
-    S_k : float
-        Hubness (skewness of `k`-occurence distribution)
-    D_k : ndarray
-        `k`-nearest neighbor lists
-    N_k : ndarray
-        `k`-occurence list
-
-    References
-    ----------
-    .. [1] Radovanović, M., Nanopoulos, A., & Ivanović, M. (2010).
-           Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data.
-           Journal of Machine Learning Research, 11, 2487–2531. Retrieved from
-           http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/
-           radovanovic10a.pdf
-    """
+    """ Hubness calculations without multiprocessing overhead. """
     log = Logging.ConsoleLogging()
     IO._check_distance_matrix_shape(D)
     IO._check_valid_metric_parameter(metric)

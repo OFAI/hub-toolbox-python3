@@ -254,41 +254,48 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     
     return S_mp.tocsr()
 
-def mutual_proximity_gauss(D:np.ndarray, metric:str='distance', 
+def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
                            test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (normal distribution).
-    
+
     Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix. Gauss 
     variant assumes dependent normal distributions (VERY SLOW).
     The resulting second. distance/similarity matrix should show lower hubness.
-    
+
     Parameters
     ----------
     D : ndarray
         - ndarray: The ``n x n`` symmetric distance or similarity matrix.
-    
+
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix.
-        
+
     test_sed_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
-        
+
         - None : Rescale all distances
-        - ndarray : Hold out points indexed in this array as test set. 
-        
+        - ndarray : Hold out points indexed in this array as test set.
+
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
-        
+
     Returns
     -------
     D_mp : ndarray
         Secondary distance MP gauss matrix.
-    
+
     References
     ----------
     .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
            Local and global scaling reduce hubs in space. The Journal of Machine 
            Learning Research, 13(1), 2871–2902.
+
+    Notes
+    -----
+        Deprecated in hub-toolbox 2.4: This is the last version to support
+        MP Gauss, which is going to be removed in hub-toolbox 3.0.
+        Please consider using MP GaussI, which usually yields very good
+        approximations at much lower computational cost.
     """
     # Initialization
     n = D.shape[0]

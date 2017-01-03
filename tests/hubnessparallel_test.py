@@ -19,7 +19,14 @@ from hub_toolbox.Hubness import hubness as hubness_s
 from hub_toolbox.IO import random_sparse_matrix
 
 class TestHubnessParallel(unittest.TestCase):
-    """Test that parallelized hubness yields same results as serial version"""
+    """
+    .. note:: Deprecated in hub-toolbox 2.4: Parallel code merged into the
+              Hubness module (hub_toolbox.Hubness). Please use that module
+              instead.
+              Hubness_parallel module will be removed in hub-toolbox 3.0.
+    
+    Test that parallelized hubness yields same results as serial version.
+    """
 
     def setUp(self):
         self.distance, self.label, self.vector = load_dexter()

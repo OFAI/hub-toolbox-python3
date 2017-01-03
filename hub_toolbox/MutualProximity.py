@@ -980,7 +980,8 @@ def _mutual_proximity_gumbel_sparse(S:np.ndarray,
     sd = np.sqrt(va)
     del va
     
-    EULER_MASCHERONI = .57721566490153286 # https://oeis.org/A001620
+    # Euler-Mascheroni gamma=.57721566490153286 (https://oeis.org/A001620)
+    EULER_MASCHERONI = np.euler_gamma
     beta_hat = sd * np.sqrt(6) / np.pi
     mu_hat = mu - EULER_MASCHERONI * beta_hat
 

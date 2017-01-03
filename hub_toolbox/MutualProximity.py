@@ -22,7 +22,64 @@ from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
 from hub_toolbox import IO, Logging
 
-def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray, 
+def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
+                             test_ind:np.ndarray=None, verbose:int=0,
+                             sample_ind:np.ndarray=None):
+    """Transform a distance matrix with Mutual Proximity (empiric distribution).
+
+    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using
+    the empiric data distribution (EXACT, rather SLOW). The resulting
+    secondary distance/similarity matrix should show lower hubness.
+
+    Parameters
+    ----------
+    D : ndarray
+        Distance or similarity matrix.
+
+        - Shape ``n x n`` matrix for scaling the complete matrix.
+        - Shape ``n x s`` matrix (where ``n`` and ``s`` are the dataset and
+        sample size, respectively) for scaling only the distances to
+        ``s`` sample instances, whose indices must be specified with
+        parameter `sample_ind`.
+
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix `D` is a distance or similarity matrix.
+
+    test_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+
+        - None : Rescale all distances
+        - ndarray : Hold out points indexed in this array as test set.
+
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+
+    sample_ind : ndarray
+        The index array that determines, which data points the columns in
+        `D` correspond to (indices of training data).
+
+    Returns
+    -------
+    D_mp : ndarray
+        Secondary distance MP empiric matrix.
+
+    References
+    ----------
+    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012).
+           Local and global scaling reduce hubs in space. The Journal of Machine
+           Learning Research, 13(1), 2871–2902.
+    """
+    if sample_ind is None:
+        return _mutual_proximity_empiric_full(D=D, metric=metric,
+                                              test_set_ind=test_ind,
+                                              verbose=verbose)
+    else:
+        return _mutual_proximity_empiric_sample(D=D, idx=sample_ind,
+                                                metric=metric,
+                                                test_set_ind=test_ind,
+                                                verbose=verbose)
+
+def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray, 
     metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
@@ -127,8 +184,8 @@ def mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     else:
         return D_mp[test_set_ind]
 
-def mutual_proximity_empiric(D:np.ndarray, metric:str='distance', 
-                             test_set_ind:np.ndarray=None, verbose:int=0):
+def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance', 
+                                  test_set_ind:np.ndarray=None, verbose:int=0):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
     Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using 

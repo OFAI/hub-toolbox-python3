@@ -15,7 +15,7 @@ Contact: <roman.feldbauer@ofai.at>
 
 import sys
 import numpy as np
-from hub_toolbox.Hubness import hubness
+from hub_toolbox.Hubness import hubness as hubness_s
 from hub_toolbox import IO, Logging
 
 def hubness(D:np.ndarray, k:int=5, metric='distance',
@@ -26,7 +26,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
               instead.
               Hubness_parallel module will be removed in hub-toolbox 3.0.
     """
-    return hubness(D=D, k=k, metric=metric, verbose=verbose, n_jobs=n_jobs)
+    return hubness_s(D=D, k=k, metric=metric, verbose=verbose, n_jobs=n_jobs)
 
 class Hubness(): # pragma: no cover
     """

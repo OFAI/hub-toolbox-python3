@@ -124,29 +124,54 @@ class TestMutualProximity(unittest.TestCase):
     def test_mp_gauss(self):
         """Do NOT test for correct MP Gauss results. Just pass the test.
         
-        Background:
-        -----------
+        Background
+        ----------
         1. MP Gauss requires MVN-CDF, for which there is no closed formula.
            Calculation by hand would be a tedious, error-prone task, even for 
            a small toy example.
         2. Nobody really cares about MP Gauss, since it is very well 
            approximated by MP GaussI, but very expensive to calculate
            (a lot more expensive than MP Empiric).
+
+        Notes
+        -----
+            Deprecated in hub-toolbox 2.4: This is the last version to support
+            MP Gauss, which is going to be removed in hub-toolbox 3.0.
+            Please consider using MP GaussI, which usually yields very good
+            approximations at much lower computational cost.
         """
         self.setUpMod('rnd')
-        return self.skipTest("See method docstring.")
+        return self.skipTest("MP Gauss deprecated.")
 
     def test_mp_gauss_all_zero_self_distances_and_symmetric(self):
-        """Test most basic requirements for MP Gauss"""
+        """Test most basic requirements for MP Gauss.
+
+        Notes
+        -----
+            Deprecated in hub-toolbox 2.4: This is the last version to support
+            MP Gauss, which is going to be removed in hub-toolbox 3.0.
+            Please consider using MP GaussI, which usually yields very good
+            approximations at much lower computational cost.
+        """
         self.setUpMod('rnd')
+        return self.skipTest("MP Gauss deprecated.")
         mp_dist = mutual_proximity_gauss(self.dist, verbose=1)
         mp_self_distances_all_zero = np.all(mp_dist.diagonal() == 0.)
         mp_dist_symmetric = np.all(mp_dist == mp_dist.T)
         return self.assertTrue(mp_self_distances_all_zero and mp_dist_symmetric)
   
     def test_mp_gauss_dist_equal_sim(self):
-        """Test most basic requirements for MP Gauss"""
+        """Test most basic requirements for MP Gauss.
+
+        Notes
+        -----
+            Deprecated in hub-toolbox 2.4: This is the last version to support
+            MP Gauss, which is going to be removed in hub-toolbox 3.0.
+            Please consider using MP GaussI, which usually yields very good
+            approximations at much lower computational cost.
+        """
         self.setUpMod('rnd')
+        return self.skipTest("MP Gauss deprecated.")
         sim = 1. - self.dist
         mp_dist = mutual_proximity_gauss(self.dist, 'distance')
         mp_sim = mutual_proximity_gauss(sim, 'similarity')

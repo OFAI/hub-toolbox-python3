@@ -14,6 +14,7 @@ Contact: <roman.feldbauer@ofai.at>
 
 import sys
 import numpy as np
+from scipy.spatial.distance import cdist, pdist, squareform
 from sklearn.metrics.pairwise import euclidean_distances
 from hub_toolbox.Distances import cosine_distance as cos
 from hub_toolbox import IO
@@ -276,31 +277,16 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None, force_vect=False):
     """
     if Y is None:
         Y = X
-    n_test, m_test = X.shape
-    n_train, m_train = Y.shape
-    if m_test == m_train:
-        n_features = m_test
-    else:
+    if X.shape[1] != Y.shape[1]:
         raise ValueError("X and Y must have same number of features.")
     c = Y.mean(0)
-    x_c = ((Y - c) ** 2).sum(1)
-    if id(X) != id(Y): # i.e. no Y was provided
-        q_c = ((X - c) ** 2).sum(1)
-    else: # avoid duplicate calculations
+    x_c = cdist(Y, c[np.newaxis, :], 'sqeuclidean')
+    if id(X) == id(Y): # i.e. no Y was provided
         q_c = x_c
-    D_dsg = np.zeros((n_test, n_train))
-    if n_features < 2000 or force_vect:
-        # vectorized code faster for low dimensional data
-        for q in range(n_test):
-            x_q = ((Y - X[q, :]) ** 2).sum(axis=1)
-            D_dsg[q, :] = x_q - x_c - q_c[q]
-    else:
-        # non-vectorized code faster for high dimensional data
-        for q in range(n_test):
-            for x in range(n_train):
-                x_q = ((Y[x, :] - X[q, :]) ** 2).sum()
-                D_dsg[q, x] = x_q - x_c[x] - q_c[q]
-    return D_dsg
+    else: # avoid duplicate calculations
+        q_c = cdist(X, c[np.newaxis, :], 'sqeuclidean')
+    D_xq = cdist(Y, X, 'sqeuclidean')
+    return D_xq.T - x_c.T - q_c
 
 def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10,
                   D_X:np.ndarray=None, D_XY:np.ndarray=None):

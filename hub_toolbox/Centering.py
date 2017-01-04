@@ -280,13 +280,15 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None, force_vect=False):
     if X.shape[1] != Y.shape[1]:
         raise ValueError("X and Y must have same number of features.")
     c = Y.mean(0)
-    x_c = cdist(Y, c[np.newaxis, :], 'sqeuclidean')
+    x_c = euclidean_distances(Y, c[np.newaxis, :], squared=True)
     if id(X) == id(Y): # i.e. no Y was provided
         q_c = x_c
     else: # avoid duplicate calculations
-        q_c = cdist(X, c[np.newaxis, :], 'sqeuclidean')
-    D_xq = cdist(Y, X, 'sqeuclidean')
-    return D_xq.T - x_c.T - q_c
+        q_c = euclidean_distances(X, c[np.newaxis, :], squared=True)
+    D_xq = euclidean_distances(X, Y, squared=True)
+    D_xq -= x_c.T
+    D_xq -= q_c
+    return D_xq
 
 def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10,
                   D_X:np.ndarray=None, D_XY:np.ndarray=None):
@@ -366,7 +368,8 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10,
     for i in range(n_test):
         knn_idx = np.argsort(D_test[i, :])[:k]
         c_k_X[i] = Y[knn_idx].mean(axis=0)
-    x_c_k = ((X - c_k_X) ** 2).sum(axis=1)
+    x_c_k = cdist(X, c_k_X, 'sqeuclidean')
+    #x_c_k = ((X - c_k_X) ** 2).sum(axis=1)
     if id(Y) == id(X):
         c_k_Y = c_k_X
         y_c_k = x_c_k
@@ -375,8 +378,11 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10,
         for i in range(n_train):
             knn_idx = np.argsort(D_train[i, :])[:k]
             c_k_Y[i] = Y[knn_idx].mean(axis=0)
-        y_c_k = ((Y - c_k_Y) ** 2).sum(axis=1)
-
+        y_c_k = cdist(Y, c_k_Y, 'sqeuclidean')
+        #y_c_k = ((Y - c_k_Y) ** 2).sum(axis=1)
+    x_y = cdist(X, Y, 'sqeuclidean')
+    disSim = x_y - x_c_k[:, np.newaxis] - y_c_k[np.newaxis, :]
+    """
     # Calculate dissimilarities
     disSim = np.zeros_like(D_test)
     if n_features < 2000:
@@ -390,6 +396,7 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10,
             for y in range(n_train):
                 x_y = ((X[x] - Y[y]) ** 2).sum()
                 disSim[x, y] = x_y - x_c_k[x] - y_c_k[y]
+    """
     return disSim
 
 ###############################################################################

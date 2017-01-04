@@ -302,7 +302,8 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None, force_vect=False):
                 D_dsg[q, x] = x_q - x_c[x] - q_c[q]
     return D_dsg
 
-def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
+def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10,
+                  D_X:np.ndarray=None, D_XY:np.ndarray=None):
     """Calculate dissimilarity based on local 'sample-wise centrality' [1]_.
     
     Parameters
@@ -318,6 +319,19 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
     k : int, optional (default: 10)
         Neighborhood size used for determining the local centroids.
         Can be optimized as to maximally reduce hubness [1]_.
+
+    D_X : ndarray, optional
+        An ``n x n`` matrix containing the Euclidean distances between all
+        points in `X`. This is useful, if you use call dis_sim_local() more
+        than once with the same vectors. In this case you can calculate the
+        distances once upstream to avoid duplicate calculations.
+        Please use sklearn.metrics.pairwise.euclidean_distances to ensure
+        identical results.
+
+    D_XY : ndarray, optional
+        An ``n x s`` matrix containing the Euclidean distances between all
+        ``n`` points in `X` and all ``s`` points in Y. Please see above for
+        more details.
 
     Returns
     -------
@@ -346,14 +360,20 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
         raise ValueError("X and Y must have same number of features.")
 
     # Calc euclidean distances to find nearest neighbors among training data
-    D_train = euclidean_distances(Y)
+    if D_X is None:
+        D_train = euclidean_distances(Y)
+    else:
+        D_train = D_X
     if id(Y) == id(X):
         # Exclude self distances from kNN lists:
         np.fill_diagonal(D_train, np.inf)
         D_test = D_train
     else:
         # ... and between test and training data
-        D_test = euclidean_distances(X, Y)
+        if D_XY is None:
+            D_test = euclidean_distances(X, Y)
+        else:
+            D_test = D_XY
 
     # Local centroid for each point among its k-nearest training neighbors
     c_k_X = np.zeros_like(X)

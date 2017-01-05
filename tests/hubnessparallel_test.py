@@ -13,10 +13,9 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from hub_toolbox.HubnessAnalysis import load_dexter
 from hub_toolbox.Hubness_parallel import hubness as hubness_p
 from hub_toolbox.Hubness import hubness as hubness_s
-from hub_toolbox.IO import random_sparse_matrix
+from hub_toolbox.IO import random_sparse_matrix, load_dexter
 
 class TestHubnessParallel(unittest.TestCase):
     """

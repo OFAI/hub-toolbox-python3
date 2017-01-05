@@ -1062,6 +1062,8 @@ def mutual_proximity_custom(D:np.ndarray, distr:object, metric:str='distance',
     # Initialization
     n = D.shape[0]
     log = Logging.ConsoleLogging()
+    log.warning("This function is work-in-progress and may return "
+                "meaningless results, crash, etc.")
     
     # Checking input
     IO._check_distance_matrix_shape(D)

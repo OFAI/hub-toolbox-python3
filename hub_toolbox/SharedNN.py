@@ -16,24 +16,24 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 from hub_toolbox import IO
 
-def snn_sample(D:np.ndarray, k:int=10, metric='distance', 
+def snn_sample(D:np.ndarray, k:int=10, metric='distance',
                train_ind:np.ndarray=None, test_ind:np.ndarray=None):
     """Transform distance matrix using shared nearest neighbors [1]_.
-    
+
     __DRAFT_VERSION__
-    
-    SNN similarity is based on computing the overlap between the `k` nearest 
-    neighbors of two objects. SNN approaches try to symmetrize nearest neighbor 
+
+    SNN similarity is based on computing the overlap between the `k` nearest
+    neighbors of two objects. SNN approaches try to symmetrize nearest neighbor
     relations using only rank and not distance information [2]_.
-    
+
     Parameters
     ----------
     D : np.ndarray
         The ``n x n`` symmetric distance (similarity) matrix.
-        
+
     k : int, optional (default: 10)
         Neighborhood radius: The `k` nearest neighbors are used to calculate SNN.
-        
+
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether the matrix `D` is a distance or similarity matrix
 
@@ -42,7 +42,7 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
 
     test_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
-        
+
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set. 
 
@@ -53,13 +53,13 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
 
     References
     ---------- 
-    .. [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure 
-           based on shared near neighbors,” IEEE Transactions on Computers, 
+    .. [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure
+           based on shared near neighbors,” IEEE Transactions on Computers,
            vol. 22, pp. 1025–1034, 1973.
 
-    .. [2] Flexer, A., & Schnitzer, D. (2013). Can Shared Nearest Neighbors 
-           Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th 
-           International Conference on Data Mining Workshops, 460–467. 
+    .. [2] Flexer, A., & Schnitzer, D. (2013). Can Shared Nearest Neighbors
+           Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th
+           International Conference on Data Mining Workshops, 460–467.
            http://doi.org/10.1109/ICDMW.2013.101
     """
     IO._check_sample_shape_fits(D, train_ind)
@@ -75,7 +75,7 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
     distance = D.copy()
     n = distance.shape[0]
     if test_ind is None:
-        n_ind = range(n)    
+        n_ind = range(n)
     else:
         n_ind = test_ind
     # Exclude self distances
@@ -83,17 +83,17 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
         distance[sample, j] = exclude
 
     knn = np.zeros_like(distance, bool)
-    
+
     # find nearest neighbors for each point
     for i in range(n):
         di = distance[i, :]
         nn = np.argsort(di)[::sort_order]
         knn[i, nn[0:k]] = True
-    
+
     D_snn = np.zeros_like(distance)
     for i in n_ind:
         knn_i = knn[i, :]
-        
+
         # using broadcasting
         Dij = np.sum(np.logical_and(knn_i, knn[train_ind, :]), 1)
         if metric == 'distance':
@@ -110,22 +110,21 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
             D_snn[sample, j] = self_value
         return D_snn[test_ind]
 
-
 def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     """Transform distance matrix using shared nearest neighbors [1]_.
-    
-    SNN similarity is based on computing the overlap between the `k` nearest 
-    neighbors of two objects. SNN approaches try to symmetrize nearest neighbor 
+
+    SNN similarity is based on computing the overlap between the `k` nearest
+    neighbors of two objects. SNN approaches try to symmetrize nearest neighbor
     relations using only rank and not distance information [2]_.
-    
+
     Parameters
     ----------
     D : np.ndarray
         The ``n x n`` symmetric distance (similarity) matrix.
-        
+
     k : int, optional (default: 10)
         Neighborhood radius: The `k` nearest neighbors are used to calculate SNN.
-        
+
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether the matrix `D` is a distance or similarity matrix
 
@@ -133,16 +132,16 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     -------
     D_snn : ndarray
         Secondary distance SNN matrix
-        
+
     References
     ---------- 
-    .. [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure 
-           based on shared near neighbors,” IEEE Transactions on Computers, 
+    .. [1] R. Jarvis and E. A. Patrick, “Clustering using a similarity measure
+           based on shared near neighbors,” IEEE Transactions on Computers,
            vol. 22, pp. 1025–1034, 1973.
-    
-    .. [2] Flexer, A., & Schnitzer, D. (2013). Can Shared Nearest Neighbors 
-           Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th 
-           International Conference on Data Mining Workshops, 460–467. 
+
+    .. [2] Flexer, A., & Schnitzer, D. (2013). Can Shared Nearest Neighbors
+           Reduce Hubness in High-Dimensional Spaces? 2013 IEEE 13th
+           International Conference on Data Mining Workshops, 460–467.
            http://doi.org/10.1109/ICDMW.2013.101
     """
     IO._check_distance_matrix_shape(D)
@@ -155,38 +154,38 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
         self_value = 1.
         sort_order = -1
         exclude = -np.inf
-    
+
     distance = D.copy()
     np.fill_diagonal(distance, exclude)
     n = np.shape(distance)[0]
     knn = np.zeros_like(distance, bool)
-    
+
     # find nearest neighbors for each point
     for i in range(n):
         di = distance[i, :]
         nn = np.argsort(di)[::sort_order]
         knn[i, nn[0:k]] = True
-    
+
     D_snn = np.zeros_like(distance)
     for i in range(n):
         knn_i = knn[i, :]
         j_idx = slice(i+1, n)
-        
+
         # using broadcasting
         Dij = np.sum(np.logical_and(knn_i, knn[j_idx, :]), 1)
         if metric == 'distance':
             D_snn[i, j_idx] = 1. - Dij / k
         else: # metric == 'similarity':
             D_snn[i, j_idx] = Dij / k
-        
+
     D_snn += D_snn.T
     np.fill_diagonal(D_snn, self_value)
     return D_snn
 
-def simhubIN(D:np.ndarray, train_ind:np.ndarray=None, 
+def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
              test_ind:np.ndarray=None, s:int=50, return_distances:bool=True):
     """Calculate dissimilarity based on hubness-aware SNN distances [1]_.
-    
+
     Parameters
     ----------
     D : ndarray
@@ -215,7 +214,7 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     -------
     D_shi : ndarray
         Secondary distance (simhubIN) matrix.
-        
+
     References
     ----------
     .. [1] Tomašev, N., Mladenić, D., Tomasev, N., & Mladenić, D. (2012).
@@ -235,7 +234,7 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     distance = D.copy()
     n, m = distance.shape
     if test_ind is None:
-        n_ind = range(n)    
+        n_ind = range(n)
     else:
         n_ind = test_ind
     # Exclude self distances
@@ -246,14 +245,14 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
             distance[sample, j] = exclude
 
     knn = np.zeros_like(distance, bool)
-    
+
     # find nearest neighbors for each point
     for i in range(n):
         di = distance[i, :]
         nn = np.argsort(di)[::sort_order]
         knn[i, nn[:s]] = True
     del distance
-    
+
     # "Occurence informativeness"
     occ_inf_knn = knn[:m, :].copy()
     np.fill_diagonal(occ_inf_knn, True)
@@ -297,7 +296,7 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
            test_ind:np.ndarray=None, s:int=50, return_distances:bool=True,
            vect_usage:int=0):
     """Calculate dissimilarity based on hubness-aware SNN distances [1]_.
-    
+
     Parameters
     ----------
     D : ndarray
@@ -336,7 +335,7 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
     -------
     D_shi : ndarray
         Secondary distance (simhubIN) matrix.
-        
+
     References
     ----------
     .. [1] Tomašev, N., Mladenić, D.(2012).
@@ -359,7 +358,7 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
         raise ValueError("Neighbor hood size s, must be [1, {}-1], but "
                          "was {}.".format(m, s))
     if test_ind is None:
-        n_ind = range(n)    
+        n_ind = range(n)
     else:
         n_ind = test_ind
     # Exclude self distances
@@ -377,14 +376,14 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
         nn = np.argsort(di)[::sort_order]
         knn[i, nn[:s]] = True
     del distance
-    
+
     # Reverse nearest neighbor count
     N_s = knn[:m, :].sum(axis=0)
 
     if y is not None:
         # Set of class labels
         C = np.unique(y)
-        
+
         # Class specific reverse nearest neighbors
         N_sc = np.zeros((C.size, m))
         for c_idx, c_val in enumerate(C):

@@ -15,7 +15,6 @@ import unittest
 import numpy as np
 from hub_toolbox.Distances import euclidean_distance
 from hub_toolbox.MutualProximity import mutual_proximity_empiric as mpe_s
-from hub_toolbox.MutualProximity import mutual_proximity_gauss as mpmvn_s
 from hub_toolbox.MutualProximity import mutual_proximity_gaussi as mpmvni_s
 from hub_toolbox.MutualProximity import mutual_proximity_gammai as mpgam_s 
 from hub_toolbox.MutualProximity_parallel import mutual_proximity_empiric, \

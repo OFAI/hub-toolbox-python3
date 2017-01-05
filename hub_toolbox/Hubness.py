@@ -13,11 +13,10 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-import sys
+import multiprocessing as mp
 import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
-import multiprocessing as mp
 from hub_toolbox import IO, Logging
 
 def hubness(D:np.ndarray, k:int=5, metric='distance',
@@ -84,9 +83,9 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     # Initialization
     n = D.shape[0]
     D = D.copy()
-    D_k = np.zeros((k, D.shape[1]), dtype=np.float32 )
+    D_k = np.zeros((k, D.shape[1]), dtype=np.float32)
 
-    if issparse(D): 
+    if issparse(D):
         pass # correct self-distance must be ensured upstream for sparse
     else:
         # Set self dist to inf
@@ -104,13 +103,13 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     batches = []
     batch_size = n // NUMBER_OF_PROCESSES
     for i in range(NUMBER_OF_PROCESSES-1):
-        batches.append( np.arange(i*batch_size, (i+1)*batch_size) )
-    batches.append( np.arange((NUMBER_OF_PROCESSES-1)*batch_size, n) )
+        batches.append(np.arange(i*batch_size, (i+1)*batch_size))
+    batches.append(np.arange((NUMBER_OF_PROCESSES-1)*batch_size, n))
 
     for idx, batch in enumerate(batches):
         submatrix = D[batch[0]:batch[-1]+1]
         tasks.append((_partial_hubness,
-                     (k, d_self, log, sort_order,
+                      (k, d_self, log, sort_order,
                       batch, submatrix, idx, n, verbose)))
 
     task_queue = mp.Queue()
@@ -125,7 +124,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     for i in range(len(tasks)):
         rows, Dk_part = done_queue.get()
         D_k[:, rows[0]:rows[-1]+1] = Dk_part
-        
+
     for i in range(NUMBER_OF_PROCESSES):
         task_queue.put('STOP')
 
@@ -139,7 +138,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
 
     # return hubness, k-nearest neighbors, N occurence
     return S_k, D_k, N_k
-        
+
 def _worker(work_input, work_output):
     """A helper function for cv parallelization."""
     for func, args in iter(work_input.get, 'STOP'):
@@ -150,7 +149,7 @@ def _calculate(func, args):
     """A helper function for cv parallelization."""
     return func(*args)
 
-def _partial_hubness(k, d_self, log, sort_order, 
+def _partial_hubness(k, d_self, log, sort_order,
                      rows, submatrix, idx, n, verbose):
     """Parallel hubness calculation: Get k nearest neighbors for all points
     in 'rows'"""
@@ -212,8 +211,8 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
             d = D[i, :]
         d[i] = d_self
         d[~np.isfinite(d)] = d_self
-        # Randomize equal values in the distance matrix rows to avoid the 
-        # problem case if all numbers to sort are the same, which would yield 
+        # Randomize equal values in the distance matrix rows to avoid the
+        # problem case if all numbers to sort are the same, which would yield
         # high hubness, even if there is none.
         rp = np.random.permutation(n)
         d2 = d[rp]
@@ -229,45 +228,6 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
     if verbose:
         log.message("Hubness calculation done.", flush=True)
     return S_k, D_k, N_k
-
-
-class Hubness(): # pragma: no cover
-    """
-    .. note:: Deprecated in hub-toolbox 2.3
-              Class will be removed in hub-toolbox 3.0.
-              Please use static functions instead.
-    """
-
-    def __init__(self, D, k:int=5, isSimilarityMatrix:bool=False):
-        self.log = Logging.ConsoleLogging()
-        if isinstance(D, np.memmap):
-            self.D = D
-        else:
-            self.D = IO.copy_D_or_load_memmap(D, writeable=False)
-        self.k = k
-        if isSimilarityMatrix:
-            self.d_self = -np.inf
-            self.sort_order = -1 # descending, interested in highest similarity
-        else:
-            self.d_self = np.inf
-            self.sort_order = 1 # ascending, interested in smallest distance
-        np.random.seed()
-
-    def calculate_hubness(self, debug=False):
-        """Calculate hubness.
-
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        print("DEPRECATED: Please use Hubness.hubness().", file=sys.stderr)
-        if self.sort_order == 1:
-            metric = 'distance'
-        elif self.sort_order == -1:
-            metric = 'similarity'
-        else:
-            raise ValueError("sort_order must be -1 or 1.")
-        return hubness(self.D, self.k, metric, debug)
 
 if __name__ == '__main__':
     # Simple test case

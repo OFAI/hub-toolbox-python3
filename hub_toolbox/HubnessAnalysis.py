@@ -394,16 +394,6 @@ class HubnessExperiment():
                                               metric=self.metric)
         return self
 
-def load_dexter():
-    """Load the dexter data set.
-
-    .. note:: Deprecated in hub-toolbox 2.3
-              Will be removed in hub-toolbox 3.0.
-              Please use IO.load_dexter() instead.
-    """
-
-    return IO.load_dexter()
-
 if __name__ == "__main__":
     hub = HubnessAnalysis()
     hub.analyze_hubness()

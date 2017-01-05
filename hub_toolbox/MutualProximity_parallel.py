@@ -13,8 +13,6 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-import sys
-from enum import Enum
 import multiprocessing as mp
 import numpy as np
 from scipy.special import gammainc  # @UnresolvedImport
@@ -655,148 +653,12 @@ def _local_gamcdf(x, a, b, mv=np.nan):
         z = x / b
         p = gammainc(a, z)
     return p
-    
-##############################################################################
-#
-# DEPRECATED class
-#
-class MutualProximity(): # pragma: no cover
-    """
-    .. note:: Deprecated in hub-toolbox 2.3
-              Class will be removed in hub-toolbox 3.0.
-              Please use static functions instead.
-    """
-    
-    def __init__(self, D, isSimilarityMatrix=False, missing_values=None, tmp='/tmp/'):
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        print("DEPRECATED: Please use the appropriate MutualProximity_parallel."
-              "mutual_proximity_DISTRIBUTIONTYPE() function instead.", 
-              file=sys.stderr)
-        self.D = IO.copy_D_or_load_memmap(D, writeable=True)
-        self.log = Logging.ConsoleLogging()
-        if isSimilarityMatrix:
-            self.self_value = 1
-        else:
-            self.self_value = 0
-        self.isSimilarityMatrix = isSimilarityMatrix
-        self.tmp = tmp
-        if missing_values is None:
-            if issparse(D):
-                self.mv = 0
-            else:
-                self.mv = None
-        else: 
-            self.mv = missing_values
-        
-    def calculate_mutual_proximity(self, distrType=None, test_set_mask=None, 
-                                   verbose=False, sample_size=0, empspex=False, 
-                                   n_jobs=-1):
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        
-        if verbose:
-            self.log.message('Mutual proximity rescaling started.', flush=True)
-            
-        if test_set_mask is not None:
-            train_set_mask = np.setdiff1d(np.arange(self.D.shape[0]), 
-                                          test_set_mask)
-        else:
-            train_set_mask = np.ones(self.D.shape[0], np.bool)
-            
-        if distrType is None:
-            self.log.message("No Mutual Proximity type given. "
-                             "Using: Distribution.empiric. "
-                             "For fast results use: Distribution.gaussi")
-            Dmp = self.mp_empiric(train_set_mask, verbose, empspex, n_jobs)
-        else:
-            if distrType == Distribution.empiric:
-                Dmp = self.mp_empiric(train_set_mask, verbose, empspex, n_jobs)
-            elif distrType == Distribution.gaussi:
-                Dmp = self.mp_gaussi(train_set_mask,verbose,sample_size,n_jobs)
-            elif distrType == Distribution.gammai:
-                Dmp = self.mp_gammai(train_set_mask, verbose, n_jobs)
-            else:
-                self.log.warning("Valid Mutual Proximity type missing!\n"+\
-                             "Use: \n"+\
-                             "mp = MutualProximity(D, Distribution.empiric|"+\
-                             "Distribution.gaussi|"+\
-                             "Distribution.gammi)\n"+\
-                             "Dmp = mp.calculate_mutual_proximity()")
-                Dmp = np.array([])
-       
-        return Dmp
-                           
-    def mp_empiric(self, train_set_mask=None, verbose=False, 
-                   empspex=False, n_jobs=-1):
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """ 
-        if self.isSimilarityMatrix:
-            metric = 'similarity'
-        else:
-            metric = 'distance' 
-        if train_set_mask is not None:
-            test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), 
-                                        train_set_mask)
-        return mutual_proximity_empiric(self.D, metric, test_set_ind, verbose)
-    
-    def mp_gaussi(self, train_set_mask=None, verbose=False, 
-                  sample_size=0, n_jobs=-1):
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        if self.isSimilarityMatrix:
-            metric = 'similarity'
-        else:
-            metric = 'distance' 
-        if train_set_mask is not None:
-            test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), 
-                                        train_set_mask)
-        return mutual_proximity_gaussi(self.D, metric, sample_size, 
-                                       test_set_ind, verbose, n_jobs, self.mv)
-            
-    def mp_gammai(self, train_set_mask=None, verbose=False, n_jobs=-1):
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        if self.isSimilarityMatrix:
-            metric = 'similarity'
-        else:
-            metric = 'distance' 
-        if train_set_mask is not None:
-            test_set_ind = np.setdiff1d(np.arange(self.D.shape[0]), 
-                                        train_set_mask)
-        return mutual_proximity_gammai(self.D, metric, test_set_ind, 
-                                       verbose, n_jobs, self.mv)
- 
-class Distribution(Enum): # pragma: no cover
-    """
-    .. note:: Deprecated in hub-toolbox 2.3
-              Class will be removed in hub-toolbox 3.0.
-              Functions now take str parameters directly.
-    """
-    empiric = 'empiric'
-    gaussi = 'gaussi'
-    gammai = 'gammai'
-    
+
 if __name__ == '__main__':
     """Test mp emp similarity sparse sequential & parallel implementations"""
     from scipy.sparse import rand, triu
     from hub_toolbox.Hubness import hubness
-    from hub_toolbox.HubnessAnalysis import load_dexter
+    from hub_toolbox.IO import load_dexter
     from hub_toolbox.KnnClassification import score
     #do = 'random'
     do = 'dexter'

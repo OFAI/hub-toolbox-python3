@@ -19,7 +19,6 @@ Reference:  E. Levina and P.J. Bickel (2005).
  "Maximum Likelihood Estimation  of Intrinsic Dimension."
  In Advances in NIPS 17, Eds. L. K. Saul, Y. Weiss, L. Bottou.
 """
-import sys
 import numpy as np
 
 def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
@@ -137,7 +136,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         # knnmatrix = np.log(distance[:, 1:k2+1])
         #=======================================================================
     else:
-        raise ValueError("Parameter 'metric' must be 'vector' or 'distance'.")
+        raise ValueError("Parameter `metric` must be 'vector'.")
 
     # Compute the ML estimate
     S = np.cumsum(knnmatrix, 1)

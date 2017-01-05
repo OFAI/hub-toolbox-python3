@@ -15,7 +15,7 @@ import unittest
 import numpy as np
 from hub_toolbox.Centering import centering, weighted_centering, \
     localized_centering, dis_sim_global, dis_sim_local
-from hub_toolbox.HubnessAnalysis import load_dexter
+from hub_toolbox.IO import load_dexter
 from sklearn.preprocessing import StandardScaler
 from hub_toolbox.Hubness import hubness
 from hub_toolbox.KnnClassification import score

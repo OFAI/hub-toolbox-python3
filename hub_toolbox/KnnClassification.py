@@ -13,7 +13,6 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-import sys
 import numpy as np
 from scipy.sparse.base import issparse
 from hub_toolbox import Logging, IO

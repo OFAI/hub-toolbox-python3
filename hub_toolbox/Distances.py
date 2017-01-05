@@ -13,7 +13,6 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-from enum import Enum
 import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 try: # for scikit-learn >= 0.18
@@ -35,7 +34,10 @@ def cosine_distance(X):
     return D
 
 def euclidean_distance(X):
-    """Calculate the euclidean distances between all pairs of vectors in `X`."""
+    """Calculate the euclidean distances between all pairs of vectors in `X`.
+    
+    Consider using sklearn.metric.pairwise.euclidean_distances for faster,
+    but less accurate distances (not necessarily symmetric, too)."""
     return squareform(pdist(X, 'euclidean'))
 
 def lp_norm(X:np.ndarray, Y:np.ndarray=None, p:float=None, n_jobs:int=1):
@@ -171,14 +173,3 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a',
     
     D = cdist(X, X[y_sample, :], metric=metric)
     return D, y_sample
-
-class Distance(Enum):
-    """Enum for distance metrics.
-
-    .. note:: Deprecated in hub-toolbox 2.3
-              Class will be removed in hub-toolbox 3.0.
-              All functions now take str parameters directly.
-    """
-    cosine = 'cosine'
-    euclidean = 'euclidean'
-    skl = 'skl'

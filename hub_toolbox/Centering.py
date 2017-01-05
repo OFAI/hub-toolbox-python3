@@ -14,7 +14,6 @@ Contact: <roman.feldbauer@ofai.at>
 
 import sys
 import numpy as np
-from scipy.spatial.distance import cdist, pdist, squareform
 from sklearn.metrics.pairwise import euclidean_distances
 from hub_toolbox.Distances import cosine_distance as cos
 from hub_toolbox import IO
@@ -243,7 +242,7 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
     sim -= local_affinity
     return sim
 
-def dis_sim_global(X:np.ndarray, Y:np.ndarray=None, force_vect=False):
+def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
     """
     Calculate dissimilarity based on global 'sample-wise centrality' [1]_.
     
@@ -256,10 +255,6 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None, force_vect=False):
     Y : ndarray, optional
         If Y is provided, calculate dissimilarities between all test data
         in `X` and all training data in `Y`.
-
-    force_vect : boolean, optional
-        If False, use vectorized code only for low dimensional datasets.
-        Otherwise, also use it for high dimensional datasets.
 
     Returns
     -------
@@ -360,6 +355,7 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
         Y -= c_k_Y
         Y **= 2
         y_c_k = Y.sum(axis=1)
+    # DisSimLocal
     x_y = D_test
     x_y -= x_c_k[:, np.newaxis]
     x_y -= y_c_k

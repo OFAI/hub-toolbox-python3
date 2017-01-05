@@ -19,9 +19,9 @@ except ImportError: # lower scikit-learn versions
     from sklearn.cross_validation import LeaveOneOut, cross_val_predict
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
-from hub_toolbox.HubnessAnalysis import load_dexter
-from hub_toolbox.KnnClassification import score
 from hub_toolbox.Distances import sample_distance
+from hub_toolbox.IO import load_dexter
+from hub_toolbox.KnnClassification import score
 
 class TestKnnClassification(unittest.TestCase):
 

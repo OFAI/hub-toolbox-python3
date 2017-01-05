@@ -13,7 +13,6 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-import sys
 import numpy as np
 from hub_toolbox import IO
 
@@ -471,38 +470,3 @@ if __name__ == '__main__':
     print("kNN SNN:", acc_snn[0][0, 0])
     print("kNN SHI:", acc[0][0, 0])
     print("kNN SH :", acc_sh[0][0, 0])
-
-
-class SharedNN(): # pragma: no cover
-    """
-    .. note:: Deprecated in hub-toolbox 2.3
-              Class will be removed in hub-toolbox 3.0.
-              Please use static functions instead.
-    """
-    def __init__(self, D, k=10, isSimilarityMatrix=False):
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        print("DEPRECATED: Please use SharedNN.shared_nearest_neighbors() "
-              "instead.", file=sys.stderr)
-        self.D = np.copy(D)
-        self.k = k
-        if isSimilarityMatrix:
-            self.sort_order = -1
-        else:
-            self.sort_order = 1
-        
-    def perform_snn(self):
-        """Transform distance matrix using shared nearest neighbor.
-
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        if self.sort_order == -1:
-            metric = 'similarity'
-        else:
-            metric = 'distance'
-        return shared_nearest_neighbors(self.D, self.k, metric)

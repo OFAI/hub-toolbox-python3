@@ -403,35 +403,3 @@ def _naive_goodman_kruskal(D:np.ndarray, labels:np.ndarray, metric='distance'):
         return (Q_d - Q_c) / (Q_c + Q_d)
     else: # metric == 'distance':
         return (Q_c - Q_d) / (Q_c + Q_d)
-
-# DEPRECATED class GoodmanKruskal. Remove for next hub_toolbox release.
-class GoodmanKruskal(): # pragma: no cover
-    """
-    .. note:: Deprecated in hub-toolbox 2.3
-              Class will be removed in hub-toolbox 3.0.
-              Please use static functions instead.
-    """
-    
-    def __init__(self, D, classes, isSimilarityMatrix=False):
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        print("DEPRECATED: Please use GoodmanKruskal.goodman_kruskal_index "
-              "instead.", file=sys.stderr)
-        self.D = D
-        self.classes = classes
-        self.is_similarity_matrix = isSimilarityMatrix
-        
-    def calculate_goodman_kruskal_index(self) -> float:
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        if self.is_similarity_matrix:
-            metric = 'similarity'
-        else:
-            metric = 'distance'
-        return goodman_kruskal_index(self.D, self.classes, metric)

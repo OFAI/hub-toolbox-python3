@@ -313,9 +313,12 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
            1659–1665. Retrieved from http://www.aaai.org/ocs/index.php/AAAI/
            AAAI16/paper/download/12055/11787
     """
+    X = X.copy()
     # all-against-all dissimilarities?
     if Y is None:
         Y = X
+    else:
+        Y = Y.copy()
 
     # dataset size and dimensionality
     n_test, m_test = X.shape

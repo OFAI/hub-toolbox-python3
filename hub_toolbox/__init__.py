@@ -13,6 +13,8 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+__version__ = '2.4.0dev1'
+
 try:
     import numpy
     import scipy

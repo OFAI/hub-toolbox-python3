@@ -30,7 +30,7 @@ If this succeeds with an 'OK' message, you are ready to go.
 Otherwise you may consider filing a bug report on github.
 (Some skipped tests are perfectly fine, though.)
 """
-import sys
+import re, os, sys
 if sys.version_info < (3, 4):
     sys.stdout.write("The HUB TOOLBOX requires Python 3.4 or higher.\n"
                      "Please try to run as python3 setup.py or\n"
@@ -56,9 +56,22 @@ except ImportError:
     warnings.warn("setuptools not found, resorting to distutils. "
                   "Unit tests won't be discovered automatically.")
 
+# Parsing current version number
+# Adapted from the Lasagne project at
+# https://github.com/Lasagne/Lasagne/blob/master/setup.py
+here = os.path.abspath(os.path.dirname(__file__))
+try:
+    # obtain version string from __init__.py
+    # Read ASCII file with builtin open() so __version__ is str in Python 2 and 3
+    with open(os.path.join(here, 'hub_toolbox', '__init__.py'), 'r') as f:
+        init_py = f.read()
+    version = re.search('__version__ = "(.*)"', init_py).groups()[0]
+except Exception:
+    version = ''
+
 setup(
     name = "hub_toolbox",
-    version = "2.3.1",
+    version = version,
     author = "Roman Feldbauer",
     author_email = "roman.feldbauer@ofai.at",
     maintainer = "Roman Feldbauer",

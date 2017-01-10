@@ -65,7 +65,7 @@ try:
     # Read ASCII file with builtin open() so __version__ is str in Python 2 and 3
     with open(os.path.join(here, 'hub_toolbox', '__init__.py'), 'r') as f:
         init_py = f.read()
-    version = re.search('__version__ = "(.*)"', init_py).groups()[0]
+    version = re.search("__version__ = '(.*)'", init_py).groups()[0]
 except Exception:
     version = ''
 

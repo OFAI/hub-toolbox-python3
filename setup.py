@@ -32,7 +32,7 @@ Otherwise you may consider filing a bug report on github.
 """
 import sys
 if sys.version_info < (3, 4):
-    sys.stdout.write("The HUB TOOLBOX requires Python 3.4\n"
+    sys.stdout.write("The HUB TOOLBOX requires Python 3.4 or higher.\n"
                      "Please try to run as python3 setup.py or\n"
                      "update your Python environment.\n"
                      "Consider using Anaconda for easy package handling.\n")
@@ -76,6 +76,9 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 "
         "or later (GPLv3+)",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.4",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
         "Topic :: Scientific/Engineering"
     ],
     **setup_options

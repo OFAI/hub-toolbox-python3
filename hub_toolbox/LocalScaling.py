@@ -129,7 +129,7 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
         return D_ls[test_ind]
 
 def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
-                  test_set_ind:np.ndarray=None):
+                  test_ind:np.ndarray=None):
     """Transform a distance matrix with Local Scaling.
 
     Transforms the given distance matrix into new one using local scaling [1]_
@@ -150,7 +150,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
 
         NOTE: self similarities in sparse `D_ls` are set to ``np.inf``
 
-    test_sed_ind : ndarray, optional (default: None)
+    test_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
 
         - None : Rescale all distances
@@ -189,10 +189,10 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
 
     D = np.copy(D)
     n = D.shape[0]
-    if test_set_ind is None:
+    if test_ind is None:
         train_set_ind = slice(0, n) #take all        
     else:
-        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+        train_set_ind = np.setdiff1d(np.arange(n), test_ind)
 
     r = np.zeros(n)
     for i in range(n):
@@ -323,7 +323,7 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
         return D_nicdm[test_ind]
 
 def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
-          test_set_ind:np.ndarray=None):
+          test_ind:np.ndarray=None):
     """Transform a distance matrix with local scaling variant NICDM.
 
     Transforms the given distance matrix into new one using NICDM [1]_
@@ -343,7 +343,7 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     metric : {'distance'}, optional (default: 'distance')
         Currently, only distance matrices are supported.
 
-    test_sed_ind : ndarray, optional (default: None)
+    test_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
 
         - None : Rescale all distances
@@ -378,10 +378,10 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
 
     n = D.shape[0]
 
-    if test_set_ind is None:
+    if test_ind is None:
         train_set_ind = slice(0, n)
     else:
-        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+        train_set_ind = np.setdiff1d(np.arange(n), test_ind)
 
     knn = np.zeros((n, k))
     r = np.zeros(n)

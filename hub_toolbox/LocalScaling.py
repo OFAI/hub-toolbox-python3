@@ -311,8 +311,8 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
     D_nicdm = np.zeros_like(D)
     for i in n_ind:
         # vectorized inner loop (using broadcasting)
-        #D_nicdm[i, :] = (r_geom * D[i, :]) / np.sqrt(r[i] * r[train_ind])
-        D_nicdm[i, :] = ((r_geom**2) * D[i, :]) / (r[i] * r[train_ind])
+        D_nicdm[i, :] = (r_geom * D[i, :]) / np.sqrt(r[i] * r[train_ind])
+        #D_nicdm[i, :] = ((r_geom**2) * D[i, :]) / (r[i] * r[train_ind])
 
     # Ensure correct self distances and return sec. dist. matrix
     if test_ind is None:
@@ -399,8 +399,8 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     D_nicdm = np.zeros_like(D)
     for i in range(n):
         # vectorized inner loop for 100x speed-up (using broadcasting)
-        D_nicdm[i, i+1:] = ((r_geom**2) * D[i, i+1:]) / (r[i] * r[i+1:])
-        #D_nicdm[i, i+1:] = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
+        #D_nicdm[i, i+1:] = ((r_geom**2) * D[i, i+1:]) / (r[i] * r[i+1:])
+        D_nicdm[i, i+1:] = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
     D_nicdm += D_nicdm.T
 
     return D_nicdm

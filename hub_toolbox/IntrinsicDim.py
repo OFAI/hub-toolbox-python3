@@ -108,14 +108,14 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
             distance = X2.reshape(-1, 1) + X2 - 2*np.dot(X, X.T) #2x br.cast
             distance.sort(1)
             # Replace invalid values with a small number
-            distance[distance<0] = 1e-7
+            distance[distance<=0] = 1e-7
             knnmatrix = .5 * np.log(distance[:, 1:k2+1])
         else:
             knnmatrix = np.zeros((n, k2))
             for i in range(n):
                 distance = np.sort(X2[i] + X2 - 2 * np.dot(X, X[i, :]))
                 # Replace invalid values with a small number
-                distance[distance < 0] = 1e-7
+                distance[distance <= 0] = 1e-7
                 knnmatrix[i, :] = .5 * np.log(distance[1:k2+1])
     elif metric == 'distance':
         raise NotImplementedError("ID currently only supports vector data.")

@@ -30,10 +30,14 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     Parameters
     ----------
     D : ndarray
-        The ``n x n`` symmetric distance (similarity) matrix.
+        The ``n x n`` symmetric distance (similarity) matrix or
+        an ``n x m`` partial distances matrix (e.g. for train/test splits,
+        with test objects in rows, train objects in column)
+        
+        NOTE: Partial distance matrices MUST NOT contain self distances.
 
     k : int, optional (default: 5)
-        Neighborhood size for `k`-occurence.
+        Neighborhood size for `k`-occurrence.
 
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether matrix `D` is a distance or similarity matrix
@@ -49,11 +53,11 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     Returns
     -------
     S_k : float
-        Hubness (skewness of `k`-occurence distribution)
+        Hubness (skewness of `k`-occurrence distribution)
     D_k : ndarray
         `k`-nearest neighbor lists
     N_k : ndarray
-        `k`-occurence list
+        `k`-occurrence list
 
     References
     ----------
@@ -68,7 +72,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         return _hubness_no_multiprocessing(D=D, k=k, metric=metric,
                                            verbose=verbose)
     log = Logging.ConsoleLogging()
-    IO._check_distance_matrix_shape(D)
+    IO._check_is_nD_array(arr=D, n=2, arr_type='Distance')
     IO._check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
@@ -78,18 +82,21 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         sort_order = -1
 
     if verbose:
-        log.message("Hubness calculation (skewness of {}-occurence)".format(k))
+        log.message("Hubness calculation (skewness of {}-occurrence)".format(k))
 
     # Initialization
-    n = D.shape[0]
+    n, m = D.shape
     D = D.copy()
-    D_k = np.zeros((k, D.shape[1]), dtype=np.float32)
+    D_k = np.zeros((n, k), dtype=np.float64)
 
     if issparse(D):
         pass # correct self-distance must be ensured upstream for sparse
     else:
-        # Set self dist to inf
-        np.fill_diagonal(D, d_self)
+        if n == m:
+            # Set self dist to inf
+            np.fill_diagonal(D, d_self)
+        else:
+            pass # Partial distance matrices MUST NOT contain self distances
         # make non-finite (NaN, Inf) appear at the end of the sorted list
         D[~np.isfinite(D)] = d_self
 
@@ -110,7 +117,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         submatrix = D[batch[0]:batch[-1]+1]
         tasks.append((_partial_hubness,
                       (k, d_self, log, sort_order,
-                      batch, submatrix, idx, n, verbose)))
+                      batch, submatrix, idx, n, m, verbose)))
 
     task_queue = mp.Queue()
     done_queue = mp.Queue()
@@ -123,13 +130,14 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
 
     for i in range(len(tasks)):
         rows, Dk_part = done_queue.get()
-        D_k[:, rows[0]:rows[-1]+1] = Dk_part
+        #D_k[:, rows[0]:rows[-1]+1] = Dk_part
+        D_k[rows[0]:rows[-1]+1, :] = Dk_part
 
     for i in range(NUMBER_OF_PROCESSES):
         task_queue.put('STOP')
 
     # k-occurence
-    N_k = np.bincount(D_k.astype(int).ravel())
+    N_k = np.bincount(D_k.astype(int).ravel(), minlength=m)
     # Hubness
     S_k = stats.skew(N_k)
 
@@ -137,7 +145,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         log.message("Hubness calculation done.", flush=True)
 
     # return hubness, k-nearest neighbors, N occurence
-    return S_k, D_k, N_k
+    return S_k, D_k.T, N_k
 
 def _worker(work_input, work_output):
     """A helper function for cv parallelization."""
@@ -150,11 +158,11 @@ def _calculate(func, args):
     return func(*args)
 
 def _partial_hubness(k, d_self, log, sort_order,
-                     rows, submatrix, idx, n, verbose):
+                     rows, submatrix, idx, n, m, verbose):
     """Parallel hubness calculation: Get k nearest neighbors for all points
     in 'rows'"""
 
-    Dk = np.zeros((k, len(rows)), dtype=np.float32)
+    Dk = np.zeros((len(rows), k), dtype=np.float64)
 
     for i, row in enumerate(submatrix):
         if verbose and ((rows[i]+1)%10000==0 or rows[i]+1==n):
@@ -168,10 +176,10 @@ def _partial_hubness(k, d_self, log, sort_order,
         # randomize the distance matrix rows to avoid the problem case
         # if all numbers to sort are the same, which would yield high
         # hubness, even if there is none
-        rp = np.random.permutation(n)
+        rp = np.random.permutation(m)
         d2 = d[rp]
         d2idx = np.argsort(d2, axis=0)[::sort_order]
-        Dk[:, i] = rp[d2idx[0:k]]
+        Dk[i, :] = rp[d2idx[:k]]
 
     return [rows, Dk]
 
@@ -179,7 +187,7 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
                                 verbose:int=0):
     """ Hubness calculations without multiprocessing overhead. """
     log = Logging.ConsoleLogging()
-    IO._check_distance_matrix_shape(D)
+    IO._check_is_nD_array(arr=D, n=2, arr_type='Distance')
     IO._check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
@@ -191,14 +199,17 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
     if verbose:
         log.message("Hubness calculation (skewness of {}-occurence)".format(k))
     D = D.copy()
-    D_k = np.zeros((k, D.shape[1]), dtype=np.float32)
-    n = D.shape[0]
-
+    n, m = D.shape
+    D_k = np.zeros((n, k), dtype=np.float64)
+    
     if issparse(D):
         pass # correct self-distance must be ensured upstream for sparse
     else:
-        # Set self dist to inf
-        np.fill_diagonal(D, d_self)
+        if n == m:
+            # Set self dist to inf
+            np.fill_diagonal(D, d_self)
+        else:
+            pass # a partial distances matrix should not contain self distances
         # make non-finite (NaN, Inf) appear at the end of the sorted list
         D[~np.isfinite(D)] = d_self
 
@@ -214,20 +225,20 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
         # Randomize equal values in the distance matrix rows to avoid the
         # problem case if all numbers to sort are the same, which would yield
         # high hubness, even if there is none.
-        rp = np.random.permutation(n)
+        rp = np.random.permutation(m)
         d2 = d[rp]
         d2idx = np.argsort(d2, axis=0)[::sort_order]
-        D_k[:, i] = rp[d2idx[0:k]]
+        D_k[i, :] = rp[d2idx[:k]]
 
     # N-occurence
-    N_k = np.bincount(D_k.astype(int).ravel(), minlength=n)
+    N_k = np.bincount(D_k.astype(int).ravel(), minlength=m)
     # Hubness
     S_k = stats.skew(N_k)
 
     # return k-hubness, k-nearest neighbors, k-occurence
     if verbose:
         log.message("Hubness calculation done.", flush=True)
-    return S_k, D_k, N_k
+    return S_k, D_k.T, N_k
 
 if __name__ == '__main__':
     # Simple test case

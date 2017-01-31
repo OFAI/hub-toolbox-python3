@@ -20,7 +20,7 @@ from scipy.sparse.base import issparse
 from hub_toolbox import IO, Logging
 
 def hubness(D:np.ndarray, k:int=5, metric='distance',
-            verbose:int=0, n_jobs:int=1):
+            verbose:int=0, n_jobs:int=1, random_state=None):
     """Compute hubness of a distance matrix.
 
     Hubness [1]_ is the skewness of the `k`-occurrence histogram (reverse
@@ -50,6 +50,11 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         Value 1 (default): One process (not using multiprocessing)
         Value (-1): As many processes as number of available CPUs.
 
+    random_state : int, optional
+        Seed the RNG for reproducible results.
+        
+        NOTE: Currently only compatible with `n_jobs`=1
+
     Returns
     -------
     S_k : float
@@ -70,7 +75,9 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     # Don't use multiprocessing environment when using only one job
     if n_jobs == 1:
         return _hubness_no_multiprocessing(D=D, k=k, metric=metric,
-                                           verbose=verbose)
+                                           verbose=verbose, random_state=random_state)
+    if random_state is not None:
+        raise ValueError("Seeding the RNG is not compatible with using n_jobs > 1.")
     log = Logging.ConsoleLogging()
     IO._check_is_nD_array(arr=D, n=2, arr_type='Distance')
     IO._check_valid_metric_parameter(metric)
@@ -184,7 +191,7 @@ def _partial_hubness(k, d_self, log, sort_order,
     return [rows, Dk]
 
 def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
-                                verbose:int=0):
+                                verbose:int=0, random_state=None):
     """ Hubness calculations without multiprocessing overhead. """
     log = Logging.ConsoleLogging()
     IO._check_is_nD_array(arr=D, n=2, arr_type='Distance')
@@ -200,8 +207,14 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
         log.message("Hubness calculation (skewness of {}-occurence)".format(k))
     D = D.copy()
     n, m = D.shape
+    if k >= m:
+        k_old = k
+        k = m - 1
+        log.warning("Reducing k from {} to {}, so that it is less than "
+                    "the total number of neighbors.".format(k_old, k))
     D_k = np.zeros((n, k), dtype=np.float64)
-    
+    rnd = np.random.RandomState(random_state)
+
     if issparse(D):
         pass # correct self-distance must be ensured upstream for sparse
     else:
@@ -220,12 +233,16 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
             d = D[i, :].toarray().ravel() # dense copy of one row
         else: # normal ndarray
             d = D[i, :]
-        d[i] = d_self
+        if n == m:
+            d[i] = d_self
+        else: # this does not hold for general dissimilarities
+            if metric == 'distance':
+                d[d==0] = d_self
         d[~np.isfinite(d)] = d_self
         # Randomize equal values in the distance matrix rows to avoid the
         # problem case if all numbers to sort are the same, which would yield
         # high hubness, even if there is none.
-        rp = np.random.permutation(m)
+        rp = rnd.permutation(m)
         d2 = d[rp]
         d2idx = np.argsort(d2, axis=0)[::sort_order]
         D_k[i, :] = rp[d2idx[:k]]

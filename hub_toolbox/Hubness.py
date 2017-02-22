@@ -93,6 +93,11 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
 
     # Initialization
     n, m = D.shape
+    if k >= m:
+        k_old = k
+        k = m - 1
+        log.warning("Reducing k from {} to {}, so that it is less than "
+                    "the total number of neighbors.".format(k_old, k))
     D = D.copy()
     D_k = np.zeros((n, k), dtype=np.float64)
 

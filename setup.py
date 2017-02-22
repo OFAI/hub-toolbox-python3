@@ -44,7 +44,12 @@ except ImportError:
     sys.stdout.write("The HUB TOOLBOX requires numpy, scipy and scikit-learn. "
                      "Please make sure these packages are available locally. "
                      "Consider using Anaconda for easy package handling.\n")
-
+try:
+    import pandas, joblib  # @UnusedImport
+except ImportError:
+    sys.stdout.write("Some modules of the HUB TOOLBOX require pandas and joblib. "
+                     "Please make sure these packages are available locally. "
+                     "Consider using Anaconda for easy package handling.\n")
 setup_options = {}
 
 try:

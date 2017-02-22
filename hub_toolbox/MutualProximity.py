@@ -14,14 +14,17 @@ Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
+import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse import lil_matrix, csr_matrix, issparse, triu
+from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse, triu
+from joblib import Parallel, delayed
+from multiprocessing import cpu_count
 from hub_toolbox import IO, Logging
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
                              test_ind:np.ndarray=None, verbose:int=0,
-                             sample_ind:np.ndarray=None):
+                             sample_ind:np.ndarray=None, n_jobs=None):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
 
     Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using
@@ -69,15 +72,18 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     if sample_ind is None:
         return _mutual_proximity_empiric_full(D=D, metric=metric,
                                               test_set_ind=test_ind,
-                                              verbose=verbose)
+                                              verbose=verbose,
+                                              n_jobs=n_jobs)
     else:
         return _mutual_proximity_empiric_sample(D=D, idx=sample_ind,
                                                 metric=metric,
                                                 test_set_ind=test_ind,
-                                                verbose=verbose)
+                                                verbose=verbose,
+                                                n_jobs=n_jobs)
 
 def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray, 
-    metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0):
+    metric:str='distance', test_set_ind:np.ndarray=None, 
+    verbose:int=0, n_jobs=None):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
     NOTE: this docstring does not yet fully reflect the properties of this 
@@ -182,7 +188,8 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
         return D_mp[test_set_ind]
 
 def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance', 
-                                  test_set_ind:np.ndarray=None, verbose:int=0):
+                                  test_set_ind:np.ndarray=None, verbose:int=0,
+                                  n_jobs=None):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
     Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using 
@@ -251,7 +258,7 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
     D = D.copy()
     
     if issparse(D):
-        return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log)
+        return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log, n_jobs=n_jobs)
         
     # ensure correct self distances (NOT done for sparse matrices!)
     np.fill_diagonal(D, exclude_value)
@@ -280,28 +287,51 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 
     return D_mp
 
+def _joblib_mpes(i, j, S, verbose, log, n):
+    """Compute MP between two objects i and j in CSR matrix."""
+    if verbose and log and i==j and ((i+1)%1000 == 0 or i == n-2):
+        log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+    d = S[j, i]
+    dI = S.getrow(i).toarray()
+    dJ = S.getrow(j).toarray()
+    nz = (dI > 0) & (dJ > 0)
+    res = (nz & (dI <= d) & (dJ <= d)).sum()
+    if res == 0:
+        val = res
+    elif (nz.sum() - 2) <= 0:
+        val = d
+    else:
+        val = res / (nz.sum() - 2)
+    return i, j, val
+
 def _mutual_proximity_empiric_sparse(S:csr_matrix, 
                                      test_set_ind:np.ndarray=None, 
                                      verbose:int=0,
-                                     log=None):
+                                     log=None,
+                                     n_jobs=None):
     """MP empiric for sparse similarity matrices. 
     
     Please do not directly use this function, but invoke via 
     mutual_proximity_empiric()
     """
     self_value = 1. # similarity matrix
-    n = S.shape[0]        
-    S_mp = lil_matrix(S.shape)
-    
-    for i, j in zip(*triu(S).nonzero()):
-        if verbose and log and ((i+1)%1000 == 0 or i == n-2):
-            log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-        d = S[j, i]
-        dI = S.getrow(i).toarray()
-        dJ = S.getrow(j).toarray()
-        nz = (dI > 0) & (dJ > 0)
-        S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum() - 2)
-    
+    n = S.shape[0]
+    if not n_jobs:
+        n_jobs = 1
+    elif n_jobs == -1:
+        n_jobs = cpu_count()
+    else:
+        pass
+
+    with Parallel(n_jobs=n_jobs) as parallel:
+        res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n)
+                       for i, j in zip(*triu(S).nonzero()))
+    df = pd.DataFrame(res, columns=['row', 'col', 'val'])
+    del res
+    S_mp = coo_matrix((df['val'].astype(float), 
+                       (df['row'].astype(int), df['col'].astype(int))))
+    del df
+    S_mp = S_mp.tolil()
     S_mp += S_mp.T
     for i in range(n):
         S_mp[i, i] = self_value #need to set self values

@@ -26,6 +26,7 @@ class TestGoodmanKruskal(unittest.TestCase):
         n = 50
         m = 5
         c = 3
+        np.random.seed(823475)
         data = np.random.rand(n, m)
         self.distance = squareform(pdist(data, 'euclidean'))
         self.similarity = 1. - self.distance / self.distance.max()

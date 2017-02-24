@@ -291,18 +291,23 @@ def _joblib_mpes(i, j, S, verbose, log, n):
     """Compute MP between two objects i and j in CSR matrix."""
     if verbose and log and i==j and ((i+1)%1000 == 0 or i == n-2):
         log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+    # Original similarity between the two objects
     d = S[j, i]
-    dI = S.getrow(i).toarray()
-    dJ = S.getrow(j).toarray()
-    nz = (dI > 0) & (dJ > 0)
-    res = (nz & (dI <= d) & (dJ <= d)).sum()
-    if res == 0:
-        val = res
-    elif (nz.sum() - 2) <= 0:
-        val = d
+    # Similarities to i/j (as sparse matrices (rows))
+    dI = S.getrow(i)
+    dJ = S.getrow(j)
+    
+    # Number of positions that are non-zero in both rows
+    nz = dI.multiply(dJ).data.size
+    # if there are none, just return the original distance
+    if nz <= 0:
+        return i, j, d
+    # otherwise count those positions lte to `d` in both rows
     else:
-        val = res / (nz.sum() - 2)
-    return i, j, val
+        dI.data[dI.data > d] = 0
+        dJ.data[dJ.data > d] = 0
+        res = dI.multiply(dJ).data.size
+        return i, j, res / (nz-2)
 
 def _mutual_proximity_empiric_sparse(S:csr_matrix, 
                                      test_set_ind:np.ndarray=None, 

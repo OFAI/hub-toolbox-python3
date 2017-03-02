@@ -289,7 +289,9 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 
 def _joblib_mpes(i, j, S, verbose, log, n):
     """Compute MP between two objects i and j in CSR matrix."""
-    if verbose and log and i==j and ((i+1)%1000 == 0 or i == n-2):
+    if verbose:
+        n_rows = int(1e5 / 10**verbose)
+    if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
         log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
     # Original similarity between the two objects
     d = S[j, i]
@@ -307,7 +309,7 @@ def _joblib_mpes(i, j, S, verbose, log, n):
         dI.data[dI.data > d] = 0
         dJ.data[dJ.data > d] = 0
         res = dI.multiply(dJ).data.size
-        return i, j, res / (nz-2)
+        return i, j, res / (nz)
 
 def _mutual_proximity_empiric_sparse(S:csr_matrix, 
                                      test_set_ind:np.ndarray=None, 
@@ -328,19 +330,34 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     else:
         pass
 
-    with Parallel(n_jobs=n_jobs) as parallel:
-        res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n)
-                       for i, j in zip(*triu(S).nonzero()))
+    if n_jobs == 1:
+        res = [_joblib_mpes(i, j, S, verbose, log, n) 
+                for i, j in zip(*S.nonzero()) if i <= j]
+    else:
+        with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
+            res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n)
+                           for i, j in zip(*triu(S).nonzero()))
+    if verbose:
+        log.message("Constructing DataFrame.")
     df = pd.DataFrame(res, columns=['row', 'col', 'val'])
     del res
+    if verbose:
+        log.message("Constructing COO matrix via DataFrame.")
     S_mp = coo_matrix((df['val'].astype(float), 
                        (df['row'].astype(int), df['col'].astype(int))))
     del df
+    if verbose:
+        log.message("Converting to LIL matrix.")
     S_mp = S_mp.tolil()
+    if verbose:
+        log.message("Symmetrizing matrix.")
     S_mp += S_mp.T
+    if verbose:
+        log.message("Setting self similarities.")
     for i in range(n):
         S_mp[i, i] = self_value #need to set self values
-    
+    if verbose:
+        log.message("Converting to CSR matrix and returning.")
     return S_mp.tocsr()
 
 def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',

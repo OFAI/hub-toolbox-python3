@@ -24,7 +24,8 @@ from hub_toolbox import IO, Logging
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
                              test_ind:np.ndarray=None, verbose:int=0,
-                             sample_ind:np.ndarray=None, n_jobs=None):
+                             sample_ind:np.ndarray=None, n_jobs=None,
+                             min_nnz:int=0):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
 
     Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using
@@ -72,6 +73,7 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     if sample_ind is None:
         return _mutual_proximity_empiric_full(D=D, metric=metric,
                                               test_set_ind=test_ind,
+                                              min_nnz=min_nnz,
                                               verbose=verbose,
                                               n_jobs=n_jobs)
     else:
@@ -188,8 +190,8 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
         return D_mp[test_set_ind]
 
 def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance', 
-                                  test_set_ind:np.ndarray=None, verbose:int=0,
-                                  n_jobs=None):
+                                  test_set_ind:np.ndarray=None, min_nnz:int=0,
+                                  verbose:int=0, n_jobs=None):
     """Transform a distance matrix with Mutual Proximity (empiric distribution).
     
     Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix using 
@@ -211,12 +213,19 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
         
         NOTE: In case of sparse `D`, only 'similarity' is supported.
         
-    test_sed_ind : ndarray, optional (default: None)
+    test_set_ind : ndarray, optional (default: None)
         Define data points to be hold out as part of a test set. Can be:
         
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set. 
+
+    min_nnz : int, optional, default: 0
+        Calculate MP between two objects `i` and `j`, iff at least ``min_nnz``
+        values are present in both row ``i`` and ``j``.
+        Otherwise, return the original distance/similarity.
         
+        NOTE: Currently only implemented for MP empiric w/ sparse sim matrices
+
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
         
@@ -258,7 +267,7 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
     D = D.copy()
     
     if issparse(D):
-        return _mutual_proximity_empiric_sparse(D, test_set_ind, verbose, log, n_jobs=n_jobs)
+        return _mutual_proximity_empiric_sparse(D, test_set_ind, min_nnz, verbose, log, n_jobs)
         
     # ensure correct self distances (NOT done for sparse matrices!)
     np.fill_diagonal(D, exclude_value)
@@ -287,7 +296,7 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 
     return D_mp
 
-def _joblib_mpes(i, j, S, verbose, log, n):
+def _joblib_mpes(i, j, S, verbose, log, n, min_nnz=0):
     """Compute MP between two objects i and j in CSR matrix."""
     if verbose:
         n_rows = int(1e5 / 10**verbose)
@@ -302,7 +311,7 @@ def _joblib_mpes(i, j, S, verbose, log, n):
     # Number of positions that are non-zero in both rows
     nz = dI.multiply(dJ).data.size
     # if there are none, just return the original distance
-    if nz <= 0:
+    if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
         return i, j, d
     # otherwise count those positions lte to `d` in both rows
     else:
@@ -313,6 +322,7 @@ def _joblib_mpes(i, j, S, verbose, log, n):
 
 def _mutual_proximity_empiric_sparse(S:csr_matrix, 
                                      test_set_ind:np.ndarray=None, 
+                                     min_nnz=0,
                                      verbose:int=0,
                                      log=None,
                                      n_jobs=None):
@@ -331,11 +341,11 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
         pass
 
     if n_jobs == 1:
-        res = [_joblib_mpes(i, j, S, verbose, log, n) 
+        res = [_joblib_mpes(i, j, S, verbose, log, n, min_nnz) 
                 for i, j in zip(*S.nonzero()) if i <= j]
     else:
         with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
-            res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n)
+            res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)
                            for i, j in zip(*triu(S).nonzero()))
     if verbose:
         log.message("Constructing DataFrame.")

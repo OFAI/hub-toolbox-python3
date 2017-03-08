@@ -196,3 +196,184 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
         log.message("Finished k-NN experiment.")
 
     return acc, corr, cmat
+
+def predict(D:np.ndarray, target:np.ndarray, k=5,
+            metric:str='distance', test_ind:np.ndarray=None, verbose:int=0,
+            sample_idx=None, return_cmat=True):
+    """Perform `k`-nearest neighbor classification.
+
+    Use the ``n x n`` symmetric distance matrix `D` and target class
+    labels `target` to perform a `k`-NN experiment (leave-one-out
+    cross-validation or evaluation of test set; see parameter `test_ind`).
+    Ties are broken by the nearest neighbor.
+
+    Parameters
+    ----------
+    D : ndarray
+        The ``n x n`` symmetric distance (similarity) matrix.
+
+    target : ndarray (of dtype=int)
+        The ``n x 1`` target class labels (ground truth) or
+        ``n x c`` in case of ``c`` binarized multilabels
+
+    k : int or array_like (of dtype=int), optional (default: 5)
+        Neighborhood size for `k`-NN classification.
+        For each value in `k`, one `k`-NN experiment is performed.
+
+        HINT: Providing more than one value for `k` is a cheap means to perform
+        multiple `k`-NN experiments at once. Try e.g. ``k=[1, 5, 20]``.
+
+    metric : {'distance', 'similarity'}, optional (default: 'distance')
+        Define, whether matrix `D` is a distance or similarity matrix
+
+    test_ind : ndarray, optional (default: None)
+        Define data points to be hold out as part of a test set. Can be:
+
+        - None : Perform a LOO-CV experiment
+        - ndarray : Hold out points indexed in this array as test set. Fit
+          model to remaining data. Evaluate model on test set.
+
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+
+    return_cmat : bool, optional, default: True
+        If False, only return the predictions `y_pred`.
+        Otherwise also return the confusion matrices.
+
+    Returns
+    -------
+    y_pred : ndarray (shape=(n_k, n, c), dtype=int)
+        Predicted class labels (`n_k`... number of items in parameter `k`)
+        
+        HINT: Referring to the above example... 
+        ... ``y_pred[0]`` gives the predictions of the ``k=1`` experiment.
+
+    cmat : ndarray (shape=(n_k x c x n_t x n_t), dtype=int) 
+        Confusion matrix (``n_t`` number of unique items in parameter target)
+
+        HINT: ... ``cmat[2, 0, :, :]`` gives the confusion matrix of
+        the first class in the ``k=20`` experiment.
+    """
+
+    # Check input sanity
+    log = Logging.ConsoleLogging()
+    if sample_idx is None:
+        IO._check_distance_matrix_shape(D)
+    else:
+        IO._check_sample_shape_fits(D, sample_idx)
+    #IO._check_distance_matrix_shape_fits_labels(D, target)
+    IO._check_valid_metric_parameter(metric)
+    if metric == 'distance':
+        d_self = np.inf
+        sort_order = 1
+    if metric == 'similarity':
+        d_self = -np.inf
+        sort_order = -1
+
+    # Copy, because data is changed
+    D = D.copy()
+    target = target.astype(int)
+    if target.ndim == 1:
+        target = target[:, np.newaxis]
+    if verbose:
+        log.message("Start k-NN experiment.")
+    # Handle LOO-CV vs. test set mode
+    if test_ind is None:
+        n = D.shape[0]
+        test_set_ind = range(n)    # dummy 
+        train_set_ind = n   # dummy
+    else:
+        # number of points to be classified
+        n = test_set_ind.size
+        # Indices of training examples
+        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+        if sample_idx is not None:
+            raise NotImplementedError("Sample k-NN does not support train/"
+                                      "test splits at the moment.")
+    # Number of k-NN parameters
+    try:
+        k_length = k.size
+    except AttributeError as e:
+        if isinstance(k, int):
+            k = np.array([k])
+            k_length = k.size
+        elif isinstance(k, list):
+            k = np.array(k)
+            k_length = k.size
+        else:
+            raise e
+
+    cl = np.sort(np.unique(target))
+    cmat = np.zeros((k_length, target.shape[1], len(cl), len(cl)))
+    y_pred = np.zeros((k_length, *target.shape), dtype=int)
+    
+    classes = target.copy()
+    for idx, cur_class in enumerate(np.array(cl).ravel()):
+        # change labels to 0, 1, ..., len(cl)-1
+        classes[target == cur_class] = idx
+    if sample_idx is not None:
+        sample_classes = classes[sample_idx]
+        j = np.ones(n, int)
+        j *= (n+1) # illegal indices will throw index out of bounds error
+        j[sample_idx] = np.arange(len(sample_idx))
+        for j, sample in enumerate(sample_idx):
+            D[sample, j] = d_self
+    cl = range(len(cl))
+
+    # Classify each point in test set
+    for i in test_set_ind:
+
+        if issparse(D):
+            row = D.getrow(i).toarray().ravel()
+        else:
+            row = D[i, :]
+        if sample_idx is None:
+            row[i] = d_self
+
+        # Sort points in training set according to distance
+        # Randomize, in case there are several points of same distance
+        # (this is especially relevant for SNN rescaling)
+        if sample_idx is None:
+            rp = train_set_ind
+        else:
+            rp = np.arange(len(sample_idx))
+        rp = np.random.permutation(rp)
+        d2 = row[rp]
+        d2idx = np.argsort(d2, axis=0)[::sort_order]
+        idx = rp[d2idx]
+
+        # More than one k is useful for cheap multiple k-NN experiments at once
+        for j in range(k_length):
+            # Make sure no inf/-inf/nan values are used for classification
+            finite_val = np.isfinite(row[idx[0:k[j]]])
+            # However, if no values are finite, classify randomly
+            if finite_val.sum() == 0:
+                finite_val = np.ones_like(finite_val)
+                log.warning("Query was classified randomly, because all "
+                            "distances were non-finite numbers.")
+            for l in range(target.shape[1]):
+                l_classes = classes[:, l]
+                if sample_idx is None:
+                    nn_class = l_classes[idx[0:k[j]]][finite_val]
+                else:
+                    l_sample_classes = sample_classes[:, l]
+                    nn_class = l_sample_classes[idx[0:k[j]]][finite_val]
+                cs = np.bincount(nn_class.astype(int))
+                max_cs = np.where(cs == np.max(cs))[0]
+                seed_class = classes[i, l]
+                # "tie": use nearest neighbor
+                if len(max_cs) > 1:
+                    y_pred[j, i, l] = nn_class[0]
+                    cmat[j, l, seed_class, nn_class[0]] += 1
+                # majority vote
+                else:
+                    y_pred[j, i, l] = cl[max_cs[0]]
+                    cmat[j, l, seed_class, cl[max_cs[0]]] += 1
+
+    if verbose:
+        log.message("Finished k-NN experiment.")
+
+    if return_cmat:
+        return y_pred, cmat
+    else:
+        return y_pred

@@ -66,6 +66,7 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
     # Checking input
     IO._check_sample_shape_fits(D, train_ind)
     IO._check_valid_metric_parameter(metric)
+    sparse = issparse(D)
     if metric == 'similarity':
         if train_ind is not None:
             raise NotImplementedError
@@ -77,7 +78,7 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
         sort_order = 1
         exclude = np.inf
         self_value = 0
-        if issparse(D):
+        if sparse:
             log.error("Sparse distance matrices are not supported.")
             raise NotImplementedError(
                 "Sparse distance matrices are not supported.")
@@ -96,7 +97,7 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
     r = np.zeros(n)
     for i in range(n):
         if train_ind is None:
-            if issparse(D):
+            if sparse:
                 di = D[i, train_set_ind].toarray()
             else:
                 di = D[i, train_set_ind]
@@ -105,19 +106,25 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
         nn = np.argsort(di)[::sort_order]
         r[i] = di[nn[k-1]] #largest similarities or smallest distances
 
-    if issparse(D):
+    if sparse:
         D_ls = lil_matrix(D.shape)
+        # Number of nonzero cells per row
+        nnz = np.array([x.size for x in np.split(D.indices, D.indptr[1:-1])])
     else:
         D_ls = np.zeros_like(D)
 
-    for i in n_ind:
-        if metric == 'similarity':
-            D_ls[i, :] = np.exp(-1 * D[i, :]**2 / (r[i] * r[train_ind]))
-        else:
+    if metric == 'similarity':
+        for i in n_ind:
+            if sparse and nnz[i] <= k: # Don't rescale if there are too few 
+                D_ls[i, :] = D[i, :]   # neighbors in the current row
+            else:
+                D_ls[i, :] = np.exp(-1 * D[i, :]**2 / (r[i] * r[train_ind]))
+    else:
+        for i in n_ind:
             D_ls[i, :] = 1 - np.exp(-1 * D[i, :]**2 / (r[i] * r[train_ind]))
 
     if test_ind is None:
-        if issparse(D):
+        if sparse:
             return D_ls.tocsr()
         else:
             np.fill_diagonal(D_ls, self_value)
@@ -171,6 +178,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     # Checking input
     IO._check_distance_matrix_shape(D)
     IO._check_valid_metric_parameter(metric)
+    sparse = issparse(D)
     if metric == 'similarity':
         sort_order = -1
         exclude = -np.inf
@@ -182,7 +190,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         exclude = np.inf
         self_value = 0
         self_tmp_value = self_value
-        if issparse(D):
+        if sparse:
             log.error("Sparse distance matrices are not supported.")
             raise NotImplementedError(
                 "Sparse distance matrices are not supported.")
@@ -196,7 +204,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
 
     r = np.zeros(n)
     for i in range(n):
-        if issparse(D):
+        if sparse:
             di = D[i, train_set_ind].toarray()
         else:
             di = D[i, train_set_ind]
@@ -204,8 +212,10 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         nn = np.argsort(di)[::sort_order]
         r[i] = di[nn[k-1]] #largest similarities or smallest distances
 
-    if issparse(D):
+    if sparse:
         D_ls = lil_matrix(D.shape)
+        # Number of nonzero cells per row
+        nnz = np.array([x.size for x in np.split(D.indices, D.indptr[1:-1])])
     else:
         D_ls = np.zeros_like(D)
 
@@ -214,7 +224,10 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         tmp = np.empty(n-i)
         tmp[0] = self_tmp_value
         if metric == 'similarity':
-            tmp[1:] = np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
+            if sparse and nnz <= k:     # Don't rescale if there are
+                tmp[1:] = D[i, i+1:]    # too few neighbors in row
+            else:
+                tmp[1:] = np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
         else:
             tmp[1:] = 1 - np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
         D_ls[i, i:] = tmp
@@ -222,7 +235,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     # NOTE: does not affect self values, since inf+inf=inf and 0+0=0
     D_ls += D_ls.T
 
-    if issparse(D):
+    if sparse:
         return D_ls.tocsr()
     else:
         np.fill_diagonal(D_ls, self_value)

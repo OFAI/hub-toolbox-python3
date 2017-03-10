@@ -109,7 +109,7 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
     if sparse:
         D_ls = lil_matrix(D.shape)
         # Number of nonzero cells per row
-        nnz = np.array([x.size for x in np.split(D.indices, D.indptr[1:-1])])
+        nnz = D.getnnz(axis=1)
     else:
         D_ls = np.zeros_like(D)
 
@@ -215,7 +215,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     if sparse:
         D_ls = lil_matrix(D.shape)
         # Number of nonzero cells per row
-        nnz = np.array([x.size for x in np.split(D.indices, D.indptr[1:-1])])
+        nnz = D.getnnz(axis=1)
     else:
         D_ls = np.zeros_like(D)
 

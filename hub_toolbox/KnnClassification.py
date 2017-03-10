@@ -340,6 +340,7 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
         rp = np.random.permutation(rp)
         d2 = row[rp]
         d2idx = np.argsort(d2, axis=0)[::sort_order]
+        d2idx = d2idx[~np.isnan(d2idx)] # filter NaN values
         idx = rp[d2idx]
 
         # More than one k is useful for cheap multiple k-NN experiments at once

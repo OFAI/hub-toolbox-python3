@@ -310,9 +310,13 @@ def _joblib_mpes(i, j, S, verbose, log, n, min_nnz=0):
     
     # Number of positions that are non-zero in both rows
     nz = dI.multiply(dJ).data.size
-    # if there are none, just return the original distance
-    if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
-        return i, j, d
+    #===========================================================================
+    # # if there are none, just return the original distance
+    # if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
+    #     return i, j, d
+    #===========================================================================
+    if nz == 0:
+        return i, j, 0.
     # otherwise count those positions lte to `d` in both rows
     else:
         dI.data[dI.data > d] = 0
@@ -793,7 +797,7 @@ def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0,
     del va
     
     S_mp = lil_matrix(S.shape)
-    nnz = S.getnnz(axis=1) # nnz per row
+    #nnz = S.getnnz(axis=1) # nnz per row
 
     for i in range(n):
         if verbose and log and ((i+1)%1000 == 0 or i+1 == n):
@@ -802,18 +806,20 @@ def _mutual_proximity_gaussi_sparse(S:np.ndarray, sample_size:int=0,
         S_ij = S[i, j_idx].toarray().ravel() #Extract dense rows temporarily
         tmp = np.empty(n-i)
         tmp[0] = self_value / 2. 
-        if nnz[i] <= min_nnz:
-            tmp[1:] = S_ij
-        else: # Only rescale, if there are sufficient neighbors
-            S_ji = S[j_idx, i].toarray().ravel() #for vectorization below.
-            
-            p1 = norm.cdf(S_ij, mu[i], sd[i]) # mu, sd broadcasted
-            p1[S_ij == 0] = 0
-            del S_ij
-            p2 = norm.cdf(S_ji, mu[j_idx], sd[j_idx])
-            p2[S_ji == 0] = 0
-            del S_ji
-            tmp[1:] = (p1 * p2).ravel()
+        #=======================================================================
+        # if nnz[i] <= min_nnz:
+        #     tmp[1:] = S_ij
+        # else: # Only rescale, if there are sufficient neighbors
+        #=======================================================================
+        S_ji = S[j_idx, i].toarray().ravel() #for vectorization below.
+        
+        p1 = norm.cdf(S_ij, mu[i], sd[i]) # mu, sd broadcasted
+        p1[S_ij == 0] = 0
+        del S_ij
+        p2 = norm.cdf(S_ji, mu[j_idx], sd[j_idx])
+        p2[S_ji == 0] = 0
+        del S_ji
+        tmp[1:] = (p1 * p2).ravel()
         S_mp[i, i:] = tmp            
         del tmp, j_idx
     
@@ -982,15 +988,17 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray, min_nnz:int=30,
         Dij = S[i, j_idx].toarray().ravel() #Extract dense rows temporarily
         tmp = np.empty(n-i)
         tmp[0] = self_value / 2. 
-        if nnz[i] <= min_nnz:
-            tmp[1:] = Dij
-        else:
-            p1 = _local_gamcdf(Dij, A[i], B[i])
-            del Dij
-            Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
-            p2 = _local_gamcdf(Dji, A[j_idx], B[j_idx])
-            del Dji
-            tmp[1:] = (p1 * p2).ravel()
+        #=======================================================================
+        # if nnz[i] <= min_nnz:
+        #     tmp[1:] = Dij
+        # else:
+        #=======================================================================
+        p1 = _local_gamcdf(Dij, A[i], B[i])
+        del Dij
+        Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
+        p2 = _local_gamcdf(Dji, A[j_idx], B[j_idx])
+        del Dji
+        tmp[1:] = (p1 * p2).ravel()
         S_mp[i, i:] = tmp     
         del tmp, j_idx
     S_mp += S_mp.T
@@ -1080,17 +1088,19 @@ def _mutual_proximity_gumbel_sparse(S:np.ndarray, min_nnz:int=30,
         Dij = S[i, j_idx].toarray().ravel() #Extract dense rows temporarily        
         tmp = np.empty(n-i)
         tmp[0] = self_value / 2. 
-        if nnz[i] <= min_nnz:
-            tmp[1:] = Dij
-        else: # Rescale iff there are enough neighbors for current point
-            p1 = _gumbelcdf(Dij, mu_hat[i], beta_hat[i])
-            p1[Dij == 0] = 0.
-            del Dij
-            Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
-            p2 = _gumbelcdf(Dji, mu_hat[j_idx], beta_hat[j_idx])
-            p2[Dji == 0] = 0.
-            del Dji
-            tmp[1:] = (p1 * p2).ravel()
+        #=======================================================================
+        # if nnz[i] <= min_nnz:
+        #     tmp[1:] = Dij
+        # else: # Rescale iff there are enough neighbors for current point
+        #=======================================================================
+        p1 = _gumbelcdf(Dij, mu_hat[i], beta_hat[i])
+        p1[Dij == 0] = 0.
+        del Dij
+        Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
+        p2 = _gumbelcdf(Dji, mu_hat[j_idx], beta_hat[j_idx])
+        p2[Dji == 0] = 0.
+        del Dji
+        tmp[1:] = (p1 * p2).ravel()
         S_mp[i, i:] = tmp     
         del tmp, j_idx
     S_mp += S_mp.T

@@ -224,7 +224,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         tmp = np.empty(n-i)
         tmp[0] = self_tmp_value
         if metric == 'similarity':
-            if sparse and nnz <= k:     # Don't rescale if there are
+            if sparse and nnz[i] <= k:  # Don't rescale if there are
                 tmp[1:] = D[i, i+1:]    # too few neighbors in row
             else:
                 tmp[1:] = np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))

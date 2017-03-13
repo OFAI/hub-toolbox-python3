@@ -349,6 +349,7 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
             finite_val = np.isfinite(row[idx[0:k[j]]])
             # However, if no values are finite, classify randomly
             if finite_val.sum() == 0:
+                idx = np.random.permutation(idx)
                 finite_val = np.ones_like(finite_val)
                 log.warning("Query was classified randomly, because all "
                             "distances were non-finite numbers.")

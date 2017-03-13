@@ -988,21 +988,26 @@ def _mutual_proximity_gammai_sparse(S:np.ndarray, min_nnz:int=30,
         Dij = S[i, j_idx].toarray().ravel() #Extract dense rows temporarily
         tmp = np.empty(n-i)
         tmp[0] = self_value / 2. 
-        #=======================================================================
-        # if nnz[i] <= min_nnz:
-        #     tmp[1:] = Dij
-        # else:
-        #=======================================================================
-        p1 = _local_gamcdf(Dij, A[i], B[i])
-        del Dij
-        Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
-        p2 = _local_gamcdf(Dji, A[j_idx], B[j_idx])
-        del Dji
-        tmp[1:] = (p1 * p2).ravel()
-        S_mp[i, i:] = tmp     
-        del tmp, j_idx
+        if nnz[i] <= min_nnz:
+            tmp[1:] = np.nan
+        else:
+            p1 = _local_gamcdf(Dij, A[i], B[i])
+            del Dij
+            Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
+            p2 = _local_gamcdf(Dji, A[j_idx], B[j_idx])
+            del Dji
+            tmp[1:] = (p1 * p2).ravel()
+            S_mp[i, i:] = tmp     
+            del tmp, j_idx
     S_mp += S_mp.T
     
+    # Retain original distances for objects with too few neighbors.
+    # That is, keep distances FROM these objects to others (rows), but
+    # set distances of other objects TO them to NaN (columns).
+    # Returned matrix is thus NOT SYMMETRIC.
+    for row in np.argwhere(nnz <= min_nnz):
+        row = row[0] # use scalar for indexing instead of array
+        S_mp[row, :] = S.getrow(row)
     return S_mp.tocsr()
 
 def _local_gamcdf(x, a, b, mv=np.nan):

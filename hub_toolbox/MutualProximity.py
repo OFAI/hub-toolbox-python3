@@ -1108,7 +1108,8 @@ def _mutual_proximity_gumbel_sparse(S:np.ndarray, min_nnz:int=30,
     # set distances of other objects TO them to NaN (columns).
     # Returned matrix is thus NOT SYMMETRIC.
     for row in np.argwhere(nnz <= min_nnz):
-        S_mp[row] = S.getrow(row)
+        row = row[0] # use scalar for indexing instead of array
+        S_mp[row, :] = S.getrow(row)
     return S_mp.tocsr()
 
 

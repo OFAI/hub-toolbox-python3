@@ -1088,23 +1088,27 @@ def _mutual_proximity_gumbel_sparse(S:np.ndarray, min_nnz:int=30,
         Dij = S[i, j_idx].toarray().ravel() #Extract dense rows temporarily        
         tmp = np.empty(n-i)
         tmp[0] = self_value / 2. 
-        #=======================================================================
-        # if nnz[i] <= min_nnz:
-        #     tmp[1:] = Dij
-        # else: # Rescale iff there are enough neighbors for current point
-        #=======================================================================
-        p1 = _gumbelcdf(Dij, mu_hat[i], beta_hat[i])
-        p1[Dij == 0] = 0.
-        del Dij
-        Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
-        p2 = _gumbelcdf(Dji, mu_hat[j_idx], beta_hat[j_idx])
-        p2[Dji == 0] = 0.
-        del Dji
-        tmp[1:] = (p1 * p2).ravel()
-        S_mp[i, i:] = tmp     
-        del tmp, j_idx
+        if nnz[i] <= min_nnz:
+            tmp[1:] = np.nan
+        else: # Rescale iff there are enough neighbors for current point
+            p1 = _gumbelcdf(Dij, mu_hat[i], beta_hat[i])
+            p1[Dij == 0] = 0.
+            del Dij
+            Dji = S[j_idx, i].toarray().ravel() #for vectorization below.
+            p2 = _gumbelcdf(Dji, mu_hat[j_idx], beta_hat[j_idx])
+            p2[Dji == 0] = 0.
+            del Dji
+            tmp[1:] = (p1 * p2).ravel()
+            S_mp[i, i:] = tmp     
+            del tmp, j_idx
     S_mp += S_mp.T
     
+    # Retain original distances for objects with too few neighbors.
+    # That is, keep distances FROM these objects to others (rows), but
+    # set distances of other objects TO them to NaN (columns).
+    # Returned matrix is thus NOT SYMMETRIC.
+    for row in np.argwhere(nnz <= min_nnz):
+        S_mp[row] = S.getrow(row)
     return S_mp.tocsr()
 
 

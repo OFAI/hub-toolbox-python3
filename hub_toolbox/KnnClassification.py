@@ -327,6 +327,8 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
 
         if issparse(D):
             row = D.getrow(i).toarray().ravel()
+            #row = D.data
+            ind = D.nnz[1]
         else:
             row = D[i, :]
         if sample_idx is None:
@@ -338,7 +340,10 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
         if sample_idx is None:
             rp = train_set_ind
         else:
-            rp = np.arange(len(sample_idx))
+            if issparse(D):
+                rp = ind
+            else:
+                rp = np.arange(len(sample_idx))
         rp = np.random.permutation(rp)
         d2 = row[rp]
         d2idx = np.argsort(d2, axis=0)[::sort_order]

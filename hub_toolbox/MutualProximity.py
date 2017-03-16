@@ -310,13 +310,13 @@ def _joblib_mpes(i, j, S, verbose, log, n, min_nnz=0):
     
     # Number of positions that are non-zero in both rows
     nz = dI.multiply(dJ).data.size
+    # if there are none, just return the original distance (handled elsewhere)
+    if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
+        return i, j, np.nan
     #===========================================================================
-    # # if there are none, just return the original distance
-    # if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
-    #     return i, j, d
+    # if nz == 0:
+    #     return i, j, 0.
     #===========================================================================
-    if nz == 0:
-        return i, j, 0.
     # otherwise count those positions lte to `d` in both rows
     else:
         dI.data[dI.data > d] = 0
@@ -350,7 +350,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     else:
         with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
             res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)
-                           for i, j in zip(*triu(S).nonzero()))
+                           for i, j in zip(*S.nonzero()) if i <= j)
     if verbose:
         log.message("Constructing DataFrame.")
     df = pd.DataFrame(res, columns=['row', 'col', 'val'])
@@ -366,6 +366,13 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     if verbose:
         log.message("Symmetrizing matrix.")
     S_mp += S_mp.T
+    # Retain original distances for objects with too few neighbors.
+    # That is, keep distances FROM these objects to others (rows), but
+    # set distances of other objects TO them to NaN (columns).
+    # Returned matrix is thus NOT SYMMETRIC.
+    for row in np.argwhere(S.getnnz(axis=1) <= min_nnz):
+        row = row[0] # use scalar for indexing instead of array
+        S_mp[row, :] = S.getrow(row)
     if verbose:
         log.message("Setting self similarities.")
     for i in range(n):

@@ -271,7 +271,8 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
         sort_order = -1
 
     # Copy, because data is changed
-    D = D.copy()
+    if not issparse(D):
+        D = D.copy()
     target = target.astype(int)
     if target.ndim == 1:
         target = target[:, np.newaxis]

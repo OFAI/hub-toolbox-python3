@@ -327,9 +327,10 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
             log.message("Prediction: {} of {}.".format(i+1, n), flush=True)
 
         if issparse(D):
-            row = D.getrow(i).toarray().ravel()
+            row = D.getrow(i)
             #row = D.data
-            ind = D.nonzero()[1]
+            ind = row.nonzero()[1]
+            row = row.toarray().ravel()
         else:
             row = D[i, :]
         if sample_idx is None:

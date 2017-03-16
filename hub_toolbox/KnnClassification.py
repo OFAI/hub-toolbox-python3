@@ -322,6 +322,8 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
 
     # Classify each point in test set
     for i in test_set_ind:
+        if verbose and ((i+1)%1000==0 or i+1==n):
+            log.message("Prediction: {} of {}.".format(i+1, n), flush=True)
 
         if issparse(D):
             row = D.getrow(i).toarray().ravel()

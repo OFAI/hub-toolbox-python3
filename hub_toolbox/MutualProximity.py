@@ -385,6 +385,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     def provider():
         for i, j in zip(*S.nonzero()):
             if i <= j:
+                print("DEBUG: yielding")
                 yield i, j, S.getrow(i), S.getrow(j), verbose, log, n, min_nnz
     if verbose and log:
         log.message("Spawning processes.")

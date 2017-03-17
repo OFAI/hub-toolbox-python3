@@ -380,9 +380,14 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     #             for i, j in zip(*S.nonzero()) if i <= j]
     # else:
     #===========================================================================
+    def provider():
+        for i, j in zip(*S.nonzero()):
+            if i <= j:
+                yield i, j, S, verbose, log, n, min_nnz
+
     with Pool(processes=n_jobs) as pool:
-        ij = [(i, j, S, verbose, log, n, min_nnz) for i, j in zip(*S.nonzero()) if i <= j]
-        res = pool.map(_map_mpes, ij)
+        #ij = [(i, j, S, verbose, log, n, min_nnz) for i, j in zip(*S.nonzero()) if i <= j]
+        res = pool.map(_map_mpes, provider())
         #=======================================================================
         # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
         #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)

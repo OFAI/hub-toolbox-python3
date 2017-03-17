@@ -364,7 +364,8 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     Please do not directly use this function, but invoke via 
     mutual_proximity_empiric()
     """
-
+    if verbose and log:
+        log.message("Starting MP empiric for sparse matrices.")
     self_value = 1. # similarity matrix
     n = S.shape[0]
     if not n_jobs:
@@ -384,28 +385,30 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
         for i, j in zip(*S.nonzero()):
             if i <= j:
                 yield i, j, S, verbose, log, n, min_nnz
-
+    if verbose and log:
+        log.message("Spawning processes.")
     with Pool(processes=n_jobs) as pool:
         #ij = [(i, j, S, verbose, log, n, min_nnz) for i, j in zip(*S.nonzero()) if i <= j]
-        res = pool.map(_map_mpes, provider())
+        nonzero_provider = provider()
+        res = pool.map(_map_mpes, nonzero_provider)
         #=======================================================================
         # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
         #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)
         #                    for i, j in zip(*S.nonzero()) if i <= j)
         #=======================================================================
-    if verbose:
+    if verbose and log:
         log.message("Constructing DataFrame.")
     df = pd.DataFrame(res, columns=['row', 'col', 'val'])
     del res
-    if verbose:
+    if verbose and log:
         log.message("Constructing COO matrix via DataFrame.")
     S_mp = coo_matrix((df['val'].astype(float), 
                        (df['row'].astype(int), df['col'].astype(int))))
     del df
-    if verbose:
+    if verbose and log:
         log.message("Converting to LIL matrix.")
     S_mp = S_mp.tolil()
-    if verbose:
+    if verbose and log:
         log.message("Symmetrizing matrix.")
     S_mp += S_mp.T
     # Retain original distances for objects with too few neighbors.
@@ -415,11 +418,11 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     for row in np.argwhere(S.getnnz(axis=1) <= min_nnz):
         row = row[0] # use scalar for indexing instead of array
         S_mp[row, :] = S.getrow(row)
-    if verbose:
+    if verbose and log:
         log.message("Setting self similarities.")
     for i in range(n):
         S_mp[i, i] = self_value #need to set self values
-    if verbose:
+    if verbose and log:
         log.message("Converting to CSR matrix and returning.")
     return S_mp.tocsr()
 

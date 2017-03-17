@@ -17,9 +17,11 @@ import numpy as np
 import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse, triu
-from joblib import Parallel, delayed
-from multiprocessing import cpu_count
+from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
+#===============================================================================
+# from joblib import Parallel, delayed
+#===============================================================================
+from multiprocessing import Pool, cpu_count
 from hub_toolbox import IO, Logging
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
@@ -296,8 +298,39 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 
     return D_mp
 
-def _joblib_mpes(i, j, S, verbose, log, n, min_nnz=0):
+#===============================================================================
+# def _joblib_mpes(i, j, S, verbose, log, n, min_nnz=0):
+#     """Compute MP between two objects i and j in CSR matrix."""
+#     if verbose:
+#         n_rows = int(1e5 / 10**verbose)
+#     if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
+#         log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+#     # Original similarity between the two objects
+#     d = S[j, i]
+#     # Similarities to i/j (as sparse matrices (rows))
+#     dI = S.getrow(i)
+#     dJ = S.getrow(j)
+#     
+#     # Number of positions that are non-zero in both rows
+#     nz = dI.multiply(dJ).data.size
+#     # if there are none, just return the original distance (handled elsewhere)
+#     if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
+#         return i, j, np.nan
+#     #===========================================================================
+#     # if nz == 0:
+#     #     return i, j, 0.
+#     #===========================================================================
+#     # otherwise count those positions lte to `d` in both rows
+#     else:
+#         dI.data[dI.data > d] = 0
+#         dJ.data[dJ.data > d] = 0
+#         res = dI.multiply(dJ).data.size
+#         return i, j, res / (nz)
+#===============================================================================
+
+def _map_mpes(args):
     """Compute MP between two objects i and j in CSR matrix."""
+    i, j, S, verbose, log, n, min_nnz = args
     if verbose:
         n_rows = int(1e5 / 10**verbose)
     if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
@@ -313,10 +346,6 @@ def _joblib_mpes(i, j, S, verbose, log, n, min_nnz=0):
     # if there are none, just return the original distance (handled elsewhere)
     if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
         return i, j, np.nan
-    #===========================================================================
-    # if nz == 0:
-    #     return i, j, 0.
-    #===========================================================================
     # otherwise count those positions lte to `d` in both rows
     else:
         dI.data[dI.data > d] = 0
@@ -335,6 +364,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     Please do not directly use this function, but invoke via 
     mutual_proximity_empiric()
     """
+
     self_value = 1. # similarity matrix
     n = S.shape[0]
     if not n_jobs:
@@ -344,13 +374,20 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     else:
         pass
 
-    if n_jobs == 1:
-        res = [_joblib_mpes(i, j, S, verbose, log, n, min_nnz) 
-                for i, j in zip(*S.nonzero()) if i <= j]
-    else:
-        with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
-            res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)
-                           for i, j in zip(*S.nonzero()) if i <= j)
+    #===========================================================================
+    # if n_jobs == 1:
+    #     res = [_joblib_mpes(i, j, S, verbose, log, n, min_nnz) 
+    #             for i, j in zip(*S.nonzero()) if i <= j]
+    # else:
+    #===========================================================================
+    with Pool(processes=n_jobs) as pool:
+        ij = [(i, j, S, verbose, log, n, min_nnz) for i, j in zip(*S.nonzero()) if i <= j]
+        res = pool.map(_map_mpes, ij)
+        #=======================================================================
+        # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
+        #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)
+        #                    for i, j in zip(*S.nonzero()) if i <= j)
+        #=======================================================================
     if verbose:
         log.message("Constructing DataFrame.")
     df = pd.DataFrame(res, columns=['row', 'col', 'val'])
@@ -1125,181 +1162,186 @@ def _mutual_proximity_gumbel_sparse(S:np.ndarray, min_nnz:int=30,
     return S_mp.tocsr()
 
 
-def mutual_proximity_custom(D:np.ndarray, distr:object, metric:str='distance', 
-                            test_set_ind:np.ndarray=None, verbose:int=0):
-    """Transform a distance matrix with Mutual Proximity (custom distribution).
-
-    Parameters
-    ----------
-    D : ndarray or csr_matrix
-        - ndarray: The ``n x n`` symmetric distance or similarity matrix.
-        - csr_matrix: The ``n x n`` symmetric similarity matrix.
-        
-        NOTE: In case of sparse `D`, zeros are interpreted as missing values 
-        and ignored during calculations. Thus, results may differ 
-        from using a dense version.
-    
-    distr : scipy.stats continuous distribution class
-        The distribution used for modeling the distances.
-        
-    metric : {'distance', 'similarity'}, optional (default: 'distance')
-        Define, whether matrix `D` is a distance or similarity matrix.
-        
-        NOTE: In case of sparse `D`, only 'similarity' is supported.
-        
-    test_sed_ind : ndarray, optional (default: None)
-        Define data points to be hold out as part of a test set. Can be:
-        
-        - None : Rescale all distances
-        - ndarray : Hold out points indexed in this array as test set. 
-        
-    verbose : int, optional (default: 0)
-        Increasing level of output (progress report).
-        
-    Returns
-    -------
-    D_mp : ndarray
-        Secondary distance MP custom matrix.
-
-    Notes
-    -----
-    Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix. Custom 
-    variant assumes distances follow a user-defined distribution. Any
-    continuous distribution supplied by `scipy.stats <http://docs.scipy.org/
-    doc/scipy/reference/stats.html#continuous-distributions>`_ may be used.
-    The resulting secondary distance/similarity matrix should show lower hubness.
-    
-    References
-    ----------
-    .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
-           Local and global scaling reduce hubs in space. The Journal of Machine 
-           Learning Research, 13(1), 2871–2902.
-    """   
-    # Initialization
-    n = D.shape[0]
-    log = Logging.ConsoleLogging()
-    log.warning("This function is work-in-progress and may return "
-                "meaningless results, crash, etc.")
-    
-    # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
-    if metric == 'similarity':
-        self_value = 1
-    else: # metric == 'distance':
-        self_value = 0
-    if test_set_ind is None:
-        train_set_ind = slice(0, n)
-    else:
-        train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
-    
-    # Start MP
-    if verbose:
-        log.message('Mutual proximity custom ({}) rescaling started.'
-                    .format(distr.__str__()), flush=True)
-    D = D.copy()
-    
-    if issparse(D):
-        raise NotImplementedError("MP custom does not yet support "
-                                  "sparse matrices.")
-        #return _mutual_proximity_custom_sparse(D, test_set_ind, verbose, log)
-
-    #np.fill_diagonal(D, np.nan)
-
-    D_mp = np.zeros_like(D)
-    n_param = 2
-    loc = np.zeros(n)
-    scale = np.zeros(n)
-    # only init shape if distr.fit return shape value
-    try:
-        tmp1, tmp2 = distr.fit(D[0, 0:10])
-        del tmp1, tmp2
-    except ValueError:
-        try:
-            tmp1, tmp2, tmp3 = distr.fit(D[0, 0:10])
-            del tmp1, tmp2, tmp3
-            n_param = 3
-            shape1 = np.zeros(n)
-        except ValueError:
-            n_param = 4
-            shape1 = np.zeros(n)
-            shape2 = np.zeros(n)
-
-    for i in range(n):
-        fit_val = distr.fit(D[i])
-        if n_param == 2:
-            l, s = fit_val
-        elif n_param == 3:
-            l, s, sh = fit_val
-            shape1[i] = sh
-        else:
-            l, s, sh1, sh2 = fit_val
-            shape1[i] = sh1
-            shape2[i] = sh2
-        loc[i] = l
-        scale[i] = s
-
-    # MP custom
-    if n_param == 2:
-        for i in range(n):
-            if verbose >= 2 or (verbose and ((i+1)%1000 == 0 or i+1 == n)):
-                log.message("MP_custom: {} of {}".format(i+1, n), flush=True)
-            j_idx = slice(i+1, n)
-            if metric == 'similarity':
-                p1 = distr.cdf(D[i, j_idx], loc[i], scale[i])
-                p2 = distr.cdf(D[j_idx, i], loc[j_idx], scale[j_idx])
-                D_mp[i, j_idx] = (p1 * p2).ravel()
-            else:
-                p1 = distr.sf(D[i, j_idx], loc[i], scale[i])
-                p2 = distr.sf(D[j_idx, i], loc[j_idx], scale[j_idx])
-                D_mp[i, j_idx] = (1 - p1 * p2).ravel()
-    if n_param == 3:
-        for i in range(n):
-            if verbose >= 2 or (verbose and ((i+1)%1000 == 0 or i+1 == n)):
-                log.message("MP_custom: {} of {}".format(i+1, n), flush=True)
-            j_idx = slice(i+1, n)
-            if metric == 'similarity':
-                p1 = distr.cdf(D[i, j_idx], shape1[i], loc[i], scale[i])
-                p2 = distr.cdf(D[j_idx, i], shape1[j_idx], loc[j_idx], scale[j_idx])
-                D_mp[i, j_idx] = (p1 * p2).ravel()
-            else:
-                p1 = distr.sf(D[i, j_idx], shape1[i], loc[i], scale[i])
-                p2 = distr.sf(D[j_idx, i], shape1[j_idx], loc[j_idx], scale[j_idx])
-                D_mp[i, j_idx] = (1 - p1 * p2).ravel()
-    if n_param == 4:
-        for i in range(n):
-            if verbose >= 2 or (verbose and ((i+1)%1000 == 0 or i+1 == n)):
-                log.message("MP_custom: {} of {}".format(i+1, n), flush=True)
-            j_idx = slice(i+1, n)
-            if metric == 'similarity':
-                p1 = distr.cdf(D[i, j_idx], shape1[i], shape2[i], loc[i], scale[i])
-                p2 = distr.cdf(D[j_idx, i], shape1[j_idx], shape2[j_idx], loc[j_idx], scale[j_idx])
-                D_mp[i, j_idx] = (p1 * p2).ravel()
-            else:
-                p1 = distr.sf(D[i, j_idx], shape1[i], shape2[i], loc[i], scale[i])
-                p2 = distr.sf(D[j_idx, i], shape1[j_idx], shape2[j_idx], loc[j_idx], scale[j_idx])
-                D_mp[i, j_idx] = (1 - p1 * p2).ravel()
-    # Mirroring the matrix
-    D_mp += D_mp.T
-    # set correct self dist/sim
-    np.fill_diagonal(D_mp, self_value)
-    
-    return D_mp
+#===============================================================================
+# def mutual_proximity_custom(D:np.ndarray, distr:object, metric:str='distance', 
+#                             test_set_ind:np.ndarray=None, verbose:int=0):
+#     """Transform a distance matrix with Mutual Proximity (custom distribution).
+# 
+#     Parameters
+#     ----------
+#     D : ndarray or csr_matrix
+#         - ndarray: The ``n x n`` symmetric distance or similarity matrix.
+#         - csr_matrix: The ``n x n`` symmetric similarity matrix.
+#         
+#         NOTE: In case of sparse `D`, zeros are interpreted as missing values 
+#         and ignored during calculations. Thus, results may differ 
+#         from using a dense version.
+#     
+#     distr : scipy.stats continuous distribution class
+#         The distribution used for modeling the distances.
+#         
+#     metric : {'distance', 'similarity'}, optional (default: 'distance')
+#         Define, whether matrix `D` is a distance or similarity matrix.
+#         
+#         NOTE: In case of sparse `D`, only 'similarity' is supported.
+#         
+#     test_sed_ind : ndarray, optional (default: None)
+#         Define data points to be hold out as part of a test set. Can be:
+#         
+#         - None : Rescale all distances
+#         - ndarray : Hold out points indexed in this array as test set. 
+#         
+#     verbose : int, optional (default: 0)
+#         Increasing level of output (progress report).
+#         
+#     Returns
+#     -------
+#     D_mp : ndarray
+#         Secondary distance MP custom matrix.
+# 
+#     Notes
+#     -----
+#     Applies Mutual Proximity (MP) [1]_ on a distance/similarity matrix. Custom 
+#     variant assumes distances follow a user-defined distribution. Any
+#     continuous distribution supplied by `scipy.stats <http://docs.scipy.org/
+#     doc/scipy/reference/stats.html#continuous-distributions>`_ may be used.
+#     The resulting secondary distance/similarity matrix should show lower hubness.
+#     
+#     References
+#     ----------
+#     .. [1] Schnitzer, D., Flexer, A., Schedl, M., & Widmer, G. (2012). 
+#            Local and global scaling reduce hubs in space. The Journal of Machine 
+#            Learning Research, 13(1), 2871–2902.
+#     """   
+#     # Initialization
+#     n = D.shape[0]
+#     log = Logging.ConsoleLogging()
+#     log.warning("This function is work-in-progress and may return "
+#                 "meaningless results, crash, etc.")
+#     
+#     # Checking input
+#     IO._check_distance_matrix_shape(D)
+#     IO._check_valid_metric_parameter(metric)
+#     if metric == 'similarity':
+#         self_value = 1
+#     else: # metric == 'distance':
+#         self_value = 0
+#     if test_set_ind is None:
+#         train_set_ind = slice(0, n)
+#     else:
+#         train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
+#     
+#     # Start MP
+#     if verbose:
+#         log.message('Mutual proximity custom ({}) rescaling started.'
+#                     .format(distr.__str__()), flush=True)
+#     D = D.copy()
+#     
+#     if issparse(D):
+#         raise NotImplementedError("MP custom does not yet support "
+#                                   "sparse matrices.")
+#         #return _mutual_proximity_custom_sparse(D, test_set_ind, verbose, log)
+# 
+#     #np.fill_diagonal(D, np.nan)
+# 
+#     D_mp = np.zeros_like(D)
+#     n_param = 2
+#     loc = np.zeros(n)
+#     scale = np.zeros(n)
+#     # only init shape if distr.fit return shape value
+#     try:
+#         tmp1, tmp2 = distr.fit(D[0, 0:10])
+#         del tmp1, tmp2
+#     except ValueError:
+#         try:
+#             tmp1, tmp2, tmp3 = distr.fit(D[0, 0:10])
+#             del tmp1, tmp2, tmp3
+#             n_param = 3
+#             shape1 = np.zeros(n)
+#         except ValueError:
+#             n_param = 4
+#             shape1 = np.zeros(n)
+#             shape2 = np.zeros(n)
+# 
+#     for i in range(n):
+#         fit_val = distr.fit(D[i])
+#         if n_param == 2:
+#             l, s = fit_val
+#         elif n_param == 3:
+#             l, s, sh = fit_val
+#             shape1[i] = sh
+#         else:
+#             l, s, sh1, sh2 = fit_val
+#             shape1[i] = sh1
+#             shape2[i] = sh2
+#         loc[i] = l
+#         scale[i] = s
+# 
+#     # MP custom
+#     if n_param == 2:
+#         for i in range(n):
+#             if verbose >= 2 or (verbose and ((i+1)%1000 == 0 or i+1 == n)):
+#                 log.message("MP_custom: {} of {}".format(i+1, n), flush=True)
+#             j_idx = slice(i+1, n)
+#             if metric == 'similarity':
+#                 p1 = distr.cdf(D[i, j_idx], loc[i], scale[i])
+#                 p2 = distr.cdf(D[j_idx, i], loc[j_idx], scale[j_idx])
+#                 D_mp[i, j_idx] = (p1 * p2).ravel()
+#             else:
+#                 p1 = distr.sf(D[i, j_idx], loc[i], scale[i])
+#                 p2 = distr.sf(D[j_idx, i], loc[j_idx], scale[j_idx])
+#                 D_mp[i, j_idx] = (1 - p1 * p2).ravel()
+#     if n_param == 3:
+#         for i in range(n):
+#             if verbose >= 2 or (verbose and ((i+1)%1000 == 0 or i+1 == n)):
+#                 log.message("MP_custom: {} of {}".format(i+1, n), flush=True)
+#             j_idx = slice(i+1, n)
+#             if metric == 'similarity':
+#                 p1 = distr.cdf(D[i, j_idx], shape1[i], loc[i], scale[i])
+#                 p2 = distr.cdf(D[j_idx, i], shape1[j_idx], loc[j_idx], scale[j_idx])
+#                 D_mp[i, j_idx] = (p1 * p2).ravel()
+#             else:
+#                 p1 = distr.sf(D[i, j_idx], shape1[i], loc[i], scale[i])
+#                 p2 = distr.sf(D[j_idx, i], shape1[j_idx], loc[j_idx], scale[j_idx])
+#                 D_mp[i, j_idx] = (1 - p1 * p2).ravel()
+#     if n_param == 4:
+#         for i in range(n):
+#             if verbose >= 2 or (verbose and ((i+1)%1000 == 0 or i+1 == n)):
+#                 log.message("MP_custom: {} of {}".format(i+1, n), flush=True)
+#             j_idx = slice(i+1, n)
+#             if metric == 'similarity':
+#                 p1 = distr.cdf(D[i, j_idx], shape1[i], shape2[i], loc[i], scale[i])
+#                 p2 = distr.cdf(D[j_idx, i], shape1[j_idx], shape2[j_idx], loc[j_idx], scale[j_idx])
+#                 D_mp[i, j_idx] = (p1 * p2).ravel()
+#             else:
+#                 p1 = distr.sf(D[i, j_idx], shape1[i], shape2[i], loc[i], scale[i])
+#                 p2 = distr.sf(D[j_idx, i], shape1[j_idx], shape2[j_idx], loc[j_idx], scale[j_idx])
+#                 D_mp[i, j_idx] = (1 - p1 * p2).ravel()
+#     # Mirroring the matrix
+#     D_mp += D_mp.T
+#     # set correct self dist/sim
+#     np.fill_diagonal(D_mp, self_value)
+#     
+#     return D_mp
+#===============================================================================
 
 if __name__ == '__main__':
-    D, labels, vectors = IO.load_dexter()
+    pass
     #===========================================================================
-    # from scipy.stats import gumbel_l, weibull_min, nakagami, maxwell, alpha, anglit, arcsine
-    # from scipy.stats import beta, betaprime, bradford, burr
-    # from scipy.stats import chi, chi2, cosine, dgamma, erlang, 
+    # D, labels, vectors = IO.load_dexter()
+    # #===========================================================================
+    # # from scipy.stats import gumbel_l, weibull_min, nakagami, maxwell, alpha, anglit, arcsine
+    # # from scipy.stats import beta, betaprime, bradford, burr
+    # # from scipy.stats import chi, chi2, cosine, dgamma, erlang, 
+    # #===========================================================================
+    # from scipy.stats import gamma, nct, vonmises
+    # from inspect import signature, getargspec
+    # s = signature(gamma.cdf)
+    # D_mpc = mutual_proximity_custom(D, vonmises, verbose=1)
+    # from hub_toolbox.Hubness import hubness
+    # S_k, _, _ = hubness(D_mpc)
+    # print("Hubness:", S_k)
+    # from hub_toolbox.KnnClassification import score
+    # acc, _, _ = score(D_mpc, labels)
+    # print("k-NN:", acc)
     #===========================================================================
-    from scipy.stats import gamma, nct, vonmises
-    from inspect import signature, getargspec
-    s = signature(gamma.cdf)
-    D_mpc = mutual_proximity_custom(D, vonmises, verbose=1)
-    from hub_toolbox.Hubness import hubness
-    S_k, _, _ = hubness(D_mpc)
-    print("Hubness:", S_k)
-    from hub_toolbox.KnnClassification import score
-    acc, _, _ = score(D_mpc, labels)
-    print("k-NN:", acc)

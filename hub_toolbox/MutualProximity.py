@@ -13,14 +13,12 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+from functools import partial
 import numpy as np
 import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
-#===============================================================================
-# from joblib import Parallel, delayed
-#===============================================================================
+from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse, triu
 from multiprocessing import Pool, cpu_count
 from hub_toolbox import IO, Logging
 
@@ -332,7 +330,7 @@ def _map_mpes(ind, args):
     """Compute MP between two objects i and j in CSR matrix."""
     i, j = ind
     S, verbose, log, n, min_nnz = args
-    print("DEBUG map_mpes at", i, j)
+
     if verbose:
         n_rows = int(1e5 / 10**verbose)
     if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
@@ -383,18 +381,10 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     #             for i, j in zip(*S.nonzero()) if i <= j]
     # else:
     #===========================================================================
-    from functools import partial
-    from scipy.sparse import triu
-    
     if verbose and log:
         log.message("Spawning processes.")
     with Pool(processes=n_jobs) as pool:
-        #ij = [(i, j, S, verbose, log, n, min_nnz) for i, j in zip(*S.nonzero()) if i <= j]
-        print("Now within with clause.")
-        print("Extract triu matrix.")
-        S_triu = triu(S)
-        print("Start map.")
-        res = pool.map(partial(_map_mpes, args=(S, verbose, log, n, min_nnz)), zip(*S_triu.nonzero()))
+        res = pool.map(partial(_map_mpes, args=(S, verbose, log, n, min_nnz)), zip(*triu(S).nonzero()))
         #=======================================================================
         # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
         #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)

@@ -330,17 +330,17 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 
 def _map_mpes(args):
     """Compute MP between two objects i and j in CSR matrix."""
-    i, j, S, verbose, log, n, min_nnz = args
+    i, j, Si, Sj, verbose, log, n, min_nnz = args
     print("DEBUG map_mpes at", i, j)
     if verbose:
         n_rows = int(1e5 / 10**verbose)
     if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
         log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
     # Original similarity between the two objects
-    d = S[j, i]
+    d = Sj[i]
     # Similarities to i/j (as sparse matrices (rows))
-    dI = S.getrow(i)
-    dJ = S.getrow(j)
+    dI = Si#.getrow(i)
+    dJ = Sj#.getrow(j)
     
     # Number of positions that are non-zero in both rows
     nz = dI.multiply(dJ).data.size
@@ -385,7 +385,7 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     def provider():
         for i, j in zip(*S.nonzero()):
             if i <= j:
-                yield i, j, S, verbose, log, n, min_nnz
+                yield i, j, S.getrow(i), S.getrow(j), verbose, log, n, min_nnz
     if verbose and log:
         log.message("Spawning processes.")
     with Pool(processes=n_jobs) as pool:

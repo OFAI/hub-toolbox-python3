@@ -328,19 +328,20 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 #         return i, j, res / (nz)
 #===============================================================================
 
-def _map_mpes(args):
+def _map_mpes(ind, args):
     """Compute MP between two objects i and j in CSR matrix."""
-    i, j, Si, Sj, verbose, log, n, min_nnz = args
-    print("DEBUG map_mpes at", i, j)
+    i, j = ind
+    S, verbose, log, n, min_nnz = args
+    #print("DEBUG map_mpes at", i, j)
     if verbose:
         n_rows = int(1e5 / 10**verbose)
     if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
         log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
     # Original similarity between the two objects
-    d = Sj[i]
+    d = S[j, i]
     # Similarities to i/j (as sparse matrices (rows))
-    dI = Si#.getrow(i)
-    dJ = Sj#.getrow(j)
+    dI = S.getrow(i)
+    dJ = S.getrow(j)
     
     # Number of positions that are non-zero in both rows
     nz = dI.multiply(dJ).data.size
@@ -382,17 +383,14 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     #             for i, j in zip(*S.nonzero()) if i <= j]
     # else:
     #===========================================================================
-    def provider():
-        for i, j in zip(*S.nonzero()):
-            if i <= j:
-                print("DEBUG: yielding")
-                yield i, j, S.getrow(i), S.getrow(j), verbose, log, n, min_nnz
+    from functools import partial
+    from scipy.sparse import triu
+    
     if verbose and log:
         log.message("Spawning processes.")
     with Pool(processes=n_jobs) as pool:
         #ij = [(i, j, S, verbose, log, n, min_nnz) for i, j in zip(*S.nonzero()) if i <= j]
-        nonzero_provider = provider()
-        res = pool.map(_map_mpes, nonzero_provider)
+        res = pool.map(partial(_map_mpes, args=(S, verbose, log, n, min_nnz)), zip(*triu(S).nonzero()))
         #=======================================================================
         # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
         #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)
@@ -404,8 +402,8 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     del res
     if verbose and log:
         log.message("Constructing COO matrix via DataFrame.")
-    S_mp = coo_matrix((df['val'].astype(float), 
-                       (df['row'].astype(int), df['col'].astype(int))))
+    S_mp = coo_matrix((df['val'].astype(np.float32), 
+                       (df['row'].astype(np.int32), df['col'].astype(np.int32))))
     del df
     if verbose and log:
         log.message("Converting to LIL matrix.")

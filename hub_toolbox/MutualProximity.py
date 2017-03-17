@@ -265,11 +265,11 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
                                   "test splits.")
         #train_set_ind = np.setdiff1d(np.arange(n), test_set_ind)
 
+    if issparse(D):
+        return _mutual_proximity_empiric_sparse(D, test_set_ind, min_nnz, verbose, log, n_jobs)
     # Start MP
     D = D.copy()
     
-    if issparse(D):
-        return _mutual_proximity_empiric_sparse(D, test_set_ind, min_nnz, verbose, log, n_jobs)
         
     # ensure correct self distances (NOT done for sparse matrices!)
     np.fill_diagonal(D, exclude_value)

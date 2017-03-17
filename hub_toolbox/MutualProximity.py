@@ -332,7 +332,7 @@ def _map_mpes(ind, args):
     """Compute MP between two objects i and j in CSR matrix."""
     i, j = ind
     S, verbose, log, n, min_nnz = args
-    #print("DEBUG map_mpes at", i, j)
+    print("DEBUG map_mpes at", i, j)
     if verbose:
         n_rows = int(1e5 / 10**verbose)
     if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):

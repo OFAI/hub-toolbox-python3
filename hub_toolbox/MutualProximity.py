@@ -390,7 +390,11 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
         log.message("Spawning processes.")
     with Pool(processes=n_jobs) as pool:
         #ij = [(i, j, S, verbose, log, n, min_nnz) for i, j in zip(*S.nonzero()) if i <= j]
-        res = pool.map(partial(_map_mpes, args=(S, verbose, log, n, min_nnz)), zip(*triu(S).nonzero()))
+        print("Now within with clause.")
+        print("Extract triu matrix.")
+        S_triu = triu(S)
+        print("Start map.")
+        res = pool.map(partial(_map_mpes, args=(S, verbose, log, n, min_nnz)), zip(*S_triu.nonzero()))
         #=======================================================================
         # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
         #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)

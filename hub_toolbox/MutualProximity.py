@@ -15,12 +15,13 @@ Contact: <roman.feldbauer@ofai.at>
 
 from functools import partial
 from itertools import filterfalse
+import ctypes
 import numpy as np
 import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Array, Pool, cpu_count
 from hub_toolbox import IO, Logging
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
@@ -330,7 +331,7 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 def _map_mpes(ind, args):
     """Compute MP between two objects i and j in CSR matrix."""
     i, j = ind
-    S, verbose, log, n, min_nnz = args
+    verbose, log, n, min_nnz = args
 
     if verbose:
         n_rows = int(1e5 / 10**verbose)
@@ -354,6 +355,14 @@ def _map_mpes(ind, args):
         res = dI.multiply(dJ).data.size
         return i, j, res / (nz)
 
+def _load_shared_csr(shared_data_, shared_indices_, 
+                     shared_indptr_, shape_):
+    global S
+    S = csr_matrix((np.frombuffer(shared_data_),
+                    np.frombuffer(shared_indices_), 
+                    np.frombuffer(shared_indptr_)), 
+                   shape=shape_, copy=False)
+
 def _mutual_proximity_empiric_sparse(S:csr_matrix, 
                                      test_set_ind:np.ndarray=None, 
                                      min_nnz=0,
@@ -376,22 +385,31 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     else:
         pass
 
-    #===========================================================================
-    # if n_jobs == 1:
-    #     res = [_joblib_mpes(i, j, S, verbose, log, n, min_nnz) 
-    #             for i, j in zip(*S.nonzero()) if i <= j]
-    # else:
-    #===========================================================================
+    if verbose and log:
+        log.message("Creating shared memory CSR matrix.")
+    shared_data = Array(ctypes.c_double, S.data.size, lock=False)
+    shared_data_np = np.frombuffer(shared_data)
+    shared_data_np[:] = S.data
+    shared_indices = Array(ctypes.c_double, S.indices.size, lock=False)
+    shared_indices_np = np.frombuffer(shared_indices)
+    shared_indices_np[:] = S.indices
+    shared_indptr = Array(ctypes.c_double, S.indptr.size, lock=False)
+    shared_indptr_np = np.frombuffer(shared_indptr)
+    shared_indptr_np[:] = S.indptr 
+    
     if verbose and log:
         log.message("Spawning processes.")
-    with Pool(processes=n_jobs) as pool:
-        S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], zip(*S.nonzero()))
-        res = pool.map(partial(_map_mpes, args=(S, verbose, log, n, min_nnz)), S_nonzero)
-        #=======================================================================
-        # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
-        #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)
-        #                    for i, j in zip(*S.nonzero()) if i <= j)
-        #=======================================================================
+    with Pool(processes=n_jobs, initializer=_load_shared_csr, 
+              initargs=(shared_data, shared_indices , 
+                        shared_indptr, S.shape)) as pool:
+        S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], 
+                                zip(*S.nonzero()))
+        res = pool.map( # map(
+            partial(_map_mpes, args=(verbose, log, n, min_nnz)), S_nonzero)
+    pool.join()
+    del shared_data, shared_data_np
+    del shared_indices, shared_indices_np
+    del shared_indptr, shared_indptr_np
     if verbose and log:
         log.message("Constructing DataFrame.")
     df = pd.DataFrame(res, columns=['row', 'col', 'val'])

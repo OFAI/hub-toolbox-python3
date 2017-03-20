@@ -14,11 +14,12 @@ Contact: <roman.feldbauer@ofai.at>
 """
 
 from functools import partial
+from itertools import filterfalse
 import numpy as np
 import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse, triu
+from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
 from multiprocessing import Pool, cpu_count
 from hub_toolbox import IO, Logging
 
@@ -384,7 +385,8 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     if verbose and log:
         log.message("Spawning processes.")
     with Pool(processes=n_jobs) as pool:
-        res = pool.map(partial(_map_mpes, args=(S, verbose, log, n, min_nnz)), zip(*triu(S).nonzero()))
+        S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], zip(*S.nonzero()))
+        res = pool.map(partial(_map_mpes, args=(S, verbose, log, n, min_nnz)), S_nonzero)
         #=======================================================================
         # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
         #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)

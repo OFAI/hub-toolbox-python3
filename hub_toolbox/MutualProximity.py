@@ -21,7 +21,8 @@ import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
-from multiprocessing import Array, Pool, cpu_count
+from multiprocessing import Pool, cpu_count
+from multiprocessing.sharedctypes import RawArray
 from hub_toolbox import IO, Logging
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
@@ -387,13 +388,13 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
 
     if verbose and log:
         log.message("Creating shared memory CSR matrix.")
-    shared_data = Array(ctypes.c_double, S.data.size, lock=False)
+    shared_data = RawArray(ctypes.c_double, S.data.size)
     shared_data_np = np.frombuffer(shared_data)
     shared_data_np[:] = S.data
-    shared_indices = Array(ctypes.c_double, S.indices.size, lock=False)
+    shared_indices = RawArray(ctypes.c_double, S.indices.size)
     shared_indices_np = np.frombuffer(shared_indices)
     shared_indices_np[:] = S.indices
-    shared_indptr = Array(ctypes.c_double, S.indptr.size, lock=False)
+    shared_indptr = RawArray(ctypes.c_double, S.indptr.size)
     shared_indptr_np = np.frombuffer(shared_indptr)
     shared_indptr_np[:] = S.indptr 
     

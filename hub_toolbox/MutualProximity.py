@@ -399,7 +399,8 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     if verbose and log:
         log.message("Constructing COO matrix via DataFrame.")
     S_mp = coo_matrix((df['val'].astype(np.float32), 
-                       (df['row'].astype(np.int32), df['col'].astype(np.int32))))
+                       (df['row'].astype(np.int32), df['col'].astype(np.int32))),
+                      shape=(n, n))
     del df
     if verbose and log:
         log.message("Converting to LIL matrix.")

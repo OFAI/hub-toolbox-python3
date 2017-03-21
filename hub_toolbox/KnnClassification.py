@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer, Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -16,6 +16,8 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.sparse.base import issparse
 from hub_toolbox import Logging, IO
+
+__all__ = ['score', 'predict']
 
 def score(D:np.ndarray, target:np.ndarray, k=5,
           metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0,
@@ -76,11 +78,11 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     # Check input sanity
     log = Logging.ConsoleLogging()
     if sample_idx is None:
-        IO._check_distance_matrix_shape(D)
+        IO.check_distance_matrix_shape(D)
     else:
-        IO._check_sample_shape_fits(D, sample_idx)
-    IO._check_distance_matrix_shape_fits_labels(D, target)
-    IO._check_valid_metric_parameter(metric)
+        IO.check_sample_shape_fits(D, sample_idx)
+    IO.check_distance_matrix_shape_fits_labels(D, target)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
         sort_order = 1
@@ -258,11 +260,11 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
     # Check input sanity
     log = Logging.ConsoleLogging()
     if sample_idx is None:
-        IO._check_distance_matrix_shape(D)
+        IO.check_distance_matrix_shape(D)
     else:
-        IO._check_sample_shape_fits(D, sample_idx)
+        IO.check_sample_shape_fits(D, sample_idx)
     #IO._check_distance_matrix_shape_fits_labels(D, target)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
         sort_order = 1

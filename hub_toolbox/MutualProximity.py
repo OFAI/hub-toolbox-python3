@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -24,6 +24,9 @@ from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
 from multiprocessing import Pool, cpu_count
 from multiprocessing.sharedctypes import RawArray
 from hub_toolbox import IO, Logging
+
+__all__ = ['mutual_proximity_empiric', 'mutual_proximity_gammai', 
+           'mutual_proximity_gaussi', '_mutual_proximity_gumbel_sparse']
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
                              test_ind:np.ndarray=None, verbose:int=0,
@@ -133,8 +136,8 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     """
     # Initialization and checking input
     log = Logging.ConsoleLogging()
-    IO._check_sample_shape_fits(D, idx)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_sample_shape_fits(D, idx)
+    IO.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
     j = np.ones(n, int)
@@ -248,8 +251,8 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Check input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
         exclude_value = np.inf
@@ -390,23 +393,20 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
         log.message("Creating shared memory CSR matrix.")
     shared_data = RawArray(ctypes.c_double, S.data.size)
     shared_data_np = np.frombuffer(shared_data)
-    shared_data_np[:] = S.data
+    shared_data_np[:] = S.data[:]
     shared_indices = RawArray(ctypes.c_double, S.indices.size)
     shared_indices_np = np.frombuffer(shared_indices)
-    shared_indices_np[:] = S.indices
+    shared_indices_np[:] = S.indices[:]
     shared_indptr = RawArray(ctypes.c_double, S.indptr.size)
     shared_indptr_np = np.frombuffer(shared_indptr)
-    shared_indptr_np[:] = S.indptr 
+    shared_indptr_np[:] = S.indptr[:]
     
     if verbose and log:
         log.message("Spawning processes.")
     with Pool(processes=n_jobs, initializer=_load_shared_csr, 
-              initargs=(shared_data, shared_indices , 
-                        shared_indptr, S.shape)) as pool:
-        S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], 
-                                zip(*S.nonzero()))
-        res = pool.map( # map(
-            partial(_map_mpes, args=(verbose, log, n, min_nnz)), S_nonzero)
+              initargs=(shared_data, shared_indices, shared_indptr, S.shape)) as pool:
+        S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], zip(*S.nonzero()))
+        res = pool.map(partial(_map_mpes, args=(verbose, log, n, min_nnz)), S_nonzero)
     pool.join()
     del shared_data, shared_data_np
     del shared_indices, shared_indices_np
@@ -490,8 +490,8 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':
@@ -612,8 +612,8 @@ def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray,
     """
     # Initialization and checking input
     log = Logging.ConsoleLogging()
-    IO._check_sample_shape_fits(D, idx)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_sample_shape_fits(D, idx)
+    IO.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
     j = np.ones(n, int)
@@ -742,10 +742,10 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     
     # Checking input
     if idx is None:
-        IO._check_distance_matrix_shape(D)
+        IO.check_distance_matrix_shape(D)
     else:
-        IO._check_sample_shape_fits(D, idx)
-    IO._check_valid_metric_parameter(metric)
+        IO.check_sample_shape_fits(D, idx)
+    IO.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
 
@@ -949,8 +949,8 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':

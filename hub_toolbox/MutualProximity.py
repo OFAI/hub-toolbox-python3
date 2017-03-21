@@ -8,21 +8,25 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+from functools import partial
+from itertools import filterfalse
+import ctypes
 import numpy as np
 import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
-#===============================================================================
-# from joblib import Parallel, delayed
-#===============================================================================
 from multiprocessing import Pool, cpu_count
+from multiprocessing.sharedctypes import RawArray
 from hub_toolbox import IO, Logging
+
+__all__ = ['mutual_proximity_empiric', 'mutual_proximity_gammai', 
+           'mutual_proximity_gaussi', '_mutual_proximity_gumbel_sparse']
 
 def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
                              test_ind:np.ndarray=None, verbose:int=0,
@@ -132,8 +136,8 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     """
     # Initialization and checking input
     log = Logging.ConsoleLogging()
-    IO._check_sample_shape_fits(D, idx)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_sample_shape_fits(D, idx)
+    IO.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
     j = np.ones(n, int)
@@ -176,7 +180,9 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
         dI = D[i, :][np.newaxis, :] # broadcasted afterwards
         dJ = D[idx, :] # fancy indexing, thus copy
         d = dI.T # D[i, :][:, np.newaxis] # both versions are equal
-        n_pts = (np.isfinite(dI) & np.isfinite(dJ)).sum(1)
+        # div by n
+        n_pts = s 
+        # div by n-1, n-2 #n_pts = (np.isfinite(dI) & np.isfinite(dJ)).sum(1)
         if metric == 'similarity':
             D_mp[i, :] = np.sum((dI <= d) & (dJ <= d), 1) / n_pts
         else: # metric == 'distance':
@@ -247,8 +253,8 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Check input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
         exclude_value = np.inf
@@ -288,9 +294,9 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
         d = D[j_idx:n, i][:, np.newaxis]
          
         if metric == 'similarity':
-            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / (n - 2)
+            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / n #(n - 2)
         else: # metric == 'distance':
-            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / (n - 2))
+            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n) #(n - 2))
          
     # Mirror, so that matrix is symmetric
     D_mp += D_mp.T
@@ -328,10 +334,11 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 #         return i, j, res / (nz)
 #===============================================================================
 
-def _map_mpes(args):
+def _map_mpes(ind, args):
     """Compute MP between two objects i and j in CSR matrix."""
-    i, j, S, verbose, log, n, min_nnz = args
-    print("DEBUG map_mpes at", i, j)
+    i, j = ind
+    verbose, log, n, min_nnz = args
+
     if verbose:
         n_rows = int(1e5 / 10**verbose)
     if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
@@ -353,6 +360,14 @@ def _map_mpes(args):
         dJ.data[dJ.data > d] = 0
         res = dI.multiply(dJ).data.size
         return i, j, res / (nz)
+
+def _load_shared_csr(shared_data_, shared_indices_, 
+                     shared_indptr_, shape_):
+    global S
+    S = csr_matrix((np.frombuffer(shared_data_),
+                    np.frombuffer(shared_indices_), 
+                    np.frombuffer(shared_indptr_)), 
+                   shape=shape_, copy=False)
 
 def _mutual_proximity_empiric_sparse(S:csr_matrix, 
                                      test_set_ind:np.ndarray=None, 
@@ -376,35 +391,37 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     else:
         pass
 
-    #===========================================================================
-    # if n_jobs == 1:
-    #     res = [_joblib_mpes(i, j, S, verbose, log, n, min_nnz) 
-    #             for i, j in zip(*S.nonzero()) if i <= j]
-    # else:
-    #===========================================================================
-    def provider():
-        for i, j in zip(*S.nonzero()):
-            if i <= j:
-                yield i, j, S, verbose, log, n, min_nnz
+    if verbose and log:
+        log.message("Creating shared memory CSR matrix.")
+    shared_data = RawArray(ctypes.c_double, S.data.size)
+    shared_data_np = np.frombuffer(shared_data)
+    shared_data_np[:] = S.data[:]
+    shared_indices = RawArray(ctypes.c_double, S.indices.size)
+    shared_indices_np = np.frombuffer(shared_indices)
+    shared_indices_np[:] = S.indices[:]
+    shared_indptr = RawArray(ctypes.c_double, S.indptr.size)
+    shared_indptr_np = np.frombuffer(shared_indptr)
+    shared_indptr_np[:] = S.indptr[:]
+    
     if verbose and log:
         log.message("Spawning processes.")
-    with Pool(processes=n_jobs) as pool:
-        #ij = [(i, j, S, verbose, log, n, min_nnz) for i, j in zip(*S.nonzero()) if i <= j]
-        nonzero_provider = provider()
-        res = pool.map(_map_mpes, nonzero_provider)
-        #=======================================================================
-        # with Parallel(n_jobs=n_jobs, max_nbytes=None) as parallel:
-        #     res = parallel(delayed(_joblib_mpes)(i, j, S, verbose, log, n, min_nnz)
-        #                    for i, j in zip(*S.nonzero()) if i <= j)
-        #=======================================================================
+    with Pool(processes=n_jobs, initializer=_load_shared_csr, 
+              initargs=(shared_data, shared_indices, shared_indptr, S.shape)) as pool:
+        S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], zip(*S.nonzero()))
+        res = pool.map(partial(_map_mpes, args=(verbose, log, n, min_nnz)), S_nonzero)
+    pool.join()
+    del shared_data, shared_data_np
+    del shared_indices, shared_indices_np
+    del shared_indptr, shared_indptr_np
     if verbose and log:
         log.message("Constructing DataFrame.")
     df = pd.DataFrame(res, columns=['row', 'col', 'val'])
     del res
     if verbose and log:
         log.message("Constructing COO matrix via DataFrame.")
-    S_mp = coo_matrix((df['val'].astype(float), 
-                       (df['row'].astype(int), df['col'].astype(int))))
+    S_mp = coo_matrix((df['val'].astype(np.float32), 
+                       (df['row'].astype(np.int32), df['col'].astype(np.int32))),
+                      shape=(n, n))
     del df
     if verbose and log:
         log.message("Converting to LIL matrix.")
@@ -475,8 +492,8 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':
@@ -597,8 +614,8 @@ def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray,
     """
     # Initialization and checking input
     log = Logging.ConsoleLogging()
-    IO._check_sample_shape_fits(D, idx)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_sample_shape_fits(D, idx)
+    IO.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
     j = np.ones(n, int)
@@ -727,10 +744,10 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     
     # Checking input
     if idx is None:
-        IO._check_distance_matrix_shape(D)
+        IO.check_distance_matrix_shape(D)
     else:
-        IO._check_sample_shape_fits(D, idx)
-    IO._check_valid_metric_parameter(metric)
+        IO.check_sample_shape_fits(D, idx)
+    IO.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
 
@@ -934,8 +951,8 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     
     # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':

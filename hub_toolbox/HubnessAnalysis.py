@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -27,6 +27,8 @@ from hub_toolbox.Centering import centering, weighted_centering, \
     localized_centering, dis_sim_global, dis_sim_local
 from hub_toolbox.Distances import cosine_distance
 from hub_toolbox import IO
+
+__all__ = ['HubnessAnalysis']
 
 CITATION = \
 """
@@ -323,16 +325,16 @@ class HubnessExperiment():
                  vectors:np.ndarray=None):
         """Initialize a hubness experiment"""
 
-        IO._check_distance_matrix_shape(D)
-        IO._check_valid_metric_parameter(metric)
+        IO.check_distance_matrix_shape(D)
+        IO.check_valid_metric_parameter(metric)
         if secondary_distance_type not in SEC_DIST.keys():
             raise ValueError("Requested secondary distance type unknown.")
         if classes is not None:
-            IO._check_distance_matrix_shape_fits_labels(D, classes)
+            IO.check_distance_matrix_shape_fits_labels(D, classes)
         if vectors is None:
             self.embedding_dim = None
         else: # got vectors
-            IO._check_distance_matrix_shape_fits_vectors(D, vectors)
+            IO.check_distance_matrix_shape_fits_vectors(D, vectors)
             self.embedding_dim = vectors.shape[1]
         self.original_distance = D
         self.secondary_distance_type = secondary_distance_type

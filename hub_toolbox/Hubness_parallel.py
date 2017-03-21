@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -28,7 +28,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
 
 if __name__ == '__main__':
     """Simple test case"""
-    from hub_toolbox.HubnessAnalysis import load_dexter
+    from hub_toolbox.IO import load_dexter
     D, l, v = load_dexter()
     Sn, Dk, Nk = hubness(D)
     print("Hubness =", Sn)

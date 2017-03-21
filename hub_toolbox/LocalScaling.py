@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer, Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -17,6 +17,8 @@ import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
 from hub_toolbox import IO, Logging
+
+__all__ = ['local_scaling', 'local_scaling_sample', 'nicdm', 'nicdm_sample']
 
 def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
                          train_ind:np.ndarray=None, test_ind:np.ndarray=None):
@@ -64,8 +66,8 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
     """
     log = Logging.ConsoleLogging()
     # Checking input
-    IO._check_sample_shape_fits(D, train_ind)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_sample_shape_fits(D, train_ind)
+    IO.check_valid_metric_parameter(metric)
     sparse = issparse(D)
     if metric == 'similarity':
         if train_ind is not None:
@@ -176,8 +178,8 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     """
     log = Logging.ConsoleLogging()
     # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     sparse = issparse(D)
     if metric == 'similarity':
         sort_order = -1
@@ -287,8 +289,8 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
            Learning Research, 13(1), 2871–2902.
     """
     # Checking input
-    IO._check_sample_shape_fits(D, train_ind)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_sample_shape_fits(D, train_ind)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         raise NotImplementedError("NICDM does not support similarity matrices "
                                   "at the moment.")
@@ -376,8 +378,8 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     """
     #log = Logging.ConsoleLogging()
     # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         raise NotImplementedError("NICDM does not support similarity matrices "
                                   "at the moment.")

@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -69,8 +69,8 @@ def mutual_proximity_empiric(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     log.warning("MP parallel code is not up-to-date! "
                 "Please use methods of the MutualProximity module for now.")
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     # DO NOT DELETE this comment, will be used upon parallel MP emp dist impl
     #===========================================================================
     # # Initialization
@@ -196,7 +196,7 @@ def _partial_mp_emp_sparse(batch, matrix, idx, n, verbose):
                 dJ = matrix.getrow(j).toarray()
                 # non-zeros elements
                 nz = (dI > 0) & (dJ > 0) 
-                S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum() - 2)
+                S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum()) # - 2)
                 # need to mirror later
             else:
                 pass # skip zero entries
@@ -257,8 +257,8 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     log.warning("MP parallel code is not up-to-date! "
                 "Please use methods of the MutualProximity module for now.")
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     # DO NOT DELETE comment
     #===========================================================================
     # # Checking input
@@ -450,8 +450,8 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     log = Logging.ConsoleLogging()
     log.warning("MP parallel code is not up-to-date! "
                 "Please use methods of the MutualProximity module for now.")
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     n = D.shape[0]
     sample_size = 0 # not implemented
     if test_set_ind is None:

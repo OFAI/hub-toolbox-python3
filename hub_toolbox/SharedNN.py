@@ -8,13 +8,15 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
 import numpy as np
 from hub_toolbox import IO
+
+__all__ = ['snn_sample', 'shared_nearest_neighbors', 'simhub', 'simhubIN']
 
 def snn_sample(D:np.ndarray, k:int=10, metric='distance',
                train_ind:np.ndarray=None, test_ind:np.ndarray=None):
@@ -62,8 +64,8 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
            International Conference on Data Mining Workshops, 460–467.
            http://doi.org/10.1109/ICDMW.2013.101
     """
-    IO._check_sample_shape_fits(D, train_ind)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_sample_shape_fits(D, train_ind)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'distance':
         self_value = 0.
         sort_order = 1
@@ -144,8 +146,8 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
            International Conference on Data Mining Workshops, 460–467.
            http://doi.org/10.1109/ICDMW.2013.101
     """
-    IO._check_distance_matrix_shape(D)
-    IO._check_valid_metric_parameter(metric)
+    IO.check_distance_matrix_shape(D)
+    IO.check_valid_metric_parameter(metric)
     if metric == 'distance':
         self_value = 0.
         sort_order = 1
@@ -224,9 +226,9 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
            http://doi.org/10.1007/s10115-012-0607-5
     """
     if train_ind is None:
-        IO._check_distance_matrix_shape(D)
+        IO.check_distance_matrix_shape(D)
     else:
-        IO._check_sample_shape_fits(D, train_ind)
+        IO.check_sample_shape_fits(D, train_ind)
     # Assuming distances in D
     self_value = 0.
     sort_order = 1
@@ -345,9 +347,9 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
            http://doi.org/10.1007/s10115-012-0607-5
     """
     if train_ind is None:
-        IO._check_distance_matrix_shape(D)
+        IO.check_distance_matrix_shape(D)
     else:
-        IO._check_sample_shape_fits(D, train_ind)
+        IO.check_sample_shape_fits(D, train_ind)
     # Assuming distances in D
     self_value = 0.
     sort_order = 1

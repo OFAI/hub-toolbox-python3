@@ -7,7 +7,7 @@ http://ofai.at/research/impml/projects/hubology.html
 Source code is available at https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2015-2016, Roman Feldbauer
+(c) 2015-2017, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -16,6 +16,9 @@ import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
 from hub_toolbox.Distances import cosine_distance as cos
 from hub_toolbox import IO
+
+__all__ = ['centering', 'weighted_centering', 'localized_centering', 
+           'dis_sim_global', 'dis_sim_local']
 
 def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
     """
@@ -72,7 +75,7 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
         if test_set_mask is not None:
             raise NotImplementedError("Kernel based centering does not "
                                       "support train/test splits so far.")
-        IO._check_distance_matrix_shape(X)
+        IO.check_distance_matrix_shape(X)
         n = X.shape[0]
         H = np.identity(n) - np.ones((n, n)) / n
         # K = X.T.X must be provided upstream

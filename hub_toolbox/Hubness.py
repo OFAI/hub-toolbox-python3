@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -18,6 +18,8 @@ import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
 from hub_toolbox import IO, Logging
+
+__all__ = ['hubness']
 
 def hubness(D:np.ndarray, k:int=5, metric='distance',
             verbose:int=0, n_jobs:int=1, random_state=None):
@@ -79,8 +81,8 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     if random_state is not None:
         raise ValueError("Seeding the RNG is not compatible with using n_jobs > 1.")
     log = Logging.ConsoleLogging()
-    IO._check_is_nD_array(arr=D, n=2, arr_type='Distance')
-    IO._check_valid_metric_parameter(metric)
+    IO.check_is_nD_array(arr=D, n=2, arr_type='Distance')
+    IO.check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
         sort_order = 1
@@ -199,8 +201,8 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
                                 verbose:int=0, random_state=None):
     """ Hubness calculations without multiprocessing overhead. """
     log = Logging.ConsoleLogging()
-    IO._check_is_nD_array(arr=D, n=2, arr_type='Distance')
-    IO._check_valid_metric_parameter(metric)
+    IO.check_is_nD_array(arr=D, n=2, arr_type='Distance')
+    IO.check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
         sort_order = 1

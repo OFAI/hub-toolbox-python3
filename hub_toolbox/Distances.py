@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -20,7 +20,10 @@ try: # for scikit-learn >= 0.18
 except ImportError: # lower scikit-learn versions
     from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.metrics.pairwise import pairwise_distances
-from hub_toolbox.IO import _check_vector_matrix_shape_fits_labels
+from hub_toolbox.IO import check_vector_matrix_shape_fits_labels
+
+__all__ = ['cosine_distance', 'euclidean_distance', 
+           'lp_norm', 'sample_distance']
 
 def cosine_distance(X):
     """Calculate the cosine distance between all pairs of vectors in `X`."""
@@ -139,7 +142,7 @@ def sample_distance(X, y, sample_size, metric='euclidean', strategy='a',
     in the sample to obtain a ``n x s`` distance matrix.
     
     """
-    _check_vector_matrix_shape_fits_labels(X, y)
+    check_vector_matrix_shape_fits_labels(X, y)
     n = X.shape[0]
     if not isinstance(sample_size, int):
         sample_size = int(sample_size * n)

@@ -8,12 +8,12 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer, Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-__version__ = '2.4.0dev1'
+__version__ = '2.5.0.dev1'
 
 try:
     import numpy

@@ -120,7 +120,7 @@ here on GitHub.
 
 .. code-block:: text
 
-	(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+	(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 	Austrian Research Institute for Artificial Intelligence (OFAI)
 	Contact: <roman.feldbauer@ofai.at>
 

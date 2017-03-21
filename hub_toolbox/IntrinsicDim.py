@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 
@@ -20,6 +20,8 @@ Reference:  E. Levina and P.J. Bickel (2005).
  In Advances in NIPS 17, Eds. L. K. Saul, Y. Weiss, L. Bottou.
 """
 import numpy as np
+
+__all__ = ['intrinsic_dimension']
 
 def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
                         estimator:str='mackay', metric:str='vector',
@@ -119,6 +121,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
                 knnmatrix[i, :] = .5 * np.log(distance[1:k2+1])
     elif metric == 'distance':
         raise NotImplementedError("ID currently only supports vector data.")
+        # XXX perhaps map to sufficiently high dim with MDS, then calc ID??
         #=======================================================================
         # # TODO calculation WRONG
         # X.sort(1)

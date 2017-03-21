@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2015-2016, Roman Feldbauer
+(c) 2015-2017, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -17,6 +17,8 @@ import os
 import numpy as np
 from scipy import sparse
 from scipy.sparse.base import issparse
+
+__all__ = ['load_dexter', 'random_sparse_matrix']
 
 def load_dexter():
     """Load the example data set (dexter).
@@ -60,7 +62,7 @@ def load_dexter():
     D = cosine_distance(vectors)
     return D, classes, vectors
 
-def _check_is_nD_array(arr:np.ndarray, n:int, arr_type=''):
+def check_is_nD_array(arr:np.ndarray, n:int, arr_type=''):
     """ Check that array is exactly n dimensional. """
     try:
         if arr.ndim != n:
@@ -71,46 +73,46 @@ def _check_is_nD_array(arr:np.ndarray, n:int, arr_type=''):
     except AttributeError:
         raise TypeError("Object 'arr' does not seem to be an array.")
 
-def _check_distance_matrix_shape(D:np.ndarray):
+def check_distance_matrix_shape(D:np.ndarray):
     """ Check that matrix is quadratic. """
-    _check_is_nD_array(D, n=2, arr_type="Distance/similarity")
+    check_is_nD_array(D, n=2, arr_type="Distance/similarity")
     if D.shape[0] != D.shape[1]:
         raise TypeError("Distance/similarity matrix is not quadratic. "
                         "Shape: {}".format(D.shape))
 
-def _check_distance_matrix_shape_fits_vectors(D:np.ndarray, vectors:np.ndarray):
+def check_distance_matrix_shape_fits_vectors(D:np.ndarray, vectors:np.ndarray):
     """ Check number of points in distance matrix equal number of vectors. """
-    _check_is_nD_array(D, 2, "Distance/similarity")
-    _check_is_nD_array(vectors, 2, "Data vectors")
+    check_is_nD_array(D, 2, "Distance/similarity")
+    check_is_nD_array(vectors, 2, "Data vectors")
     if D.shape[0] != vectors.shape[0]:
         raise TypeError("Number of points in `vectors` does not match "
                         "number of points in `D`. Shape of `vectors`: {}, "
                         "shape of `D`: {}".format(vectors.shape[0], D.shape[0]))
 
-def _check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
+def check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
     """ Check the number of points in distance matrix equal number of labels."""
-    _check_is_nD_array(D, 2, "Distance/similarity")
-    _check_is_nD_array(classes, 1, "Class label")
+    check_is_nD_array(D, 2, "Distance/similarity")
+    check_is_nD_array(classes, 1, "Class label")
     if classes.size != D.shape[0]:
         raise TypeError("Number of class labels does not match number of "
                         "points. Labels: {}, points: {}."
                         .format(classes.size, D.shape[0]))
 
-def _check_vector_matrix_shape_fits_labels(X:np.ndarray, classes:np.ndarray):
+def check_vector_matrix_shape_fits_labels(X:np.ndarray, classes:np.ndarray):
     """ Check the number of points in vector matrix equal number of labels."""
-    _check_is_nD_array(X, 2, "Data vectors")
-    _check_is_nD_array(classes, 1, "Class label")
+    check_is_nD_array(X, 2, "Data vectors")
+    check_is_nD_array(classes, 1, "Class label")
     if classes.size != X.shape[0]:
         raise TypeError("Number of class labels does not match number of "
                         "points. Labels: {}, points: {}."
                         .format(classes.size, X.shape[0]))
 
-def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
+def check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
     """ Check that number of columns in ``D`` equals the size of ``idx``. """
     if issparse(D) or issparse(idx):
         raise TypeError("Sparse matrices are not supported for SampleMP.")
-    _check_is_nD_array(D, 2, "Distance/similarity")
-    _check_is_nD_array(idx, 1, "Index")
+    check_is_nD_array(D, 2, "Distance/similarity")
+    check_is_nD_array(idx, 1, "Index")
     if D.shape[1] > D.shape[0]:
         raise ValueError("Number of samples is higher than number of points. "
                          "Must be less than or equal. In the latter case, "
@@ -122,7 +124,7 @@ def _check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
                         "Size of `idx`: {}, Columns in `D`: {}."
                         .format(idx.size, D.shape[1]))
 
-def _check_valid_metric_parameter(metric:str):
+def check_valid_metric_parameter(metric:str):
     """ Check parameter is either 'distance' or 'similarity'. """
     if metric != 'distance' and metric != 'similarity':
         raise ValueError("Parameter 'metric' must be "

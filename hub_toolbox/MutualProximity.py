@@ -180,7 +180,9 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
         dI = D[i, :][np.newaxis, :] # broadcasted afterwards
         dJ = D[idx, :] # fancy indexing, thus copy
         d = dI.T # D[i, :][:, np.newaxis] # both versions are equal
-        n_pts = (np.isfinite(dI) & np.isfinite(dJ)).sum(1)
+        # div by n
+        n_pts = s 
+        # div by n-1, n-2 #n_pts = (np.isfinite(dI) & np.isfinite(dJ)).sum(1)
         if metric == 'similarity':
             D_mp[i, :] = np.sum((dI <= d) & (dJ <= d), 1) / n_pts
         else: # metric == 'distance':
@@ -292,9 +294,9 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
         d = D[j_idx:n, i][:, np.newaxis]
          
         if metric == 'similarity':
-            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / (n - 2)
+            D_mp[i, j_idx:] = np.sum((dI <= d) & (dJ <= d), 1) / n #(n - 2)
         else: # metric == 'distance':
-            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / (n - 2))
+            D_mp[i, j_idx:] = 1 - (np.sum((dI > d) & (dJ > d), 1) / n) #(n - 2))
          
     # Mirror, so that matrix is symmetric
     D_mp += D_mp.T

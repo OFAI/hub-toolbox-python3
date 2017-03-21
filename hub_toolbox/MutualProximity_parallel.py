@@ -196,7 +196,7 @@ def _partial_mp_emp_sparse(batch, matrix, idx, n, verbose):
                 dJ = matrix.getrow(j).toarray()
                 # non-zeros elements
                 nz = (dI > 0) & (dJ > 0) 
-                S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum() - 2)
+                S_mp[i, j] = (nz & (dI <= d) & (dJ <= d)).sum() / (nz.sum()) # - 2)
                 # need to mirror later
             else:
                 pass # skip zero entries

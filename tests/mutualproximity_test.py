@@ -35,13 +35,19 @@ class TestMutualProximity(unittest.TestCase):
         elif mode == 'toy':
             # MP empiric ground truth calculated by hand for this toy example
             self.dist = squareform([.2, .1, .8, .4, .3, .5, .7, 1., .6, .9])
-            """ # MP with div/(n-1)
-            self.mp_dist_truth = squareform([.5, .25, 1., .75, .5, 
-                                             .75, 1., 1., .75, 1.])
+
+            # MP with div/(n-0)
+            self.mp_dist_truth = squareform([.6, .4, 1., .8, .6, 
+                                             .8, 1., 1., .8, 1.])
             """
             # MP with div/(n-1)
+            self.mp_dist_truth = squareform([.5, .25, 1., .75, .5, 
+                                             .75, 1., 1., .75, 1.])
+
+            # MP with div/(n-2)
             self.mp_dist_truth = squareform([1/3, 0., 1., 2/3, 1/3, 
                                              2/3, 1., 1., 2/3, 1.])
+            """
             self.vector = None
             self.label = None
 

@@ -307,9 +307,12 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
             raise e
 
     cl = np.sort(np.unique(target))
-    cmat = np.zeros((k_length, target.shape[1], len(cl), len(cl)))
-    y_pred = np.zeros((k_length, *target.shape), dtype=int)
-    
+    cmat = np.zeros((k_length, target.shape[1], len(cl), len(cl)), dtype=int)
+    try: # valid from Python 3.5
+        y_pred = np.zeros((k_length, *target.shape), dtype=int)
+    except SyntaxError: # pre 3.5
+        y_pred = np.zeros(
+                (k_length, target.shape[0], target.shape[1]), dtype=int)
     classes = target.copy()
     for idx, cur_class in enumerate(np.array(cl).ravel()):
         # change labels to 0, 1, ..., len(cl)-1

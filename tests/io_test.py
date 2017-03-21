@@ -70,24 +70,24 @@ class TestIO(unittest.TestCase):
     def test_check_shape(self):
         with self.assertRaises(TypeError):
             d = np.empty((2, 3))
-            IO._check_distance_matrix_shape(d)
+            IO.check_distance_matrix_shape(d)
 
     def test_check_dist_vs_classes(self):
         with self.assertRaises(TypeError):
             D = np.empty((5, 5))
             classes = np.empty(4)
-            IO._check_distance_matrix_shape_fits_labels(D, classes)
+            IO.check_distance_matrix_shape_fits_labels(D, classes)
 
     def test_check_dist_vs_vectors(self):
         with self.assertRaises(TypeError):
             D = np.zeros((5, 5))
             vectors = np.zeros((4, 5))
-            IO._check_distance_matrix_shape_fits_vectors(D, vectors)
+            IO.check_distance_matrix_shape_fits_vectors(D, vectors)
 
     def test_check_valid_metric(self):
         with self.assertRaises(ValueError):
             metric = 'dissimilarity'
-            IO._check_valid_metric_parameter(metric)
+            IO.check_valid_metric_parameter(metric)
 
 if __name__ == "__main__":
     unittest.main()

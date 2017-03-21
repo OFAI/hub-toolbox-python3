@@ -21,7 +21,7 @@ import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, current_process
 from multiprocessing.sharedctypes import RawArray
 from hub_toolbox import IO, Logging
 
@@ -341,9 +341,11 @@ def _map_mpes(ind, args):
 
     if verbose:
         n_rows = int(1e5 / 10**verbose)
-    if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
-        log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
+    if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-1):
+        log.message("MP_empiric: {} of {} on {}.".format(
+            i+1, n, current_process().name), flush=True)
     # Original similarity between the two objects
+    #print("_map_mpes, id(S) =", id(S))
     d = S[j, i]
     # Similarities to i/j (as sparse matrices (rows))
     dI = S.getrow(i)
@@ -408,7 +410,8 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     with Pool(processes=n_jobs, initializer=_load_shared_csr, 
               initargs=(shared_data, shared_indices, shared_indptr, S.shape)) as pool:
         S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], zip(*S.nonzero()))
-        res = pool.map(partial(_map_mpes, args=(verbose, log, n, min_nnz)), S_nonzero)
+        res = pool.map(func=partial(_map_mpes, args=(verbose, log, n, min_nnz)), 
+                       iterable=S_nonzero, chunksize=int(1e5))
     pool.join()
     del shared_data, shared_data_np
     del shared_indices, shared_indices_np
@@ -1352,7 +1355,10 @@ def _mutual_proximity_gumbel_sparse(S:np.ndarray, min_nnz:int=30,
 #===============================================================================
 
 if __name__ == '__main__':
-    pass
+    from hub_toolbox.IO import random_sparse_matrix
+    S = random_sparse_matrix(size=3000, density=0.1)
+    smp = mutual_proximity_empiric(S, 'similarity', verbose=3, n_jobs=4, min_nnz=30)
+    print(smp.shape)
     #===========================================================================
     # D, labels, vectors = IO.load_dexter()
     # #===========================================================================

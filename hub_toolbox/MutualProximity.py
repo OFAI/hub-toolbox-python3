@@ -415,11 +415,14 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     
     if verbose and log:
         log.message("Spawning processes.")
+    res = list()
     with Pool(processes=n_jobs, initializer=_load_shared_csr, 
               initargs=(shared_data, shared_indices, shared_indptr, S.shape)) as pool:
         S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], zip(*S.nonzero()))
-        res = pool.map(func=partial(_map_mpes, args=(verbose, log, n, min_nnz)), 
-                       iterable=S_nonzero, chunksize=int(1e5))
+        for r in pool.imap(func=partial(_map_mpes, args=(verbose, log, n, min_nnz)), 
+                           iterable=S_nonzero, 
+                           chunksize=int(1e5)):
+            res.append(r)
     pool.join()
     del shared_data, shared_data_np
     del shared_indices, shared_indices_np

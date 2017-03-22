@@ -346,22 +346,30 @@ def _map_mpes(ind, args):
             i+1, n, current_process().name), flush=True)
     # Original similarity between the two objects
     #print("_map_mpes, id(S) =", id(S))
-    d = S[j, i]
+    threshold = S[j, i]
     # Similarities to i/j (as sparse matrices (rows))
-    dI = S.getrow(i)
-    dJ = S.getrow(j)
+    S_i = S.getrow(i)
+    S_j = S.getrow(j)
     
     # Number of positions that are non-zero in both rows
-    nz = dI.multiply(dJ).data.size
-    # if there are none, just return the original distance (handled elsewhere)
-    if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
+    #nz = dI.multiply(dJ).data.size
+    
+    # If any row contains too few values, 
+    # just return the original similarities (handled elsewhere).
+    if S_i.nnz <= min_nnz or S_j.nnz <= min_nnz:
         return i, j, np.nan
-    # otherwise count those positions lte to `d` in both rows
+    # otherwise count those positions lte to `s`` in both rows
     else:
-        dI.data[dI.data > d] = 0
-        dJ.data[dJ.data > d] = 0
-        res = dI.multiply(dJ).data.size
-        return i, j, res / (nz)
+        S_i.data[S_i.data <= threshold] = 0
+        S_j.data[S_j.data <= threshold] = 0
+        s_mp = 1 - (S_i + S_j).nnz / n
+        return i, j, s_mp
+        #=======================================================================
+        # dI.data[dI.data > d] = 0
+        # dJ.data[dJ.data > d] = 0
+        # res = dI.multiply(dJ).data.size
+        # return i, j, res / (nz)
+        #=======================================================================
 
 def _load_shared_csr(shared_data_, shared_indices_, 
                      shared_indptr_, shape_):

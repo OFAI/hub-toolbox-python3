@@ -49,12 +49,15 @@ class TestMutualProximityParallel(unittest.TestCase):
   
     def test_mp_empiric_sparse_parallel(self):
         """Test parallel version equivalent to serial version."""
-        sim = csr_matrix(1. - self.dist)
-        sim_s = mpe_s(sim, 'similarity')
-        sim_p = mutual_proximity_empiric(sim, 'similarity', verbose=1)
-        parallel_all_close_serial = np.allclose(sim_p.toarray(), 
-                                                sim_s.toarray()) 
-        return self.assertTrue(parallel_all_close_serial)
+        return self.skipTest("Function to test is deprecated.")
+        #=======================================================================
+        # sim = csr_matrix(1. - self.dist)
+        # sim_s = mpe_s(sim, 'similarity')
+        # sim_p = mutual_proximity_empiric(sim, 'similarity', verbose=1)
+        # parallel_all_close_serial = np.allclose(sim_p.toarray(),
+        #                                         sim_s.toarray())
+        # return self.assertTrue(parallel_all_close_serial)
+        #=======================================================================
   
     def test_mp_gauss_parallel(self):
         """Test parallel version equivalent to serial version."""

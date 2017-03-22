@@ -123,7 +123,8 @@ class TestMutualProximity(unittest.TestCase):
         sim_dense = 1. - self.dist
         sim_sparse = csr_matrix(sim_dense)
         mp_dense = mutual_proximity_empiric(sim_dense, 'similarity')
-        mp_sparse = mutual_proximity_empiric(sim_sparse, 'similarity')
+        mp_sparse = mutual_proximity_empiric(
+            sim_sparse, 'similarity', verbose=1, n_jobs=4)
         dense_allclose_sparse = np.allclose(mp_dense, mp_sparse.toarray())
         return self.assertTrue(dense_allclose_sparse)
   

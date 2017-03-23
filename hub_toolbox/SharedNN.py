@@ -89,6 +89,7 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
     # find nearest neighbors for each point
     for i in range(n):
         di = distance[i, :]
+        # TODO change to np.partition for PERF
         nn = np.argsort(di)[::sort_order]
         knn[i, nn[0:k]] = True
 
@@ -165,6 +166,7 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     # find nearest neighbors for each point
     for i in range(n):
         di = distance[i, :]
+        # TODO change to np.partition for PERF
         nn = np.argsort(di)[::sort_order]
         knn[i, nn[0:k]] = True
 
@@ -251,6 +253,7 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     # find nearest neighbors for each point
     for i in range(n):
         di = distance[i, :]
+        # TODO change to np.partition for PERF
         nn = np.argsort(di)[::sort_order]
         knn[i, nn[:s]] = True
     del distance
@@ -375,6 +378,7 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
     # find nearest neighbors for each point
     for i in range(n):
         di = distance[i, :]
+        # TODO change to np.partition for PERF
         nn = np.argsort(di)[::sort_order]
         knn[i, nn[:s]] = True
     del distance

@@ -18,7 +18,8 @@ import numpy as np
 from scipy import sparse
 from scipy.sparse.base import issparse
 
-__all__ = ['load_dexter', 'random_sparse_matrix']
+__all__ = ['load_dexter', 'random_sparse_matrix', 
+           'read_csr_matrix', 'write_csr_matrix']
 
 def load_dexter():
     """Load the example data set (dexter).
@@ -190,6 +191,16 @@ def random_sparse_matrix(size, density=0.05):
     S -= sparse.diags(S.diagonal(), 0)
     S += sparse.diags(np.ones(size), 0)
     return S
+
+def save_csr_matrix(file, matrix):
+    np.savez(file, data=matrix.data, indices=matrix.indices,
+             indptr=matrix.indptr, shape=matrix.shape)
+    return file
+
+def load_csr_matrix(file):
+    container = np.load(file)
+    return sparse.csr_matrix((container['data'], container['indices'], 
+                              container['indptr']), shape=container['shape'])
 
 class FreeMemLinux(object): # pragma: no cover
     """Non-cross platform way to get free memory on Linux.

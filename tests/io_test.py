@@ -12,6 +12,7 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
+import tempfile
 import numpy as np
 from scipy.sparse.csr import csr_matrix
 from hub_toolbox.IO import random_sparse_matrix, load_dexter
@@ -28,6 +29,12 @@ class TestIO(unittest.TestCase):
 
     def tearDown(self):
         del self.matrix_n, self.density, self.similarity
+
+    def test_save_and_load_csr_matrix(self):
+        tmp = tempfile.mkstemp(suffix='.npz')[1]
+        io_sim = IO.load_csr_matrix(IO.save_csr_matrix(tmp, self.similarity))
+        # If both are identical, the difference must be all-zeros
+        return self.assertEqual((self.similarity - io_sim).nnz, 0.)
 
     def test_random_sparse_similarity_matrix_quadratic_form(self):
         return self.assertEqual(

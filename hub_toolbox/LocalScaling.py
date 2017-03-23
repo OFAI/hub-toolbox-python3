@@ -17,6 +17,7 @@ import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
 from hub_toolbox import IO, Logging
+from _pytest.compat import enum
 
 __all__ = ['local_scaling', 'local_scaling_sample', 'nicdm', 'nicdm_sample']
 
@@ -69,15 +70,16 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
     IO.check_sample_shape_fits(D, train_ind)
     IO.check_valid_metric_parameter(metric)
     sparse = issparse(D)
+    n = D.shape[0]
     if metric == 'similarity':
         if train_ind is not None:
             raise NotImplementedError
-        sort_order = -1
+        kth = n - k
         exclude = -np.inf
         self_value = 1.
         log.warning("Similarity matrix support for LS is experimental.")
     else: # metric == 'distance':
-        sort_order = 1
+        kth = k - 1
         exclude = np.inf
         self_value = 0
         if sparse:
@@ -86,7 +88,6 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
                 "Sparse distance matrices are not supported.")
 
     D = np.copy(D)
-    n = D.shape[0]
     if test_ind is None:
         train_set_ind = slice(0, n) #take all
         n_ind = range(n)
@@ -105,8 +106,7 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
                 di = D[i, train_set_ind]
         else:
             di = D[i, :] # all columns are training in this case
-        nn = np.argsort(di)[::sort_order]
-        r[i] = di[nn[k-1]] #largest similarities or smallest distances
+        r[i] = np.partition(di, kth=kth)[kth]
 
     if sparse:
         D_ls = lil_matrix(D.shape)
@@ -181,14 +181,15 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     IO.check_distance_matrix_shape(D)
     IO.check_valid_metric_parameter(metric)
     sparse = issparse(D)
+    n = D.shape[0]
     if metric == 'similarity':
-        sort_order = -1
+        kth = n - k
         exclude = -np.inf
         self_tmp_value = np.inf
         self_value = 1.
         log.warning("Similarity matrix support for LS is experimental.")
     else: # metric == 'distance':
-        sort_order = 1
+        kth = k - 1
         exclude = np.inf
         self_value = 0
         self_tmp_value = self_value
@@ -196,23 +197,22 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
             log.error("Sparse distance matrices are not supported.")
             raise NotImplementedError(
                 "Sparse distance matrices are not supported.")
-
     D = np.copy(D)
-    n = D.shape[0]
+
     if test_ind is None:
         train_set_ind = slice(0, n) #take all        
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_ind)
 
     r = np.zeros(n)
-    for i in range(n):
-        if sparse:
+    if sparse:
+        for i in range(n):
             di = D[i, train_set_ind].toarray()
-        else:
-            di = D[i, train_set_ind]
-        di[i] = exclude
-        nn = np.argsort(di)[::sort_order]
-        r[i] = di[nn[k-1]] #largest similarities or smallest distances
+            di[i] = exclude
+            r[i] = np.partition(di, kth=kth)[kth]
+    else:
+        np.fill_diagonal(D, exclude)
+        r = np.partition(D[:, train_set_ind], kth=kth)[:, kth]
 
     if sparse:
         D_ls = lil_matrix(D.shape)
@@ -227,7 +227,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         tmp[0] = self_tmp_value
         if metric == 'similarity':
             if sparse and nnz[i] <= k:  # Don't rescale if there are
-                tmp[1:] = D[i, i+1:]    # too few neighbors in row
+                tmp[1:] = np.nan        # too few neighbors in row
             else:
                 tmp[1:] = np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
         else:
@@ -238,6 +238,9 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     D_ls += D_ls.T
 
     if sparse:
+        for i, nz in enumerate(nnz):
+            if nz <= k: # too few neighbors
+                D_ls[i, :] = D[i, :]
         return D_ls.tocsr()
     else:
         np.fill_diagonal(D_ls, self_value)
@@ -296,7 +299,7 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
                                   "at the moment.")
     else: # metric == 'distance':
         D = np.copy(D)
-        sort_order = 1
+        kth = np.arange(k)
         exclude = np.inf
         self_value = 0
         if issparse(D):
@@ -314,12 +317,7 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
 
     # Statistics
     knn = np.zeros((n, k))
-    r = np.zeros(n)
-    for i in range(n):
-        di = D[i, :]
-        nn = np.argsort(di)[::sort_order]
-        knn[i, :] = di[nn[0:k]] # largest sim. or smallest dist.
-        r[i] = np.mean(knn[i]) 
+    r = np.partition(D, kth=kth, axis=1)[:, :k].mean(axis=1)
     r_geom = _local_geomean(knn.ravel())
 
     # Calculate secondary distances
@@ -383,15 +381,11 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     if metric == 'similarity':
         raise NotImplementedError("NICDM does not support similarity matrices "
                                   "at the moment.")
-    D = np.copy(D)
-
-    if metric == 'distance':
-        sort_order = 1
+    else:
+        kth = np.arange(k)
         exclude = np.inf
-    else: #metric == 'similarity':
-        sort_order = -1
-        exclude = -np.inf
-
+        
+    D = np.copy(D)
     n = D.shape[0]
 
     if test_ind is None:
@@ -399,16 +393,9 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     else:
         train_set_ind = np.setdiff1d(np.arange(n), test_ind)
 
-    knn = np.zeros((n, k))
-    r = np.zeros(n)
-    np.fill_diagonal(D, np.inf)
-    for i in range(n):
-        di = D[i, :].copy()
-        di[i] = exclude
-        di = di[train_set_ind]
-        nn = np.argsort(di)[::sort_order]
-        knn[i, :] = di[nn[0:k]] # largest sim. or smallest dist.
-        r[i] = np.mean(knn[i])
+    np.fill_diagonal(D, exclude)
+    knn = np.partition(D[:, train_set_ind], kth=kth, axis=1)[:, :k]
+    r = knn.mean(axis=1)
     r_geom = _local_geomean(knn.ravel())
 
     D_nicdm = np.zeros_like(D)

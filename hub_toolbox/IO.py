@@ -19,7 +19,7 @@ from scipy import sparse
 from scipy.sparse.base import issparse
 
 __all__ = ['load_dexter', 'random_sparse_matrix', 
-           'read_csr_matrix', 'write_csr_matrix']
+           'load_csr_matrix', 'save_csr_matrix']
 
 def load_dexter():
     """Load the example data set (dexter).

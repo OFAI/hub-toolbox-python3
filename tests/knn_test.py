@@ -13,6 +13,7 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
+from scipy.sparse.csr import csr_matrix
 try: # for scikit-learn >= 0.18
     from sklearn.model_selection import LeaveOneOut, cross_val_predict
 except ImportError: # lower scikit-learn versions
@@ -34,6 +35,13 @@ class TestKnnClassification(unittest.TestCase):
     def tearDown(self):
         del self.distance, self.label, self.vector
 
+    def test_knn_sparse_equal_dense(self):
+        sim_dense = 1 - self.distance
+        sim_sparse = csr_matrix(sim_dense)
+        acc_dense, _, _ = score(sim_dense, self.label, metric='similarity')
+        acc_sparse, _, _ = score(sim_sparse, self.label, metric='similarity')
+        return self.assertEqual(acc_dense, acc_sparse)
+        
     def test_knn_predict_equal_sklearn_loocv_predict(self):
         y = LabelEncoder().fit_transform(self.label)
         y_pred = predict(self.distance, y, k=5, 

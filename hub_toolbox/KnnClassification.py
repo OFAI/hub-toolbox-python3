@@ -93,6 +93,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     # Copy, because data is changed
     D = D.copy()
     target = target.astype(int)
+    D_is_sparse = issparse(D)
 
     if verbose:
         log.message("Start k-NN experiment.")
@@ -145,12 +146,12 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     for i in test_set_ind:
         seed_class = classes[i]
 
-        if issparse(D):
-            row = D.getrow(i).toarray().ravel()
+        if D_is_sparse:
+            row = D.getrow(i)
         else:
             row = D[i, :]
-        if sample_idx is None:
-            row[i] = d_self
+            if sample_idx is None:
+                row[i] = d_self
 
         # Sort points in training set according to distance
         # Randomize, in case there are several points of same distance
@@ -159,16 +160,29 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             rp = train_set_ind
         else:
             rp = np.arange(len(sample_idx))
-        rp = np.random.permutation(rp)
-        d2 = row[rp]
-        d2idx = np.argsort(d2, axis=0)[::sort_order]
-        d2idx = d2idx[~np.isnan(d2[d2idx])] # filter NaN values
-        idx = rp[d2idx]
+        if D_is_sparse:
+            rp = np.random.permutation(row.nnz)
+            d2 = row.data[rp]
+            d2idx = np.argpartition(d2, kth=[n-k-1, n-2, n-1])
+            d2idx = d2idx[~np.isnan(d2[d2idx])][::-1]
+            idx = row.nonzero()[1][rp[d2idx]]
+            idx = idx[1:] # rem self sim
+        else:
+            rp = np.random.permutation(rp)
+            d2 = row[rp]
+            d2idx = np.argsort(d2, axis=0)[::sort_order]
+            d2idx = d2idx[~np.isnan(d2[d2idx])] # filter NaN values
+            idx = rp[d2idx]
 
         # More than one k is useful for cheap multiple k-NN experiments at once
         for j in range(k_length):
             # Make sure no inf/-inf/nan values are used for classification
-            finite_val = np.isfinite(row[idx[0:k[j]]])
+            if D_is_sparse:
+                #print(row[0, idx[0:k[j]]].toarray())
+                finite_val = np.isfinite(row[0, idx[0:k[j]]].toarray().ravel())
+                #print(finite_val)
+            else:
+                finite_val = np.isfinite(row[idx[0:k[j]]])
             # However, if no values are finite, classify randomly
             if finite_val.sum() == 0:
                 idx = np.random.permutation(idx)

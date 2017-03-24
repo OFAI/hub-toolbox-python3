@@ -18,10 +18,12 @@ try: # for scikit-learn >= 0.18
 except ImportError: # lower scikit-learn versions
     from sklearn.cross_validation import LeaveOneOut, cross_val_predict
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, f1_score as f1_score_sklearn
+from sklearn.preprocessing import LabelEncoder, LabelBinarizer, OneHotEncoder
 from hub_toolbox.Distances import sample_distance
 from hub_toolbox.IO import load_dexter
-from hub_toolbox.KnnClassification import score
+from hub_toolbox.KnnClassification import score, predict, f1_score
+from hub_toolbox.KnnClassification import f1_macro, f1_micro, f1_weighted
 
 class TestKnnClassification(unittest.TestCase):
 
@@ -31,6 +33,58 @@ class TestKnnClassification(unittest.TestCase):
 
     def tearDown(self):
         del self.distance, self.label, self.vector
+
+    def test_knn_predict_equal_sklearn_loocv_predict(self):
+        y = LabelEncoder().fit_transform(self.label)
+        y_pred = predict(self.distance, y, k=5, 
+                         metric='distance', return_cmat=False)[0].ravel()
+        knn = KNeighborsClassifier(
+            n_neighbors=5, algorithm='brute', metric='precomputed')
+        n = self.distance.shape[0] # for LOO-CV
+        try: # sklearn < 0.18
+            loo_cv = LeaveOneOut(n)
+        except TypeError:
+            loo_cv = LeaveOneOut()
+        y_pred_sklearn = cross_val_predict(
+            knn, self.distance, y, cv=loo_cv)
+        return self.assertTrue(np.alltrue(y_pred == y_pred_sklearn))
+        
+    def test_f1_score(self):
+        y = LabelBinarizer().fit_transform(self.label).ravel()
+        y_pred, cmat = predict(self.distance, y, k=5, metric='distance')
+        y_pred = y_pred.ravel()
+        knn = KNeighborsClassifier(
+            n_neighbors=5, algorithm='brute', metric='precomputed')
+        n = self.distance.shape[0] # for LOO-CV
+        try: # sklearn < 0.18
+            loo_cv = LeaveOneOut(n)
+        except TypeError:
+            loo_cv = LeaveOneOut()
+        y_pred_sklearn = cross_val_predict(
+            knn, self.distance, y, cv=loo_cv)
+        f1_binary_hub = f1_score(cmat[0, 0, :, :])
+        f1_binary_sklearn = f1_score_sklearn(y, y_pred_sklearn, average='binary')
+        return self.assertEqual(f1_binary_hub, f1_binary_sklearn)
+
+    def test_f1_micro_macro_weighted(self):
+        y = np.random.randint(0, 5, self.label.size).reshape(-1, 1)
+        y = OneHotEncoder().fit_transform(y).toarray()
+        y_pred, cmat = predict(self.distance, y, k=5, metric='distance')
+        y_pred = y_pred[0]
+        knn = KNeighborsClassifier(
+            n_neighbors=5, algorithm='brute', metric='precomputed')
+        n = self.distance.shape[0] # for LOO-CV
+        try: # sklearn < 0.18
+            loo_cv = LeaveOneOut(n)
+        except TypeError:
+            loo_cv = LeaveOneOut()
+        y_pred_sklearn = cross_val_predict(
+            knn, self.distance, y, cv=loo_cv)
+        f1_hub = [f1_macro(cmat[0]), f1_micro(cmat[0]), f1_weighted(cmat[0])]
+        f1_sklearn = [f1_score_sklearn(y, y_pred_sklearn, average='macro'),
+                      f1_score_sklearn(y, y_pred_sklearn, average='micro'),
+                      f1_score_sklearn(y, y_pred_sklearn, average='weighted')]
+        return self.assertListEqual(f1_hub, f1_sklearn)
 
     def test_knn_score_matches_correct_prediction_fraction(self):
         k = np.array([1, 5, 20])

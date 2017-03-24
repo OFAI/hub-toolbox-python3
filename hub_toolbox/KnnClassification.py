@@ -256,7 +256,9 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
         Confusion matrix (``n_t`` number of unique items in parameter target)
 
         HINT: ... ``cmat[2, 0, :, :]`` gives the confusion matrix of
-        the first class in the ``k=20`` experiment.
+        the first class in the ``k=20`` experiment in the following order:
+            TN    FP
+            FN    TP
     """
 
     # Check input sanity
@@ -392,3 +394,83 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
         return y_pred, cmat
     else:
         return y_pred
+
+def f1_score(cmat):
+    ''' Calculate F measure from confusion matrix.
+
+    Parameters
+    ----------
+    cmat : ndarray
+        Confusion matrix.
+        
+        Assuming confusion matrix in following format:
+            TN    FP
+            FN    TP
+        E.g. as obtained from predict(...)[0, 0, :, :]
+
+    Returns
+    -------
+    f1 : float
+        F measure of the given confusion matrix.
+    '''
+    #TN = cmat[0, 0] not required for F1 score
+    FP = cmat[0, 1]
+    FN = cmat[1, 0]
+    TP = cmat[1, 1]
+    if TP == 0: # pathological case
+        return 0
+    else:
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        return 2 * precision * recall / (precision + recall)
+
+def f1_macro(cmat):
+    ''' Calculate macro averaged F measure from confusion matrices.
+
+    Biased towards LESS abundant classes in case of class imbalance.
+
+    Parameters
+    ----------
+    cmat : ndarray
+        3D Confusion matrix. Format as obtained from predict(...)[0, :, :, :]
+
+    Returns
+    -------
+    f1_macro : float
+        Macro F measure of the given confusion matrices.
+    '''
+    return np.array([f1_score(x) for x in cmat]).mean()
+
+def f1_weighted(cmat):
+    ''' Calculate weighted F measure from confusion matrices.
+
+    Parameters
+    ----------
+    cmat : ndarray
+        3D Confusion matrix. Format as obtained from predict(...)[0, :, :, :]
+
+    Returns
+    -------
+    f1_weighted : float
+        Weighted F measure of the given confusion matrices.
+    '''
+    scores = np.array([f1_score(x) for x in cmat])
+    weights = np.array([x[1, :].sum() for x in cmat])
+    return np.average(scores, weights=weights)
+
+def f1_micro(cmat):
+    ''' Calculate micro averaged F measure from confusion matrices.
+    
+    Biased towards MORE abundant classes in case of class imbalance.
+
+    Parameters
+    ----------
+    cmat : ndarray
+        3D Confusion matrix. Format as obtained from predict(...)[0, :, :, :]
+
+    Returns
+    -------
+    f1_micro : float
+        Micro F measure of the given confusion matrices.
+    '''
+    return f1_score(cmat.sum(axis=0))

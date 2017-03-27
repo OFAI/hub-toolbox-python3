@@ -446,8 +446,9 @@ def r_precision(D:np.ndarray, y:np.ndarray,
     metric : 'distance' or 'similarity', optional, default: 'distance'
         Define, whether `D` is a distance or similarity matrix.
 
-    average : 'weighted' or 'macro', optional, default: 'weighted'
-        Averaging strategy for R-Precisions at each item
+    average : 'weighted', 'macro' or None, optional, default: 'weighted'
+        Averaging strategy for R-Precision. If None, return R-Precisions
+        for each object.
 
     Returns
     -------
@@ -517,12 +518,14 @@ def r_precision(D:np.ndarray, y:np.ndarray,
         log.warning(("{} queries were classified randomly, because all "
             "distances were non-finite numbers or there were no other "
             "objects in the same class.").format(n_random_pred))
-    if average == 'macro':
+    if not average:
+        return r_prec
+    elif average == 'macro':
         return r_prec.mean()
     elif average == 'weighted':
         return np.average(r_prec, weights=relevant_items[y])
     else:
-        log.warning(("Unrecognized averaging strategy. ",
+        log.warning(("Unrecognized averaging strategy. "
                      "Returning per-item R-Precision instead."))
         return r_prec
 

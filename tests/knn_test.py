@@ -59,8 +59,8 @@ class TestKnnClassification(unittest.TestCase):
             sim, y, metric='similarity', average='weighted')
         r_precision_macro = r_precision(
             sim, y, metric='similarity', average='macro')
-        return self.assertTrue(
-            r_precision_weighted >= 0. and r_precision_macro >= 0.)
+        return self.assertListEqual(
+            [r_precision_weighted, r_precision_macro], [0.25, 0.2])
 
     def test_knn_sparse_does_not_error(self):
         ''' Does not test correctness of result! '''

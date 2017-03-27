@@ -19,7 +19,7 @@ from scipy import stats
 from scipy.sparse.base import issparse
 from hub_toolbox import IO, Logging
 
-__all__ = ['hubness']
+#__all__ = ['hubness']
 
 def hubness(D:np.ndarray, k:int=5, metric='distance',
             verbose:int=0, n_jobs:int=1, random_state=None):
@@ -205,7 +205,7 @@ def _partial_hubness(k, kth, d_self, log, sort_order,
         d2idx = np.argpartition(d2, kth=kth)[::sort_order]
         Dk[i, :] = rp[d2idx[:k]]
 
-    return [rows, Dk]
+    return rows, Dk
 
 def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
                                 verbose:int=0, random_state=None):

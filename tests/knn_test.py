@@ -22,7 +22,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, f1_score as f1_score_sklearn
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer, OneHotEncoder
 from hub_toolbox.Distances import sample_distance
-from hub_toolbox.IO import load_dexter
+from hub_toolbox.IO import load_dexter, random_sparse_matrix
 from hub_toolbox.KnnClassification import score, predict, f1_score
 from hub_toolbox.KnnClassification import f1_macro, f1_micro, f1_weighted
 
@@ -34,6 +34,13 @@ class TestKnnClassification(unittest.TestCase):
 
     def tearDown(self):
         del self.distance, self.label, self.vector
+
+    def test_knn_sparse_does_not_error(self):
+        ''' Does not test correctness of result! '''
+        sim = random_sparse_matrix(100, 0.1)
+        y = np.random.randint(0, 2, 100)
+        acc, _, _ = score(sim, y, k=[1,5,10], metric='similarity')
+        return self.assertTrue(np.alltrue(acc >= 0.))
 
     def test_knn_sparse_equal_dense(self):
         sim_dense = 1 - self.distance

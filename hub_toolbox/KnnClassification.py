@@ -16,6 +16,7 @@ Contact: <roman.feldbauer@ofai.at>
 import numpy as np
 from scipy.sparse.base import issparse
 from hub_toolbox import Logging, IO
+from sklearn.preprocessing.label import LabelEncoder
 
 __all__ = ['score', 'predict', 'r_precision',
            'f1_score', 'f1_macro', 'f1_micro', 'f1_weighted']
@@ -173,12 +174,15 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
         else:
             rp = np.arange(len(sample_idx))
         if D_is_sparse:
-            rp = np.random.permutation(row.nnz)
+            nnz = row.nnz
+            rp = np.random.permutation(nnz)
             d2 = row.data[rp]
             # Partition for each k value
-            kth = n - k - 1
+            kth = nnz - k - 1
             # sort the two highest similarities to end
-            kth = np.append(kth, [n-2, n-1])
+            kth = np.append(kth, [nnz-2, nnz-1])
+            # Remove duplicate k values and sort
+            kth = np.unique(kth)
             d2idx = np.argpartition(d2, kth=kth)
             d2idx = d2idx[~np.isnan(d2[d2idx])][::-1]
             idx = row.nonzero()[1][rp[d2idx]]
@@ -317,7 +321,7 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
     # Handle LOO-CV vs. test set mode
     if test_ind is None:
         n = D.shape[0]
-        test_set_ind = range(n)    # dummy 
+        test_set_ind = range(n)    # dummy     IO.check_valid_metric_parameter(metric)
         train_set_ind = n   # dummy
     else:
         # number of points to be classified
@@ -425,7 +429,7 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
     else:
         return y_pred
 
-def r_precision(D:np.ndarray, y:np.ndarray) -> float:
+def r_precision(D:np.ndarray, y:np.ndarray, metric:str='distance') -> float:
     ''' Calculate R-Precision (recall at R-th position).
     
     Parameters
@@ -436,11 +440,29 @@ def r_precision(D:np.ndarray, y:np.ndarray) -> float:
     y : ndarray
         Target (ground truth) labels
 
+    metric : 'distance' or 'similarity', optional, default: 'distance'
+        Define, whether `D` is a distance or similarity matrix.
+
     Returns
     -------
     r_precision : float
         
     '''
+    IO.check_distance_matrix_shape(D)
+    IO.check_distance_matrix_shape_fits_labels(D, y)
+    IO.check_valid_metric_parameter(metric)
+    if metric == 'distance':
+        d_self = np.inf
+        sort_order = 1
+    if metric == 'similarity':
+        d_self = -np.inf
+        sort_order = -1
+    # Map labels to 0..n(labels)-1
+    y = LabelEncoder().fit_transform(y)
+    # Number of relevant items, i.e. number of each label
+    relevant_items = np.bincount(y)
+    
+    
     return
 
 def f1_score(cmat):

@@ -259,4 +259,4 @@ if __name__ == '__main__':
     from hub_toolbox.IO import load_dexter
     dexter_distance, l, v = load_dexter()
     Sn, Dk, Nk = hubness(dexter_distance)
-print("Hubness =", Sn)
+    print("Hubness =", Sn)

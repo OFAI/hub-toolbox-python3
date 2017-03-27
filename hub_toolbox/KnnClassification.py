@@ -458,7 +458,7 @@ def _r_prec_worker(i, args):
     true_class = y[i]
     if relevant_items[true_class] == 0:
         if y_pred:
-            return 0., np.nan
+            return 0., np.iinfo('i').min
         else:
             return 0. # there can't be correct predictions...
 
@@ -568,7 +568,9 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
 
     # Map labels to 0..n(labels)-1
     le = LabelEncoder()
-    y = le.fit_transform(y)
+    # Add int.min for misclassifications
+    le.fit(np.append(y, np.iinfo('i').min))
+    y = le.transform(y)
     # Number of relevant items, i.e. number of each label
     relevant_items = np.bincount(y) - 1 # one less for self class
     # R-Precision for each item

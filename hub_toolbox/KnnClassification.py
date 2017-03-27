@@ -451,13 +451,16 @@ def _load_shared_csr(shared_data_, shared_indices_,
 
 
 def _r_prec_worker(i, args):
-    n, relevant_items, y, log, verbose = args
+    n, relevant_items, y, y_pred, log, verbose = args
     if verbose and ((i+1)%int(1e7 / 10**verbose) == 0 or i == n-1):
         log.message("Classification: {} of {} on {}.".format(
             i+1, n, mp.current_process().name), flush=True)
     true_class = y[i]
     if relevant_items[true_class] == 0:
-        return 0. # there can't be correct predictions...
+        if y_pred:
+            return 0., np.nan
+        else:
+            return 0. # there can't be correct predictions...
 
     # Get all nonzero similarities
     row = S.getrow(i)
@@ -494,13 +497,20 @@ def _r_prec_worker(i, args):
     y_predicted = y[idx]
     correct_pred = (y_predicted == true_class).sum()
     if correct_pred == 0:
-        return 0.
+        if y_pred:
+            return 0., y_predicted[:y_pred]
+        else:
+            return 0.
     else:
-        return correct_pred / relevant_items[true_class]
+        if y_pred:
+            return correct_pred / relevant_items[true_class], y_predicted[:y_pred]
+        else:
+            return correct_pred / relevant_items[true_class]
 
 
 def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance', 
-                average:str='weighted', verbose:int=0, n_jobs:int=1) -> float:
+                average:str='weighted', return_y_pred:int=0,
+                verbose:int=0, n_jobs:int=1) -> float:
     ''' Calculate R-Precision (recall at R-th position).
     
     Parameters
@@ -511,12 +521,14 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     y : ndarray
         Target (ground truth) labels
 
-    metric : 'distance' or 'similarity', optional, default: 'distance'
+    metric : 'distance' or 'similarity', optional, default: 'similarity'
         Define, whether `S` is a distance or similarity matrix.
 
     average : 'weighted', 'macro' or None, optional, default: 'weighted'
-        Averaging strategy for R-Precision. If None, return R-Precisions
-        for each object.
+        Ignored. Weighted and macro precisions are returned.
+
+    return_y_pred : int, optional, default: 0
+        If > 0, return the labels of the `return_y_pred` nearest neighbors
 
     verbose : int, optional, default: 0
         Increasing level of output.
@@ -526,8 +538,24 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
 
     Returns
     -------
-    r_precision : float
-        
+    r_precision : dictionary with following keys:
+        macro : float
+            Macro R-Precision.
+
+        weighted : float
+            Weighted R-Precision.
+
+        per_item : ndarray
+            R-Precision at the object.
+
+        relevant_items : ndarray
+            Relevant items per class.
+
+        y_true : ndarray
+            Target labels (req. for weighting).
+
+        y_pred : ndarray
+            Labels of some k-nearest neighbors
     '''
     IO.check_distance_matrix_shape(S)
     IO.check_distance_matrix_shape_fits_labels(S, y)
@@ -539,7 +567,8 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
         raise NotImplementedError("Only sparse similarity matrices so far.")
 
     # Map labels to 0..n(labels)-1
-    y = LabelEncoder().fit_transform(y)
+    le = LabelEncoder()
+    y = le.fit_transform(y)
     # Number of relevant items, i.e. number of each label
     relevant_items = np.bincount(y) - 1 # one less for self class
     # R-Precision for each item
@@ -563,30 +592,38 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
 
     if verbose and log:
         log.message("Spawning processes.")
+    y_pred = list()
     with mp.Pool(processes=n_jobs, initializer=_load_shared_csr, 
               initargs=(shared_data, shared_indices, 
                         shared_indptr, S.shape, n_random_pred)) as pool:
         for i, r in enumerate(pool.imap(
-            func=partial(_r_prec_worker, args=(n, relevant_items, y, log, verbose)), 
+            func=partial(_r_prec_worker, args=(n, relevant_items, y,
+                                               return_y_pred, log, verbose)),
             iterable=range(n), 
             chunksize=int(1e2))):
-            r_prec[i] = r
+            try:
+                r_prec[i] = r[0]
+                y_pred.append(r[1])
+            except:
+                r_prec[i] = r
     pool.join()
+    
+    nn = list()
+    for x in y_pred:
+        nn.append(le.inverse_transform(x))
+    y_pred = nn
 
     if n_random_pred.value:
         log.warning(("{} queries were classified randomly, because all "
             "distances were non-finite numbers or there were no other "
             "objects in the same class.").format(n_random_pred.value))
-    if not average:
-        return r_prec, relevant_items, y
-    elif average == 'macro':
-        return r_prec.mean()
-    elif average == 'weighted':
-        return np.average(r_prec, weights=relevant_items[y])
-    else:
-        log.warning(("Unrecognized averaging strategy. "
-                     "Returning per-item R-Precision instead."))
-        return r_prec, relevant_items, y
+    return_dict = {'macro' : r_prec.mean(),
+                   'weighted' : np.average(r_prec, weights=relevant_items[y]),
+                   'per_item' : r_prec,
+                   'relevant_items' : relevant_items,
+                   'y_true' : y,
+                   'y_pred' : y_pred}
+    return return_dict
 
 def f1_score(cmat):
     ''' Calculate F measure from confusion matrix.

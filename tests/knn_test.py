@@ -39,12 +39,14 @@ class TestKnnClassification(unittest.TestCase):
         ''' Does not test correctness of result! '''
         sim = csr_matrix(1 - self.distance)
         y = self.label
-        r_precision_weighted = r_precision(
-            sim, y, metric='similarity', average='weighted')
-        r_precision_macro = r_precision(
-            sim, y, metric='similarity', average='macro')
+        r = r_precision(sim, y, metric='similarity', return_y_pred=1)
+        r_precision_weighted = r['weighted']
+        r_precision_macro = r['macro']
+        y_pred = np.array(r['y_pred'])
+        acc = (y == y_pred.ravel()).sum() / self.label.size        
         return self.assertTrue(
-            r_precision_weighted >= 0. and r_precision_macro >= 0.)
+            r_precision_weighted >= 0. and r_precision_macro >= 0.
+            and acc > 0.80)
 
     def test_r_precision(self):
         y = [    0,   1,   1,   0,   1 ]
@@ -55,15 +57,14 @@ class TestKnnClassification(unittest.TestCase):
                [0.0, 0.7, 0.0, 0.0, 1.0]] # 1 / 2 .. 1 nnz
         sim = csr_matrix(np.array(sim))
         y = np.array(y)
-        r_precision_weighted = r_precision(
-            sim, y, metric='similarity', average='weighted', verbose=1)
-        r_precision_macro = r_precision(
-            sim, y, metric='similarity', average='macro')
-        r_precision_per_item, relevant_items, y_return = r_precision(
-            sim, y, metric='similarity', average=None, n_jobs=2)
-        rppiw = np.average(r_precision_per_item, weights=relevant_items[y_return])
-        return self.assertListEqual([r_precision_weighted, r_precision_macro,
-            rppiw], [0.25, 0.2, r_precision_weighted])
+        r = r_precision(sim, y, metric='similarity', verbose=1, n_jobs=2)
+        rpw = r['weighted']
+        rpm = r['macro']
+        r_peritem = r['per_item']
+        relevant_items = r['relevant_items']
+        y_return = r['y_true']
+        rppiw = np.average(r_peritem, weights=relevant_items[y_return])
+        return self.assertListEqual([rpw, rpm, rppiw], [0.25, 0.2, rpw])
 
     def test_knn_sparse_does_not_error(self):
         ''' Does not test correctness of result! '''

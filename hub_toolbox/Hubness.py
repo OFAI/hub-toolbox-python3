@@ -202,8 +202,8 @@ def _partial_hubness(k, kth, d_self, log, sort_order,
         d2 = d[rp]
         #d2idx = np.argsort(d2, axis=0)[::sort_order]
         #Dk[i, :] = rp[d2idx[:k]]
-        d2idx = np.argpartition(d2, kth=kth)
-        Dk[i, :] = rp[d2idx[kth]][::sort_order]
+        d2idx = np.argpartition(d2, kth=kth)[::sort_order]
+        Dk[i, :] = rp[d2idx[:k]]
 
     return [rows, Dk]
 

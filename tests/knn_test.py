@@ -23,7 +23,7 @@ from sklearn.metrics import accuracy_score, f1_score as f1_score_sklearn
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer, OneHotEncoder
 from hub_toolbox.Distances import sample_distance
 from hub_toolbox.IO import load_dexter, random_sparse_matrix
-from hub_toolbox.KnnClassification import score, predict, f1_score
+from hub_toolbox.KnnClassification import score, predict, f1_score, r_precision
 from hub_toolbox.KnnClassification import f1_macro, f1_micro, f1_weighted
 
 class TestKnnClassification(unittest.TestCase):
@@ -34,6 +34,33 @@ class TestKnnClassification(unittest.TestCase):
 
     def tearDown(self):
         del self.distance, self.label, self.vector
+
+    def test_r_precision_does_not_error(self):
+        ''' Does not test correctness of result! '''
+        sim = csr_matrix(1 - self.distance)
+        y = self.label
+        r_precision_weighted = r_precision(
+            sim, y, metric='similarity', average='weighted')
+        r_precision_macro = r_precision(
+            sim, y, metric='similarity', average='macro')
+        return self.assertTrue(
+            r_precision_weighted >= 0. and r_precision_macro >= 0.)
+
+    def test_r_precision(self):
+        y = [    0,   1,   1,   0,   1 ]
+        sim = [[1.0, 0.6, 0.0, 0.0, 0.0], # 0 / 1 .. 1 nnz
+               [0.6, 1.0, 0.0, 0.0, 0.7], # 1 / 2 .. 2 nnz
+               [0.0, 0.0, 1.0, 0.0, 0.0], # 0 / 2 .. 0 nnz
+               [0.0, 0.0, 0.0, 1.0, 0.0], # 0 / 1 .. 0 nnz
+               [0.0, 0.7, 0.0, 0.0, 1.0]] # 1 / 2 .. 1 nnz
+        sim = csr_matrix(np.array(sim))
+        y = np.array(y)
+        r_precision_weighted = r_precision(
+            sim, y, metric='similarity', average='weighted')
+        r_precision_macro = r_precision(
+            sim, y, metric='similarity', average='macro')
+        return self.assertTrue(
+            r_precision_weighted >= 0. and r_precision_macro >= 0.)
 
     def test_knn_sparse_does_not_error(self):
         ''' Does not test correctness of result! '''

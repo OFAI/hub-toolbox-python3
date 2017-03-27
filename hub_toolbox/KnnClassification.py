@@ -431,7 +431,8 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
     else:
         return y_pred
 
-def r_precision(D:np.ndarray, y:np.ndarray, metric:str='distance') -> float:
+def r_precision(D:np.ndarray, y:np.ndarray, 
+                metric:str='distance', average:str='weighted') -> float:
     ''' Calculate R-Precision (recall at R-th position).
     
     Parameters
@@ -445,6 +446,9 @@ def r_precision(D:np.ndarray, y:np.ndarray, metric:str='distance') -> float:
     metric : 'distance' or 'similarity', optional, default: 'distance'
         Define, whether `D` is a distance or similarity matrix.
 
+    average : 'weighted' or 'macro', optional, default: 'weighted'
+        Averaging strategy for R-Precisions at each item
+
     Returns
     -------
     r_precision : float
@@ -453,19 +457,74 @@ def r_precision(D:np.ndarray, y:np.ndarray, metric:str='distance') -> float:
     IO.check_distance_matrix_shape(D)
     IO.check_distance_matrix_shape_fits_labels(D, y)
     IO.check_valid_metric_parameter(metric)
-    if metric == 'distance':
-        d_self = np.inf
-        sort_order = 1
-    if metric == 'similarity':
-        d_self = -np.inf
-        sort_order = -1
+    log = Logging.ConsoleLogging()
+    n, _ = D.shape
+    D_is_sparse = issparse(D)
+    if metric != 'similarity' or not D_is_sparse:
+        raise NotImplementedError("Only sparse similarity matrices so far.")
+
     # Map labels to 0..n(labels)-1
     y = LabelEncoder().fit_transform(y)
     # Number of relevant items, i.e. number of each label
-    relevant_items = np.bincount(y)
+    relevant_items = np.bincount(y) - 1 # one less for self class
+    # R-Precision for each item
+    r_prec = np.zeros(y.shape, dtype=np.float)
     
-    
-    return
+    n_random_pred = 0
+    # Classify each point in test set
+    for i in range(n):
+        true_class = y[i]
+
+        if D_is_sparse:
+            # Get all nonzero similarities
+            row = D.getrow(i)
+            nnz = row.nnz
+            # Randomize to avoid problems arising from equal similarites
+            rp = np.random.permutation(nnz)
+            d2 = row.data[rp]
+            # Partition for each k value
+            kth = nnz - relevant_items[true_class] - 1
+            # sort the two highest similarities to end
+            kth = np.append(kth, [nnz-2, nnz-1])
+            # Clip negative indices (nnz < k)
+            np.clip(kth, a_min=0, a_max=nnz-1, out=kth)
+            # Remove duplicate k values and sort
+            kth = np.unique(kth)
+            # Get the relevant indices
+            d2idx = np.argpartition(d2, kth=kth)
+            # Filter indices pointing to NaN values and revert order
+            d2idx = d2idx[~np.isnan(d2[d2idx])][::-1]
+            # Indices of cells with highest similarities
+            idx = row.nonzero()[1][rp[d2idx]]
+            # Remove self similarity (i.e. highest sim)
+            idx = idx[1:relevant_items[true_class]+1]
+            # Check whether the values are finite
+            finite_val = np.isfinite(row[0, idx].toarray().ravel())
+        else: # TODO
+            ... 
+
+        # However, if no values are finite, classify randomly
+        if finite_val.sum() == 0:
+            idx = np.random.permutation(idx)
+            finite_val = np.ones_like(finite_val)
+            n_random_pred += 1
+        
+        y_predicted = y[idx]
+        correct_pred = (y_predicted == true_class).sum()
+        r_prec[i] = correct_pred / relevant_items[true_class]
+
+    if n_random_pred:
+        log.warning(("{} queries were classified randomly, because all "
+            "distances were non-finite numbers or there were no other "
+            "objects in the same class.").format(n_random_pred))
+    if average == 'macro':
+        return r_prec.mean()
+    elif average == 'weighted':
+        return np.average(r_prec, weights=relevant_items[y])
+    else:
+        log.warning(("Unrecognized averaging strategy. ",
+                     "Returning per-item R-Precision instead."))
+        return r_prec
 
 def f1_score(cmat):
     ''' Calculate F measure from confusion matrix.

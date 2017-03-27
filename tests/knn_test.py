@@ -59,10 +59,11 @@ class TestKnnClassification(unittest.TestCase):
             sim, y, metric='similarity', average='weighted')
         r_precision_macro = r_precision(
             sim, y, metric='similarity', average='macro')
-        r_precision_per_item = r_precision(
+        r_precision_per_item, relevant_items, y_return = r_precision(
             sim, y, metric='similarity', average=None)
-        return self.assertListEqual([r_precision_weighted, r_precision_macro, 
-            r_precision_per_item.shape], [0.25, 0.2, y.shape])
+        rppiw = np.average(r_precision_per_item, weights=relevant_items[y_return])
+        return self.assertListEqual([r_precision_weighted, r_precision_macro,
+            rppiw], [0.25, 0.2, r_precision_weighted])
 
     def test_knn_sparse_does_not_error(self):
         ''' Does not test correctness of result! '''

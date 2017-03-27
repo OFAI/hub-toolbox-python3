@@ -519,7 +519,7 @@ def r_precision(D:np.ndarray, y:np.ndarray,
             "distances were non-finite numbers or there were no other "
             "objects in the same class.").format(n_random_pred))
     if not average:
-        return r_prec
+        return r_prec, relevant_items, y
     elif average == 'macro':
         return r_prec.mean()
     elif average == 'weighted':
@@ -527,7 +527,7 @@ def r_precision(D:np.ndarray, y:np.ndarray,
     else:
         log.warning(("Unrecognized averaging strategy. "
                      "Returning per-item R-Precision instead."))
-        return r_prec
+        return r_prec, relevant_items, y
 
 def f1_score(cmat):
     ''' Calculate F measure from confusion matrix.

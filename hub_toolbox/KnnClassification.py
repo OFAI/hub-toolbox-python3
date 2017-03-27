@@ -475,6 +475,9 @@ def r_precision(D:np.ndarray, y:np.ndarray,
     # Classify each point in test set
     for i in range(n):
         true_class = y[i]
+        if relevant_items[true_class] == 0:
+            r_prec[i] = 0.
+            continue # there can't be correct predictions...
 
         if D_is_sparse:
             # Get all nonzero similarities
@@ -512,7 +515,10 @@ def r_precision(D:np.ndarray, y:np.ndarray,
         
         y_predicted = y[idx]
         correct_pred = (y_predicted == true_class).sum()
-        r_prec[i] = correct_pred / relevant_items[true_class]
+        if correct_pred == 0:
+            r_prec[i] = 0.
+        else:
+            r_prec[i] = correct_pred / relevant_items[true_class]
 
     if n_random_pred:
         log.warning(("{} queries were classified randomly, because all "

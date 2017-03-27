@@ -13,10 +13,14 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import ctypes
+import multiprocessing as mp
 import numpy as np
 from scipy.sparse.base import issparse
 from hub_toolbox import Logging, IO
 from sklearn.preprocessing.label import LabelEncoder
+from scipy.sparse.csr import csr_matrix
+from functools import partial
 
 __all__ = ['score', 'predict', 'r_precision',
            'f1_score', 'f1_macro', 'f1_micro', 'f1_weighted']
@@ -431,37 +435,107 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
     else:
         return y_pred
 
-def r_precision(D:np.ndarray, y:np.ndarray, 
-                metric:str='distance', average:str='weighted') -> float:
+##############################################################################
+#
+#  R - PRECISION
+#
+def _load_shared_csr(shared_data_, shared_indices_, 
+                     shared_indptr_, shape_, n_rnd_pred_):
+    global S
+    S = csr_matrix((np.frombuffer(shared_data_),
+                    np.frombuffer(shared_indices_), 
+                    np.frombuffer(shared_indptr_)), 
+                   shape=shape_, copy=False)
+    global n_rnd_pred
+    n_rnd_pred = n_rnd_pred_
+
+
+def _r_prec_worker(i, args):
+    n, relevant_items, y, log, verbose = args
+    if verbose and ((i+1)%int(1e7 / 10**verbose) == 0 or i == n-1):
+        log.message("Classification: {} of {} on {}.".format(
+            i+1, n, mp.current_process().name), flush=True)
+    true_class = y[i]
+    if relevant_items[true_class] == 0:
+        return 0. # there can't be correct predictions...
+
+    # Get all nonzero similarities
+    row = S.getrow(i)
+    nnz = row.nnz
+    # Randomize to avoid problems arising from equal similarites
+    rp = np.random.permutation(nnz)
+    d2 = row.data[rp]
+    # Partition for each k value
+    kth = nnz - relevant_items[true_class] - 1
+    # sort the two highest similarities to end
+    kth = np.append(kth, [nnz-2, nnz-1])
+    # Clip negative indices (nnz < k)
+    np.clip(kth, a_min=0, a_max=nnz-1, out=kth)
+    # Remove duplicate k values and sort
+    kth = np.unique(kth)
+    # Get the relevant indices
+    d2idx = np.argpartition(d2, kth=kth)
+    # Filter indices pointing to NaN values and revert order
+    d2idx = d2idx[~np.isnan(d2[d2idx])][::-1]
+    # Indices of cells with highest similarities
+    idx = row.nonzero()[1][rp[d2idx]]
+    # Remove self similarity (i.e. highest sim)
+    idx = idx[1:relevant_items[true_class]+1]
+    # Check whether the values are finite
+    finite_val = np.isfinite(row[0, idx].toarray().ravel())
+
+    # However, if no values are finite, classify randomly
+    if finite_val.sum() == 0:
+        idx = np.random.permutation(idx)
+        finite_val = np.ones_like(finite_val)
+        with n_rnd_pred.get_lock():
+            n_rnd_pred.value += 1
+    
+    y_predicted = y[idx]
+    correct_pred = (y_predicted == true_class).sum()
+    if correct_pred == 0:
+        return 0.
+    else:
+        return correct_pred / relevant_items[true_class]
+
+
+def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance', 
+                average:str='weighted', verbose:int=0, n_jobs:int=1) -> float:
     ''' Calculate R-Precision (recall at R-th position).
     
     Parameters
     ----------
-    D : ndarray or CSR matrix
+    S : ndarray or CSR matrix
         Distance (similarity) matrix
 
     y : ndarray
         Target (ground truth) labels
 
     metric : 'distance' or 'similarity', optional, default: 'distance'
-        Define, whether `D` is a distance or similarity matrix.
+        Define, whether `S` is a distance or similarity matrix.
 
     average : 'weighted', 'macro' or None, optional, default: 'weighted'
         Averaging strategy for R-Precision. If None, return R-Precisions
         for each object.
+
+    verbose : int, optional, default: 0
+        Increasing level of output.
+
+    n_jobs : int, optional, default: 1
+        Number of parallel processes to use.
 
     Returns
     -------
     r_precision : float
         
     '''
-    IO.check_distance_matrix_shape(D)
-    IO.check_distance_matrix_shape_fits_labels(D, y)
+    IO.check_distance_matrix_shape(S)
+    IO.check_distance_matrix_shape_fits_labels(S, y)
     IO.check_valid_metric_parameter(metric)
     log = Logging.ConsoleLogging()
-    n, _ = D.shape
-    D_is_sparse = issparse(D)
-    if metric != 'similarity' or not D_is_sparse:
+    n, _ = S.shape
+    S_is_sparse = issparse(S)
+    if metric != 'similarity' or not S_is_sparse:
         raise NotImplementedError("Only sparse similarity matrices so far.")
 
     # Map labels to 0..n(labels)-1
@@ -471,59 +545,38 @@ def r_precision(D:np.ndarray, y:np.ndarray,
     # R-Precision for each item
     r_prec = np.zeros(y.shape, dtype=np.float)
     
-    n_random_pred = 0
+    
     # Classify each point in test set
-    for i in range(n):
-        true_class = y[i]
-        if relevant_items[true_class] == 0:
-            r_prec[i] = 0.
-            continue # there can't be correct predictions...
+    if verbose:
+        log.message("Creating shared memory CSR matrix.")
+    shared_data = mp.RawArray(ctypes.c_double, S.data.size)
+    shared_data_np = np.frombuffer(shared_data)
+    shared_data_np[:] = S.data[:]
+    shared_indices = mp.RawArray(ctypes.c_double, S.indices.size)
+    shared_indices_np = np.frombuffer(shared_indices)
+    shared_indices_np[:] = S.indices[:]
+    shared_indptr = mp.RawArray(ctypes.c_double, S.indptr.size)
+    shared_indptr_np = np.frombuffer(shared_indptr)
+    shared_indptr_np[:] = S.indptr[:]
+    n_random_pred = mp.Value(ctypes.c_int)
+    n_random_pred.value = 0
 
-        if D_is_sparse:
-            # Get all nonzero similarities
-            row = D.getrow(i)
-            nnz = row.nnz
-            # Randomize to avoid problems arising from equal similarites
-            rp = np.random.permutation(nnz)
-            d2 = row.data[rp]
-            # Partition for each k value
-            kth = nnz - relevant_items[true_class] - 1
-            # sort the two highest similarities to end
-            kth = np.append(kth, [nnz-2, nnz-1])
-            # Clip negative indices (nnz < k)
-            np.clip(kth, a_min=0, a_max=nnz-1, out=kth)
-            # Remove duplicate k values and sort
-            kth = np.unique(kth)
-            # Get the relevant indices
-            d2idx = np.argpartition(d2, kth=kth)
-            # Filter indices pointing to NaN values and revert order
-            d2idx = d2idx[~np.isnan(d2[d2idx])][::-1]
-            # Indices of cells with highest similarities
-            idx = row.nonzero()[1][rp[d2idx]]
-            # Remove self similarity (i.e. highest sim)
-            idx = idx[1:relevant_items[true_class]+1]
-            # Check whether the values are finite
-            finite_val = np.isfinite(row[0, idx].toarray().ravel())
-        else: # TODO
-            ... 
+    if verbose and log:
+        log.message("Spawning processes.")
+    with mp.Pool(processes=n_jobs, initializer=_load_shared_csr, 
+              initargs=(shared_data, shared_indices, 
+                        shared_indptr, S.shape, n_random_pred)) as pool:
+        for i, r in enumerate(pool.imap(
+            func=partial(_r_prec_worker, args=(n, relevant_items, y, log, verbose)), 
+            iterable=range(n), 
+            chunksize=int(1e2))):
+            r_prec[i] = r
+    pool.join()
 
-        # However, if no values are finite, classify randomly
-        if finite_val.sum() == 0:
-            idx = np.random.permutation(idx)
-            finite_val = np.ones_like(finite_val)
-            n_random_pred += 1
-        
-        y_predicted = y[idx]
-        correct_pred = (y_predicted == true_class).sum()
-        if correct_pred == 0:
-            r_prec[i] = 0.
-        else:
-            r_prec[i] = correct_pred / relevant_items[true_class]
-
-    if n_random_pred:
+    if n_random_pred.value:
         log.warning(("{} queries were classified randomly, because all "
             "distances were non-finite numbers or there were no other "
-            "objects in the same class.").format(n_random_pred))
+            "objects in the same class.").format(n_random_pred.value))
     if not average:
         return r_prec, relevant_items, y
     elif average == 'macro':

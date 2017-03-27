@@ -56,11 +56,11 @@ class TestKnnClassification(unittest.TestCase):
         sim = csr_matrix(np.array(sim))
         y = np.array(y)
         r_precision_weighted = r_precision(
-            sim, y, metric='similarity', average='weighted')
+            sim, y, metric='similarity', average='weighted', verbose=1)
         r_precision_macro = r_precision(
             sim, y, metric='similarity', average='macro')
         r_precision_per_item, relevant_items, y_return = r_precision(
-            sim, y, metric='similarity', average=None)
+            sim, y, metric='similarity', average=None, n_jobs=2)
         rppiw = np.average(r_precision_per_item, weights=relevant_items[y_return])
         return self.assertListEqual([r_precision_weighted, r_precision_macro,
             rppiw], [0.25, 0.2, r_precision_weighted])

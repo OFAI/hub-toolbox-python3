@@ -96,7 +96,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     if metric == 'similarity':
         d_self = -np.inf
         sort_order = -1
-        kth = np.arange(n - k, n)
+        kth = np.arange(m - k, m)
 
     if verbose:
         log.message("Hubness calculation (skewness of {}-occurrence)".format(k))
@@ -132,7 +132,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     for idx, batch in enumerate(batches):
         submatrix = D[batch[0]:batch[-1]+1]
         tasks.append((_partial_hubness,
-                      (k, kth, d_self, log, sort_order,
+                      (k, d_self, log, sort_order,
                       batch, submatrix, idx, n, m, verbose)))
 
     task_queue = mp.Queue()
@@ -173,10 +173,14 @@ def _calculate(func, args):
     """A helper function for cv parallelization."""
     return func(*args)
 
-def _partial_hubness(k, kth, d_self, log, sort_order,
+def _partial_hubness(k, d_self, log, sort_order,
                      rows, submatrix, idx, n, m, verbose):
     """Parallel hubness calculation: Get k nearest neighbors for all points
     in 'rows'"""
+    if sort_order == 1:
+        kth = np.arange(k)
+    elif sort_order == -1:
+        kth = np.arange(m - k, m)
 
     Dk = np.zeros((len(rows), k), dtype=np.float64)
 

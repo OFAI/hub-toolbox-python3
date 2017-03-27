@@ -17,11 +17,12 @@ import numpy as np
 from scipy.sparse.base import issparse
 from hub_toolbox import Logging, IO
 
-__all__ = ['score', 'predict']
+__all__ = ['score', 'predict', 'r_precision',
+           'f1_score', 'f1_macro', 'f1_micro', 'f1_weighted']
 
 def score(D:np.ndarray, target:np.ndarray, k=5,
           metric:str='distance', test_set_ind:np.ndarray=None, verbose:int=0,
-          sample_idx=None):
+          sample_idx=None, filter_self=True):
     """Perform `k`-nearest neighbor classification.
 
     Use the ``n x n`` symmetric distance matrix `D` and target class
@@ -57,6 +58,17 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     verbose : int, optional (default: 0)
         Increasing level of output (progress report).
 
+    sample_idx : ...
+        TODO add description
+
+    filter_self : bool, optional, default: True
+        Remove self similarities from sparse ``D``.
+        This assumes that the highest similarity per row is the self
+        similarity.
+        
+        NOTE: Quadratic dense matrices are always filtered for self
+        distances/similarities, even if `filter_self` is set t0 `False`.
+        
     Returns
     -------
     acc : ndarray (shape=(n_k x 1), dtype=float)
@@ -163,7 +175,11 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
         if D_is_sparse:
             rp = np.random.permutation(row.nnz)
             d2 = row.data[rp]
-            d2idx = np.argpartition(d2, kth=[n-k-1, n-2, n-1])
+            # Partition for each k value
+            kth = n - k - 1
+            # sort the two highest similarities to end
+            kth = np.append(kth, [n-2, n-1])
+            d2idx = np.argpartition(d2, kth=kth)
             d2idx = d2idx[~np.isnan(d2[d2idx])][::-1]
             idx = row.nonzero()[1][rp[d2idx]]
             idx = idx[1:] # rem self sim
@@ -408,6 +424,24 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
         return y_pred, cmat
     else:
         return y_pred
+
+def r_precision(D:np.ndarray, y:np.ndarray) -> float:
+    ''' Calculate R-Precision (recall at R-th position).
+    
+    Parameters
+    ----------
+    D : ndarray or CSR matrix
+        Distance (similarity) matrix
+
+    y : ndarray
+        Target (ground truth) labels
+
+    Returns
+    -------
+    r_precision : float
+        
+    '''
+    return
 
 def f1_score(cmat):
     ''' Calculate F measure from confusion matrix.

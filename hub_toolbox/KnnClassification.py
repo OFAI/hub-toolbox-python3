@@ -181,6 +181,8 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             kth = nnz - k - 1
             # sort the two highest similarities to end
             kth = np.append(kth, [nnz-2, nnz-1])
+            # Clip negative indices (nnz < k)
+            np.clip(kth, a_min=0, a_max=nnz-1, out=kth)
             # Remove duplicate k values and sort
             kth = np.unique(kth)
             d2idx = np.argpartition(d2, kth=kth)

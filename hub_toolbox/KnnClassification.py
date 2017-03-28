@@ -455,12 +455,14 @@ def _load_shared_csr(shared_data_, shared_indices_,
     y = np.frombuffer(shared_y_, dtype=int)
 
 
-def _r_prec_worker(i, y_pred, **kwargs):
+def _r_prec_worker(i, y_pred, incorrect, **kwargs):
     # = args
     true_class = y[i]
+    if y_pred:
+        nn_labels = np.zeros(y_pred, dtype=int) + incorrect
     if relevant_items[true_class] == 0:
         if y_pred:
-            return 0., np.nan
+            return 0., nn_labels
         else:
             return 0. # there can't be correct predictions...
 
@@ -500,12 +502,13 @@ def _r_prec_worker(i, y_pred, **kwargs):
     correct_pred = (y_predicted == true_class).sum()
     if correct_pred == 0:
         if y_pred:
-            return 0., y_predicted[:y_pred]
+            return 0., nn_labels
         else:
             return 0.
     else:
         if y_pred:
-            return correct_pred / relevant_items[true_class], y_predicted[:y_pred]
+            nn_labels[:] = y_predicted[:y_pred]
+            return correct_pred / relevant_items[true_class], nn_labels
         else:
             return correct_pred / relevant_items[true_class]
 
@@ -571,7 +574,10 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     # Map labels to 0..n(labels)-1
     le = LabelEncoder()
     # Add int.min for misclassifications
-    y = le.fit_transform(y)
+    incorr_orig = np.array([np.nan]).astype(int)
+    le.fit(np.append(y, incorr_orig))
+    y = le.transform(y)
+    incorrect = le.transform(incorr_orig)
     # Number of relevant items, i.e. number of each label
     relevant_items = np.bincount(y) - 1 # one less for self class
     # R-Precision for each item
@@ -601,10 +607,11 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
 
     if verbose and log:
         log.message("Spawning processes for prediction.")
-    y_pred = list()
+    y_pred = np.zeros((n, return_y_pred), dtype=float)
     kwargs = {#'relevant_items' : relevant_items,
               #'y' : y,
-              'y_pred' : return_y_pred}
+              'y_pred' : return_y_pred,
+              'incorrect' : incorrect}
     with mp.Pool(processes=n_jobs, initializer=_load_shared_csr, 
               initargs=(shared_data, shared_indices, 
                         shared_indptr, S.shape, n_random_pred,
@@ -619,21 +626,23 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
                             i+1, n, mp.current_process().name), flush=True)
             try:
                 r_prec[i] = r[0]
-                y_pred.append(r[1])
+                y_pred[i, :] = r[1]
             except:
                 r_prec[i] = r
     pool.join()
 
     if verbose and log:
         log.message("Retrieving nearest neighbors.")
-    nn = list()
-    for x in y_pred:
-        try:
-            nn.append(le.inverse_transform(x))
-        except ValueError:
-            nn.append(np.array(np.nan))
-    y_pred = nn
-
+    #===========================================================================
+    # nn = list()
+    # for x in y_pred:
+    #     #try:
+    #     nn.append(le.inverse_transform(x))
+    #     #except ValueError:
+    #     #    nn.append(np.array(np.nan))
+    # y_pred = nn
+    #===========================================================================
+    y_pred = le.inverse_transform(y_pred.astype(int))
     if verbose and log:
         log.message("Finishing.")
     if n_random_pred.value:

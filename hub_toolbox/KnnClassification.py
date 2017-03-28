@@ -509,6 +509,8 @@ def _r_prec_worker(i, y_pred, incorrect, **kwargs):
         if y_pred:
             cur_nn_labels = y_predicted[:y_pred]
             nn_labels[:cur_nn_labels.size] = cur_nn_labels
+            for i, label in enumerate(cur_nn_labels):
+                nn_labels[i] = label
             return correct_pred / relevant_items[true_class], nn_labels
         else:
             return correct_pred / relevant_items[true_class]

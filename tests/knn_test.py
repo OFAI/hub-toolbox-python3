@@ -39,7 +39,7 @@ class TestKnnClassification(unittest.TestCase):
         ''' Does not test correctness of result! '''
         sim = csr_matrix(1 - self.distance)
         y = self.label
-        r = r_precision(sim, y, metric='similarity', return_y_pred=1)
+        r = r_precision(sim, y, metric='similarity', return_y_pred=1, verbose=1, n_jobs=2)
         r_precision_weighted = r['weighted']
         r_precision_macro = r['macro']
         y_pred = np.array(r['y_pred'])
@@ -65,7 +65,6 @@ class TestKnnClassification(unittest.TestCase):
         relevant_items = r['relevant_items']
         y_return = r['y_true']
         rppiw = np.average(r_peritem, weights=relevant_items[y_return])
-        print(r['y_pred'])
         return self.assertListEqual([rpw, rpm, rppiw], [0.25, 1/6, rpw])
 
     def test_knn_sparse_does_not_error(self):

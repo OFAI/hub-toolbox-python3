@@ -21,6 +21,7 @@ from hub_toolbox import Logging, IO
 from sklearn.preprocessing.label import LabelEncoder
 from scipy.sparse.csr import csr_matrix
 from functools import partial
+from numba.tests.npyufunc.test_ufunc import dtype
 
 __all__ = ['score', 'predict', 'r_precision',
            'f1_score', 'f1_macro', 'f1_micro', 'f1_weighted']
@@ -440,7 +441,8 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
 #  R - PRECISION
 #
 def _load_shared_csr(shared_data_, shared_indices_, 
-                     shared_indptr_, shape_, n_rnd_pred_):
+                     shared_indptr_, shape_, n_rnd_pred_,
+                     shared_rel_items_, shared_y_):
     global S
     S = csr_matrix((np.frombuffer(shared_data_),
                     np.frombuffer(shared_indices_), 
@@ -448,13 +450,14 @@ def _load_shared_csr(shared_data_, shared_indices_,
                    shape=shape_, copy=False)
     global n_rnd_pred
     n_rnd_pred = n_rnd_pred_
+    global relevant_items
+    relevant_items = np.frombuffer(shared_rel_items_, dtype=int)
+    global y
+    y = np.frombuffer(shared_y_, dtype=int)
 
 
-def _r_prec_worker(i, args):
-    n, relevant_items, y, y_pred, log, verbose = args
-    if verbose and ((i+1)%int(1e7 / 10**verbose) == 0 or i == n-1):
-        log.message("Classification: {} of {} on {}.".format(
-            i+1, n, mp.current_process().name), flush=True)
+def _r_prec_worker(i, y_pred, **kwargs):
+    # = args
     true_class = y[i]
     if relevant_items[true_class] == 0:
         if y_pred:
@@ -463,7 +466,7 @@ def _r_prec_worker(i, args):
             return 0. # there can't be correct predictions...
 
     # Get all nonzero similarities
-    row = S.getrow(i)
+    row = S.getrow(i).copy() # .copy() should be redundant
     nnz = row.nnz
     # Randomize to avoid problems arising from equal similarites
     rp = np.random.permutation(nnz)
@@ -578,7 +581,7 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     
     # Classify each point in test set
     if verbose:
-        log.message("Creating shared memory CSR matrix.")
+        log.message("Creating shared memory data.")
     shared_data = mp.RawArray(ctypes.c_double, S.data.size)
     shared_data_np = np.frombuffer(shared_data)
     shared_data_np[:] = S.data[:]
@@ -590,33 +593,50 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     shared_indptr_np[:] = S.indptr[:]
     n_random_pred = mp.Value(ctypes.c_int)
     n_random_pred.value = 0
+    shared_rel_items = mp.RawArray(ctypes.c_int64, relevant_items.size)
+    shared_rel_items_np = np.frombuffer(shared_rel_items, dtype=int)
+    shared_rel_items_np[:] = relevant_items[:]
+    shared_y = mp.RawArray(ctypes.c_int64, y.size)
+    shared_y_np = np.frombuffer(shared_y, dtype=int)
+    shared_y_np[:] = y[:]
 
     if verbose and log:
-        log.message("Spawning processes.")
+        log.message("Spawning processes for prediction.")
     y_pred = list()
+    kwargs = {#'relevant_items' : relevant_items,
+              #'y' : y,
+              'y_pred' : return_y_pred}
     with mp.Pool(processes=n_jobs, initializer=_load_shared_csr, 
               initargs=(shared_data, shared_indices, 
-                        shared_indptr, S.shape, n_random_pred)) as pool:
+                        shared_indptr, S.shape, n_random_pred,
+                        shared_rel_items, shared_y)) as pool:
         for i, r in enumerate(
             pool.imap(
-                func=partial(_r_prec_worker, args=(n, relevant_items, y, return_y_pred, log, verbose)),
+                func=partial(_r_prec_worker, **kwargs),
                 iterable=range(n), 
                 chunksize=int(1e2))):
+            if verbose and ((i+1)%int(1e7 / 10**verbose) == 0 or i == n-1):
+                log.message("Classification: {} of {} on {}.".format(
+                            i+1, n, mp.current_process().name), flush=True)
             try:
                 r_prec[i] = r[0]
                 y_pred.append(r[1])
             except:
                 r_prec[i] = r
     pool.join()
-    
+
+    if verbose and log:
+        log.message("Retrieving nearest neighbors.")
     nn = list()
     for x in y_pred:
         try:
             nn.append(le.inverse_transform(x))
         except ValueError:
-            nn.append(np.nan)
+            nn.append(np.array(np.nan))
     y_pred = nn
 
+    if verbose and log:
+        log.message("Finishing.")
     if n_random_pred.value:
         log.warning(("{} queries were classified randomly, because all "
             "distances were non-finite numbers or there were no other "

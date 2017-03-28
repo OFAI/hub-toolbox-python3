@@ -49,22 +49,24 @@ class TestKnnClassification(unittest.TestCase):
             and acc > 0.80)
 
     def test_r_precision(self):
-        y = [    0,   1,   1,   0,   1 ]
-        sim = [[1.0, 0.6, 0.0, 0.0, 0.0], # 0 / 1 .. 1 nnz
-               [0.6, 1.0, 0.0, 0.0, 0.7], # 1 / 2 .. 2 nnz
-               [0.0, 0.0, 1.0, 0.0, 0.0], # 0 / 2 .. 0 nnz
-               [0.0, 0.0, 0.0, 1.0, 0.0], # 0 / 1 .. 0 nnz
-               [0.0, 0.7, 0.0, 0.0, 1.0]] # 1 / 2 .. 1 nnz
+        y = [    0,   1,   1,   0,   1 , 2]
+        sim = [[1.0, 0.6, 0.0, 0.0, 0.0, 0], # 0 / 1 .. 1 nnz
+               [0.6, 1.0, 0.0, 0.0, 0.7, 0], # 1 / 2 .. 2 nnz
+               [0.0, 0.0, 1.0, 0.0, 0.0, 0], # 0 / 2 .. 0 nnz
+               [0.0, 0.0, 0.0, 1.0, 0.0, 0], # 0 / 1 .. 0 nnz
+               [0.0, 0.7, 0.0, 0.0, 1.0, 0], # 1 / 2 .. 1 nnz
+               [0.0, 0.0, 0.0, 0.0, 0.0, 1]] # 0 / 0 .. 1 nnz
         sim = csr_matrix(np.array(sim))
         y = np.array(y)
-        r = r_precision(sim, y, metric='similarity', verbose=1, n_jobs=2)
+        r = r_precision(sim, y, metric='similarity', return_y_pred=1, verbose=1, n_jobs=2)
         rpw = r['weighted']
         rpm = r['macro']
         r_peritem = r['per_item']
         relevant_items = r['relevant_items']
         y_return = r['y_true']
         rppiw = np.average(r_peritem, weights=relevant_items[y_return])
-        return self.assertListEqual([rpw, rpm, rppiw], [0.25, 0.2, rpw])
+        print(r['y_pred'])
+        return self.assertListEqual([rpw, rpm, rppiw], [0.25, 1/6, rpw])
 
     def test_knn_sparse_does_not_error(self):
         ''' Does not test correctness of result! '''

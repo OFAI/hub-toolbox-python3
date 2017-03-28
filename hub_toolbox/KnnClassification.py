@@ -458,7 +458,7 @@ def _r_prec_worker(i, args):
     true_class = y[i]
     if relevant_items[true_class] == 0:
         if y_pred:
-            return 0., np.iinfo('i').min
+            return 0., np.nan
         else:
             return 0. # there can't be correct predictions...
 
@@ -508,11 +508,11 @@ def _r_prec_worker(i, args):
             return correct_pred / relevant_items[true_class]
 
 
-def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance', 
+def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
                 average:str='weighted', return_y_pred:int=0,
                 verbose:int=0, n_jobs:int=1) -> float:
     ''' Calculate R-Precision (recall at R-th position).
-    
+
     Parameters
     ----------
     S : ndarray or CSR matrix
@@ -569,8 +569,7 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     # Map labels to 0..n(labels)-1
     le = LabelEncoder()
     # Add int.min for misclassifications
-    le.fit(np.append(y, np.iinfo('i').min))
-    y = le.transform(y)
+    y = le.fit_transform(y)
     # Number of relevant items, i.e. number of each label
     relevant_items = np.bincount(y) - 1 # one less for self class
     # R-Precision for each item
@@ -598,11 +597,11 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     with mp.Pool(processes=n_jobs, initializer=_load_shared_csr, 
               initargs=(shared_data, shared_indices, 
                         shared_indptr, S.shape, n_random_pred)) as pool:
-        for i, r in enumerate(pool.imap(
-            func=partial(_r_prec_worker, args=(n, relevant_items, y,
-                                               return_y_pred, log, verbose)),
-            iterable=range(n), 
-            chunksize=int(1e2))):
+        for i, r in enumerate(
+            pool.imap(
+                func=partial(_r_prec_worker, args=(n, relevant_items, y, return_y_pred, log, verbose)),
+                iterable=range(n), 
+                chunksize=int(1e2))):
             try:
                 r_prec[i] = r[0]
                 y_pred.append(r[1])
@@ -612,7 +611,10 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     
     nn = list()
     for x in y_pred:
-        nn.append(le.inverse_transform(x))
+        try:
+            nn.append(le.inverse_transform(x))
+        except ValueError:
+            nn.append(np.nan)
     y_pred = nn
 
     if n_random_pred.value:

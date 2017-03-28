@@ -21,7 +21,6 @@ from hub_toolbox import Logging, IO
 from sklearn.preprocessing.label import LabelEncoder
 from scipy.sparse.csr import csr_matrix
 from functools import partial
-from numba.tests.npyufunc.test_ufunc import dtype
 
 __all__ = ['score', 'predict', 'r_precision',
            'f1_score', 'f1_macro', 'f1_micro', 'f1_weighted']

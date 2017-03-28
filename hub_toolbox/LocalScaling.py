@@ -17,7 +17,6 @@ import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
 from hub_toolbox import IO, Logging
-from _pytest.compat import enum
 
 __all__ = ['local_scaling', 'local_scaling_sample', 'nicdm', 'nicdm_sample']
 

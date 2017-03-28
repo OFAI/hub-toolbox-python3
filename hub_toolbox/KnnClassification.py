@@ -507,7 +507,8 @@ def _r_prec_worker(i, y_pred, incorrect, **kwargs):
             return 0.
     else:
         if y_pred:
-            nn_labels[:] = y_predicted[:y_pred]
+            cur_nn_labels = y_predicted[:y_pred]
+            nn_labels[:cur_nn_labels.size] = cur_nn_labels
             return correct_pred / relevant_items[true_class], nn_labels
         else:
             return correct_pred / relevant_items[true_class]
@@ -633,15 +634,6 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
 
     if verbose and log:
         log.message("Retrieving nearest neighbors.")
-    #===========================================================================
-    # nn = list()
-    # for x in y_pred:
-    #     #try:
-    #     nn.append(le.inverse_transform(x))
-    #     #except ValueError:
-    #     #    nn.append(np.array(np.nan))
-    # y_pred = nn
-    #===========================================================================
     y_pred = le.inverse_transform(y_pred.astype(int))
     if verbose and log:
         log.message("Finishing.")

@@ -58,7 +58,7 @@ class TestKnnClassification(unittest.TestCase):
                [0.0, 0.0, 0.0, 0.0, 0.0, 1]] # 0 / 0 .. 1 nnz
         sim = csr_matrix(np.array(sim))
         y = np.array(y)
-        r = r_precision(sim, y, metric='similarity', return_y_pred=1, verbose=1, n_jobs=2)
+        r = r_precision(sim, y, metric='similarity', return_y_pred=2, verbose=1, n_jobs=2)
         rpw = r['weighted']
         rpm = r['macro']
         r_peritem = r['per_item']

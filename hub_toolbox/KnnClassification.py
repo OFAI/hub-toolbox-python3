@@ -146,8 +146,10 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     cl = np.sort(np.unique(target))
     if D_is_sparse:
         # Add a label for unknown class (object w/o nonzero sim to any others)
-        cl = np.append(cl, cl.max()+1)
-    cmat = np.zeros((k_length, len(cl), len(cl)))
+        n_classes = len(cl) + 1
+    else:
+        n_classes = len(cl)
+    cmat = np.zeros((k_length, n_classes, n_classes))
 
     classes = target.copy()
     for idx, cur_class in enumerate(cl):
@@ -215,7 +217,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             # However, if no values are finite, classify randomly
             if finite_val.sum() == 0:
                 if not idx:
-                    idx = cl.max()
+                    idx = n_classes - 1
                 idx = np.random.permutation(idx)
                 finite_val = np.ones_like(finite_val)
                 log.warning("Query was classified randomly, because all "

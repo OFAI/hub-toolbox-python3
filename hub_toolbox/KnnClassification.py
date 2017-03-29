@@ -224,6 +224,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             try:
                 max_cs = np.where(cs == np.max(cs))[0]
             except:
+                print("idx", idx)
                 print("seed_class:", seed_class)
                 print("cs", cs)
                 print("nnclass:", nn_class)

@@ -168,6 +168,9 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     rnd_classif = np.zeros(k_length)
     # Classify each point in test set
     for i in test_set_ind:
+        if verbose and ((i+1)%1000==0 or i+1==n):
+            log.message("Prediction: {} of {}.".format(i+1, n), flush=True)
+
         seed_class = classes[i]
 
         if D_is_sparse:
@@ -231,27 +234,6 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 max_cs = np.where(cs == np.max(cs))[0]
             else:
                 max_cs = np.array([len(cl) - 1]) # misclassification label
-            #===================================================================
-            # except:
-            #     print("nnz:", nnz)
-            #     print("rp:", rp)
-            #     print("d2:", d2)
-            #     print("kth:", kth)
-            #     print("d2idx", d2idx)
-            #     print("idx", idx)
-            #     print("seed_class:", seed_class)
-            #     print("cs", cs)
-            #     print("nnclass:", nn_class)
-            #     print("j:", j)
-            #     print("k[j]:", k[j])
-            #     print("idx[:k[j]]:", idx[:k[j]])
-            #     print("finite_val:", finite_val)
-            #     print("Classes[:20]:", classes[:20])
-            #     print("row:", row)
-            #     print("row[0]:", row[0])
-            #     print("row.shape:", row.shape, row[0].shape)
-            #     return
-            #===================================================================
 
             # "tie": use nearest neighbor
             if len(max_cs) > 1:

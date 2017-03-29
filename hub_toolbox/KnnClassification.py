@@ -231,7 +231,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 if cs:
                     max_cs = np.where(cs == np.max(cs))[0]
                 else:
-                    max_cs = len(cl) - 1 # misclassification label
+                    max_cs = np.array(len(cl) - 1) # misclassification label
             except:
                 print("nnz:", nnz)
                 print("rp:", rp)

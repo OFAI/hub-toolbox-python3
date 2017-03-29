@@ -227,7 +227,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 #finite_val = np.isfinite(sample_row[idx[0:k[j]]])
                 nn_class = sample_classes[idx[0:k[j]]][finite_val]
             cs = np.bincount(nn_class.astype(int))
-            if cs:
+            if cs.size > 0:
                 max_cs = np.where(cs == np.max(cs))[0]
             else:
                 max_cs = np.array([len(cl) - 1]) # misclassification label

@@ -224,6 +224,11 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             try:
                 max_cs = np.where(cs == np.max(cs))[0]
             except:
+                print("nnz:", nnz)
+                print("rp:", rp)
+                print("d2:", d2)
+                print("kth:", kth)
+                print("d2idx", d2idx)
                 print("idx", idx)
                 print("seed_class:", seed_class)
                 print("cs", cs)
@@ -236,6 +241,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 print("row:", row)
                 print("row[0]:", row[0])
                 print("row.shape:", row.shape, row[0].shape)
+                return
 
             # "tie": use nearest neighbor
             if len(max_cs) > 1:

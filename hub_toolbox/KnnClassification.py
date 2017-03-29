@@ -221,7 +221,20 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 #finite_val = np.isfinite(sample_row[idx[0:k[j]]])
                 nn_class = sample_classes[idx[0:k[j]]][finite_val]
             cs = np.bincount(nn_class.astype(int))
-            max_cs = np.where(cs == np.max(cs))[0]
+            try:
+                max_cs = np.where(cs == np.max(cs))[0]
+            except:
+                print("seed_class:", seed_class)
+                print("cs", cs)
+                print("nnclass:", nn_class)
+                print("j:", j)
+                print("k[j]:", k[j])
+                print("idx[:k[j]]:", idx[:k[j]])
+                print("finite_val:", finite_val)
+                print("Classes[:20]:", classes[:20])
+                print("row:", row)
+                print("row[0]:", row[0])
+                print("row.shape:", row.shape, row[0].shape)
 
             # "tie": use nearest neighbor
             if len(max_cs) > 1:

@@ -146,6 +146,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     cl = np.sort(np.unique(target))
     if D_is_sparse:
         # Add a label for unknown class (object w/o nonzero sim to any others)
+        cl = np.append(cl, cl.max()+1)
         n_classes = len(cl) + 1
     else:
         n_classes = len(cl)
@@ -216,8 +217,6 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 finite_val = np.isfinite(row[idx[0:k[j]]])
             # However, if no values are finite, classify randomly
             if finite_val.sum() == 0:
-                if not idx:
-                    idx = n_classes - 1
                 idx = np.random.permutation(idx)
                 finite_val = np.ones_like(finite_val)
                 log.warning("Query was classified randomly, because all "
@@ -229,7 +228,10 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 nn_class = sample_classes[idx[0:k[j]]][finite_val]
             cs = np.bincount(nn_class.astype(int))
             try:
-                max_cs = np.where(cs == np.max(cs))[0]
+                if cs:
+                    max_cs = np.where(cs == np.max(cs))[0]
+                else:
+                    max_cs = len(cl) - 1 # misclassification label
             except:
                 print("nnz:", nnz)
                 print("rp:", rp)

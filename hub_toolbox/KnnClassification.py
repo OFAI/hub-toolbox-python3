@@ -165,6 +165,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             D[sample, j] = d_self
     cl = range(len(cl))
 
+    rnd_classif = np.zeros(k_length)
     # Classify each point in test set
     for i in test_set_ind:
         seed_class = classes[i]
@@ -219,8 +220,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             if finite_val.sum() == 0:
                 idx = np.random.permutation(idx)
                 finite_val = np.ones_like(finite_val)
-                log.warning("Query was classified randomly, because all "
-                            "distances were non-finite numbers.")
+                rnd_classif[j] += 1
             if sample_idx is None:
                 nn_class = classes[idx[0:k[j]]][finite_val]
             else:
@@ -266,6 +266,10 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                     corr[j, i] = 1
                 cmat[j, seed_class, cl[max_cs[0]]] += 1
 
+    if np.any(rnd_classif):
+        for x in rnd_classif:
+            log.warning(("{} queries were classified randomly, because all "
+                        "distances were non-finite numbers.").format(x))
     if verbose:
         log.message("Finished k-NN experiment.")
 

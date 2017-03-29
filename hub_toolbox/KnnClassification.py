@@ -227,30 +227,31 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                 #finite_val = np.isfinite(sample_row[idx[0:k[j]]])
                 nn_class = sample_classes[idx[0:k[j]]][finite_val]
             cs = np.bincount(nn_class.astype(int))
-            try:
-                if cs:
-                    max_cs = np.where(cs == np.max(cs))[0]
-                else:
-                    max_cs = np.array([len(cl) - 1]) # misclassification label
-            except:
-                print("nnz:", nnz)
-                print("rp:", rp)
-                print("d2:", d2)
-                print("kth:", kth)
-                print("d2idx", d2idx)
-                print("idx", idx)
-                print("seed_class:", seed_class)
-                print("cs", cs)
-                print("nnclass:", nn_class)
-                print("j:", j)
-                print("k[j]:", k[j])
-                print("idx[:k[j]]:", idx[:k[j]])
-                print("finite_val:", finite_val)
-                print("Classes[:20]:", classes[:20])
-                print("row:", row)
-                print("row[0]:", row[0])
-                print("row.shape:", row.shape, row[0].shape)
-                return
+            if cs:
+                max_cs = np.where(cs == np.max(cs))[0]
+            else:
+                max_cs = np.array([len(cl) - 1]) # misclassification label
+            #===================================================================
+            # except:
+            #     print("nnz:", nnz)
+            #     print("rp:", rp)
+            #     print("d2:", d2)
+            #     print("kth:", kth)
+            #     print("d2idx", d2idx)
+            #     print("idx", idx)
+            #     print("seed_class:", seed_class)
+            #     print("cs", cs)
+            #     print("nnclass:", nn_class)
+            #     print("j:", j)
+            #     print("k[j]:", k[j])
+            #     print("idx[:k[j]]:", idx[:k[j]])
+            #     print("finite_val:", finite_val)
+            #     print("Classes[:20]:", classes[:20])
+            #     print("row:", row)
+            #     print("row[0]:", row[0])
+            #     print("row.shape:", row.shape, row[0].shape)
+            #     return
+            #===================================================================
 
             # "tie": use nearest neighbor
             if len(max_cs) > 1:

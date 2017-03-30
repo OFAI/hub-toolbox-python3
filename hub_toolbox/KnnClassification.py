@@ -581,8 +581,8 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
         y_pred : ndarray
             Labels of some k-nearest neighbors
     '''
-    #IO.check_distance_matrix_shape(S)
-    #IO.check_distance_matrix_shape_fits_labels(S, y)
+    IO.check_distance_matrix_shape(S)
+    IO.check_distance_matrix_shape_fits_labels(S, y)
     IO.check_valid_metric_parameter(metric)
     log = Logging.ConsoleLogging()
     n, _ = S.shape
@@ -660,7 +660,7 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
             "distances were non-finite numbers or there were no other "
             "objects in the same class.").format(n_random_pred.value))
     return_dict = {'macro' : r_prec.mean(),
-                   'weighted' : np.average(r_prec, weights=relevant_items[y[:n]]),
+                   'weighted' : np.average(r_prec, weights=relevant_items[y]),
                    'per_item' : r_prec,
                    'relevant_items' : relevant_items,
                    'y_true' : y,

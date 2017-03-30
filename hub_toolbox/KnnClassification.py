@@ -600,7 +600,7 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     # Number of relevant items, i.e. number of each label
     relevant_items = np.bincount(y) - 1 # one less for self class
     # R-Precision for each item
-    r_prec = np.zeros(y.shape, dtype=np.float)
+    r_prec = np.zeros(n, dtype=np.float)
     
     
     # Classify each point in test set

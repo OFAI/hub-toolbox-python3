@@ -581,8 +581,8 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
         y_pred : ndarray
             Labels of some k-nearest neighbors
     '''
-    IO.check_distance_matrix_shape(S)
-    IO.check_distance_matrix_shape_fits_labels(S, y)
+    #IO.check_distance_matrix_shape(S)
+    #IO.check_distance_matrix_shape_fits_labels(S, y)
     IO.check_valid_metric_parameter(metric)
     log = Logging.ConsoleLogging()
     n, _ = S.shape

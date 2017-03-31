@@ -455,24 +455,20 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
 #
 #  R - PRECISION
 #
-def _load_shared_csr(shared_data_, shared_indices_, 
-                     shared_indptr_, shape_, n_rnd_pred_,
-                     shared_rel_items_, shared_y_):
+def _load_shared_csr(S_, y_, n_random_pred_, relevant_items_):
+    ''' Better yet: don't use shared CSR, but just inherit and use globals '''
     global S
-    S = csr_matrix((np.frombuffer(shared_data_),
-                    np.frombuffer(shared_indices_), 
-                    np.frombuffer(shared_indptr_)), 
-                   shape=shape_, copy=False)
-    global n_rnd_pred
-    n_rnd_pred = n_rnd_pred_
-    global relevant_items
-    relevant_items = np.frombuffer(shared_rel_items_, dtype=int)
+    S = S_
     global y
-    y = np.frombuffer(shared_y_, dtype=int)
-
+    y = y_
+    # Well, I don't understand, why it works for S and y this way,
+    #       but not for the others...
+    global n_random_pred
+    n_random_pred = n_random_pred_
+    global relevant_items
+    relevant_items = relevant_items_
 
 def _r_prec_worker(i, y_pred, incorrect, **kwargs):
-    # = args
     true_class = y[i]
     if y_pred:
         nn_labels = np.zeros(y_pred, dtype=int) + incorrect
@@ -483,7 +479,7 @@ def _r_prec_worker(i, y_pred, incorrect, **kwargs):
             return 0. # there can't be correct predictions...
 
     # Get all nonzero similarities
-    row = S.getrow(i).copy() # .copy() should be redundant
+    row = S.getrow(i)
     nnz = row.nnz
     # Randomize to avoid problems arising from equal similarites
     rp = np.random.permutation(nnz)
@@ -511,8 +507,8 @@ def _r_prec_worker(i, y_pred, incorrect, **kwargs):
     if finite_val.sum() == 0:
         idx = np.random.permutation(idx)
         finite_val = np.ones_like(finite_val)
-        with n_rnd_pred.get_lock():
-            n_rnd_pred.value += 1
+        with n_random_pred.get_lock():
+            n_random_pred.value += 1
     
     y_predicted = y[idx]
     correct_pred = (y_predicted == true_class).sum()
@@ -602,39 +598,19 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     # R-Precision for each item
     r_prec = np.zeros(n, dtype=np.float)
     
-    
     # Classify each point in test set
     if verbose:
         log.message("Creating shared memory data.")
-    shared_data = mp.RawArray(ctypes.c_double, S.data.size)
-    shared_data_np = np.frombuffer(shared_data)
-    shared_data_np[:] = S.data[:]
-    shared_indices = mp.RawArray(ctypes.c_double, S.indices.size)
-    shared_indices_np = np.frombuffer(shared_indices)
-    shared_indices_np[:] = S.indices[:]
-    shared_indptr = mp.RawArray(ctypes.c_double, S.indptr.size)
-    shared_indptr_np = np.frombuffer(shared_indptr)
-    shared_indptr_np[:] = S.indptr[:]
     n_random_pred = mp.Value(ctypes.c_int)
     n_random_pred.value = 0
-    shared_rel_items = mp.RawArray(ctypes.c_int64, relevant_items.size)
-    shared_rel_items_np = np.frombuffer(shared_rel_items, dtype=int)
-    shared_rel_items_np[:] = relevant_items[:]
-    shared_y = mp.RawArray(ctypes.c_int64, y.size)
-    shared_y_np = np.frombuffer(shared_y, dtype=int)
-    shared_y_np[:] = y[:]
-
     if verbose and log:
         log.message("Spawning processes for prediction.")
     y_pred = np.zeros((n, return_y_pred), dtype=float)
-    kwargs = {#'relevant_items' : relevant_items,
-              #'y' : y,
-              'y_pred' : return_y_pred,
+    kwargs = {'y_pred' : return_y_pred,
               'incorrect' : incorrect}
-    with mp.Pool(processes=n_jobs, initializer=_load_shared_csr, 
-              initargs=(shared_data, shared_indices, 
-                        shared_indptr, S.shape, n_random_pred,
-                        shared_rel_items, shared_y)) as pool:
+    with mp.Pool(processes=n_jobs, 
+                 initializer=_load_shared_csr, 
+                 initargs=(S, y, n_random_pred, relevant_items)) as pool:
         for i, r in enumerate(
             pool.imap(
                 func=partial(_r_prec_worker, **kwargs),
@@ -648,6 +624,8 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
                 y_pred[i, :] = r[1]
             except:
                 r_prec[i] = r
+            if i == n-1:
+                pass
     pool.join()
 
     if verbose and log:

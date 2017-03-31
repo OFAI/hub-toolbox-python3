@@ -20,9 +20,9 @@ import numpy as np
 import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse
+from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse, triu
 from multiprocessing import Pool, cpu_count, current_process
-from multiprocessing.sharedctypes import RawArray
+from multiprocessing.sharedctypes import Array
 from hub_toolbox import IO, Logging
 
 __all__ = ['mutual_proximity_empiric', 'mutual_proximity_gammai', 
@@ -304,36 +304,6 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 
     return D_mp
 
-#===============================================================================
-# def _joblib_mpes(i, j, S, verbose, log, n, min_nnz=0):
-#     """Compute MP between two objects i and j in CSR matrix."""
-#     if verbose:
-#         n_rows = int(1e5 / 10**verbose)
-#     if verbose and log and i==j and ((i+1)%n_rows == 0 or i == n-2):
-#         log.message("MP_empiric: {} of {}.".format(i+1, n-1), flush=True)
-#     # Original similarity between the two objects
-#     d = S[j, i]
-#     # Similarities to i/j (as sparse matrices (rows))
-#     dI = S.getrow(i)
-#     dJ = S.getrow(j)
-#     
-#     # Number of positions that are non-zero in both rows
-#     nz = dI.multiply(dJ).data.size
-#     # if there are none, just return the original distance (handled elsewhere)
-#     if dI.nnz <= min_nnz or dJ.nnz <= min_nnz:
-#         return i, j, np.nan
-#     #===========================================================================
-#     # if nz == 0:
-#     #     return i, j, 0.
-#     #===========================================================================
-#     # otherwise count those positions lte to `d` in both rows
-#     else:
-#         dI.data[dI.data > d] = 0
-#         dJ.data[dJ.data > d] = 0
-#         res = dI.multiply(dJ).data.size
-#         return i, j, res / (nz)
-#===============================================================================
-
 def _map_mpes(ind, args):
     """Compute MP between two objects i and j in CSR matrix."""
     i, j = ind
@@ -345,48 +315,44 @@ def _map_mpes(ind, args):
         log.message("MP_empiric: {} of {} on {}.".format(
             i+1, n, current_process().name), flush=True)
     # Original similarity between the two objects
-    #print("_map_mpes, id(S) =", id(S))
-    threshold = S[j, i]
+    threshold = S[i, j]
+
+    # Find the corresponding index in S.data (or S_mp.data) in O(log(n)) time.
+    data_idx = S.indptr[i] + np.searchsorted(S.indices[S.indptr[i]:S.indptr[i+1]], j)
+    
     # Similarities to i/j (as sparse matrices (rows))
     S_i = S.getrow(i)
     S_j = S.getrow(j)
-    
-    # Number of positions that are non-zero in both rows
-    #nz = dI.multiply(dJ).data.size
-    
+
     # If any row contains too few values, 
     # just return the original similarities (handled elsewhere).
     if S_i.nnz <= min_nnz or S_j.nnz <= min_nnz:
-        return i, j, np.nan
+        with S_mp_data.get_lock():
+            S_mp_data[data_idx] = np.nan
+        return #i, j, np.nan
     # otherwise count those positions lte to `s`` in both rows
     else:
         S_i.data[S_i.data <= threshold] = 0
         S_j.data[S_j.data <= threshold] = 0
         s_mp = 1 - (S_i + S_j).nnz / n
-        return i, j, s_mp
-        #=======================================================================
-        # dI.data[dI.data > d] = 0
-        # dJ.data[dJ.data > d] = 0
-        # res = dI.multiply(dJ).data.size
-        # return i, j, res / (nz)
-        #=======================================================================
+        with S_mp_data.get_lock():
+            S_mp_data[data_idx] = s_mp
+        return #i, j, s_mp
 
-def _load_shared_csr(shared_data_, shared_indices_, 
-                     shared_indptr_, shape_):
+def _load_shared_csr(S_, shared_data_):
     global S
-    S = csr_matrix((np.frombuffer(shared_data_),
-                    np.frombuffer(shared_indices_), 
-                    np.frombuffer(shared_indptr_)), 
-                   shape=shape_, copy=False)
+    S = S_
+    global S_mp_data
+    S_mp_data = shared_data_
 
-def _mutual_proximity_empiric_sparse(S:csr_matrix, 
+def _mutual_proximity_empiric_sparse(S:csr_matrix,
                                      test_set_ind:np.ndarray=None, 
                                      min_nnz=0,
                                      verbose:int=0,
                                      log=None,
                                      n_jobs=None):
-    """MP empiric for sparse similarity matrices. 
-    
+    """MP empiric for sparse similarity matrices.
+
     Please do not directly use this function, but invoke via 
     mutual_proximity_empiric()
     """
@@ -401,45 +367,26 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     else:
         pass
 
+    # This will become S_mp.data
+    shared_data = Array(ctypes.c_double, S.data.size)
+    shared_data_np = np.ctypeslib.as_array(shared_data.get_obj())
+
     if verbose and log:
-        log.message("Creating shared memory CSR matrix.")
-    shared_data = RawArray(ctypes.c_double, S.data.size)
-    shared_data_np = np.frombuffer(shared_data)
-    shared_data_np[:] = S.data[:]
-    shared_indices = RawArray(ctypes.c_double, S.indices.size)
-    shared_indices_np = np.frombuffer(shared_indices)
-    shared_indices_np[:] = S.indices[:]
-    shared_indptr = RawArray(ctypes.c_double, S.indptr.size)
-    shared_indptr_np = np.frombuffer(shared_indptr)
-    shared_indptr_np[:] = S.indptr[:]
-    
-    if verbose and log:
-        log.message("Spawning processes.")
-    res = list()
-    with Pool(processes=n_jobs, initializer=_load_shared_csr, 
-              initargs=(shared_data, shared_indices, shared_indptr, S.shape)) as pool:
+        log.message("Spawning processes and starting MP computation.")
+    with Pool(processes=n_jobs,
+              initializer=_load_shared_csr,
+              initargs=(S, shared_data)) as pool:  
         S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], zip(*S.nonzero()))
-        for r in pool.imap(func=partial(_map_mpes, args=(verbose, log, n, min_nnz)), 
+        for _ in pool.imap(func=partial(_map_mpes, args=(verbose, log, n, min_nnz)), 
                            iterable=S_nonzero, 
                            chunksize=int(1e5)):
-            res.append(r)
+            pass # output stored by function in shared array
     pool.join()
+    if verbose and log:
+        log.message("Assemble upper-triangular MP matrix.")
+    S_mp = csr_matrix((shared_data_np, S.indices, S.indptr), 
+                      shape=S.shape, copy=False).tolil()
     del shared_data, shared_data_np
-    del shared_indices, shared_indices_np
-    del shared_indptr, shared_indptr_np
-    if verbose and log:
-        log.message("Constructing DataFrame.")
-    df = pd.DataFrame(res, columns=['row', 'col', 'val'])
-    del res
-    if verbose and log:
-        log.message("Constructing COO matrix via DataFrame.")
-    S_mp = coo_matrix((df['val'].astype(np.float32), 
-                       (df['row'].astype(np.int32), df['col'].astype(np.int32))),
-                      shape=(n, n))
-    del df
-    if verbose and log:
-        log.message("Converting to LIL matrix.")
-    S_mp = S_mp.tolil()
     if verbose and log:
         log.message("Symmetrizing matrix.")
     S_mp += S_mp.T
@@ -447,6 +394,12 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     # That is, keep distances FROM these objects to others (rows), but
     # set distances of other objects TO them to NaN (columns).
     # Returned matrix is thus NOT SYMMETRIC.
+    if verbose and log:
+        log.message(("Retain original similarities for objects with too few "
+                     "neighbors. If there are any, the output matrix will "
+                     "not be symmetric anymore! (Rows corresponding to these "
+                     "objects will be in original space; corresponding "
+                     "columns will contain NaN)."))
     for row in np.argwhere(S.getnnz(axis=1) <= min_nnz):
         row = row[0] # use scalar for indexing instead of array
         S_mp[row, :] = S.getrow(row)

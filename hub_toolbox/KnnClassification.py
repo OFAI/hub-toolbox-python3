@@ -144,7 +144,13 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     corr = np.zeros((k_length, D.shape[0]))
 
     cl = np.sort(np.unique(target))
-    cmat = np.zeros((k_length, len(cl), len(cl)))
+    if D_is_sparse:
+        # Add a label for unknown class (object w/o nonzero sim to any others)
+        cl = np.append(cl, cl.max()+1)
+        n_classes = len(cl) + 1
+    else:
+        n_classes = len(cl)
+    cmat = np.zeros((k_length, n_classes, n_classes))
 
     classes = target.copy()
     for idx, cur_class in enumerate(cl):
@@ -159,8 +165,12 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             D[sample, j] = d_self
     cl = range(len(cl))
 
+    rnd_classif = np.zeros(k_length)
     # Classify each point in test set
     for i in test_set_ind:
+        if verbose and ((i+1)%1000==0 or i+1==n):
+            log.message("Prediction: {} of {}.".format(i+1, n), flush=True)
+
         seed_class = classes[i]
 
         if D_is_sparse:
@@ -213,28 +223,17 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
             if finite_val.sum() == 0:
                 idx = np.random.permutation(idx)
                 finite_val = np.ones_like(finite_val)
-                log.warning("Query was classified randomly, because all "
-                            "distances were non-finite numbers.")
+                rnd_classif[j] += 1
             if sample_idx is None:
                 nn_class = classes[idx[0:k[j]]][finite_val]
             else:
                 #finite_val = np.isfinite(sample_row[idx[0:k[j]]])
                 nn_class = sample_classes[idx[0:k[j]]][finite_val]
             cs = np.bincount(nn_class.astype(int))
-            try:
+            if cs.size > 0:
                 max_cs = np.where(cs == np.max(cs))[0]
-            except:
-                print("seed_class:", seed_class)
-                print("cs", cs)
-                print("nnclass:", nn_class)
-                print("j:", j)
-                print("k[j]:", k[j])
-                print("idx[:k[j]]:", idx[:k[j]])
-                print("finite_val:", finite_val)
-                print("Classes[:20]:", classes[:20])
-                print("row:", row)
-                print("row[0]:", row[0])
-                print("row.shape:", row.shape, row[0].shape)
+            else:
+                max_cs = np.array([len(cl) - 1]) # misclassification label
 
             # "tie": use nearest neighbor
             if len(max_cs) > 1:
@@ -249,6 +248,10 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
                     corr[j, i] = 1
                 cmat[j, seed_class, cl[max_cs[0]]] += 1
 
+    if np.any(rnd_classif):
+        for x in rnd_classif:
+            log.warning(("{} queries were classified randomly, because all "
+                        "distances were non-finite numbers.").format(x))
     if verbose:
         log.message("Finished k-NN experiment.")
 
@@ -452,24 +455,20 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
 #
 #  R - PRECISION
 #
-def _load_shared_csr(shared_data_, shared_indices_, 
-                     shared_indptr_, shape_, n_rnd_pred_,
-                     shared_rel_items_, shared_y_):
+def _load_shared_csr(S_, y_, n_random_pred_, relevant_items_):
+    ''' Better yet: don't use shared CSR, but just inherit and use globals '''
     global S
-    S = csr_matrix((np.frombuffer(shared_data_),
-                    np.frombuffer(shared_indices_), 
-                    np.frombuffer(shared_indptr_)), 
-                   shape=shape_, copy=False)
-    global n_rnd_pred
-    n_rnd_pred = n_rnd_pred_
-    global relevant_items
-    relevant_items = np.frombuffer(shared_rel_items_, dtype=int)
+    S = S_
     global y
-    y = np.frombuffer(shared_y_, dtype=int)
-
+    y = y_
+    # Well, I don't understand, why it works for S and y this way,
+    #       but not for the others...
+    global n_random_pred
+    n_random_pred = n_random_pred_
+    global relevant_items
+    relevant_items = relevant_items_
 
 def _r_prec_worker(i, y_pred, incorrect, **kwargs):
-    # = args
     true_class = y[i]
     if y_pred:
         nn_labels = np.zeros(y_pred, dtype=int) + incorrect
@@ -480,7 +479,7 @@ def _r_prec_worker(i, y_pred, incorrect, **kwargs):
             return 0. # there can't be correct predictions...
 
     # Get all nonzero similarities
-    row = S.getrow(i).copy() # .copy() should be redundant
+    row = S.getrow(i)
     nnz = row.nnz
     # Randomize to avoid problems arising from equal similarites
     rp = np.random.permutation(nnz)
@@ -508,8 +507,8 @@ def _r_prec_worker(i, y_pred, incorrect, **kwargs):
     if finite_val.sum() == 0:
         idx = np.random.permutation(idx)
         finite_val = np.ones_like(finite_val)
-        with n_rnd_pred.get_lock():
-            n_rnd_pred.value += 1
+        with n_random_pred.get_lock():
+            n_random_pred.value += 1
     
     y_predicted = y[idx]
     correct_pred = (y_predicted == true_class).sum()
@@ -597,41 +596,21 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     # Number of relevant items, i.e. number of each label
     relevant_items = np.bincount(y) - 1 # one less for self class
     # R-Precision for each item
-    r_prec = np.zeros(y.shape, dtype=np.float)
-    
+    r_prec = np.zeros(n, dtype=np.float)
     
     # Classify each point in test set
     if verbose:
         log.message("Creating shared memory data.")
-    shared_data = mp.RawArray(ctypes.c_double, S.data.size)
-    shared_data_np = np.frombuffer(shared_data)
-    shared_data_np[:] = S.data[:]
-    shared_indices = mp.RawArray(ctypes.c_double, S.indices.size)
-    shared_indices_np = np.frombuffer(shared_indices)
-    shared_indices_np[:] = S.indices[:]
-    shared_indptr = mp.RawArray(ctypes.c_double, S.indptr.size)
-    shared_indptr_np = np.frombuffer(shared_indptr)
-    shared_indptr_np[:] = S.indptr[:]
     n_random_pred = mp.Value(ctypes.c_int)
     n_random_pred.value = 0
-    shared_rel_items = mp.RawArray(ctypes.c_int64, relevant_items.size)
-    shared_rel_items_np = np.frombuffer(shared_rel_items, dtype=int)
-    shared_rel_items_np[:] = relevant_items[:]
-    shared_y = mp.RawArray(ctypes.c_int64, y.size)
-    shared_y_np = np.frombuffer(shared_y, dtype=int)
-    shared_y_np[:] = y[:]
-
     if verbose and log:
         log.message("Spawning processes for prediction.")
     y_pred = np.zeros((n, return_y_pred), dtype=float)
-    kwargs = {#'relevant_items' : relevant_items,
-              #'y' : y,
-              'y_pred' : return_y_pred,
+    kwargs = {'y_pred' : return_y_pred,
               'incorrect' : incorrect}
-    with mp.Pool(processes=n_jobs, initializer=_load_shared_csr, 
-              initargs=(shared_data, shared_indices, 
-                        shared_indptr, S.shape, n_random_pred,
-                        shared_rel_items, shared_y)) as pool:
+    with mp.Pool(processes=n_jobs, 
+                 initializer=_load_shared_csr, 
+                 initargs=(S, y, n_random_pred, relevant_items)) as pool:
         for i, r in enumerate(
             pool.imap(
                 func=partial(_r_prec_worker, **kwargs),
@@ -645,6 +624,8 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
                 y_pred[i, :] = r[1]
             except:
                 r_prec[i] = r
+            if i == n-1:
+                pass
     pool.join()
 
     if verbose and log:

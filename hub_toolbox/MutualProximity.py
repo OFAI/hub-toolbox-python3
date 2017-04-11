@@ -17,10 +17,9 @@ from functools import partial
 from itertools import filterfalse
 import ctypes
 import numpy as np
-import pandas as pd
 from scipy.special import gammainc  # @UnresolvedImport
 from scipy.stats import norm, mvn
-from scipy.sparse import lil_matrix, csr_matrix, coo_matrix, issparse, triu
+from scipy.sparse import lil_matrix, csr_matrix, issparse
 from multiprocessing import Pool, cpu_count, current_process
 from multiprocessing.sharedctypes import Array
 from hub_toolbox import IO, Logging

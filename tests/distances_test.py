@@ -71,9 +71,11 @@ class TestMpDisSim(unittest.TestCase):
         y_pred_mp = knn.predict(D_part_mp)
         acc_mp = accuracy_score(self.y_test, y_pred_mp)
         h_mp = hubness(D_part_mp, k=5, metric='distance', n_jobs=4)[0]
-        print("Hub:", h_eucl, h_mp)
-        print("Acc:", acc_eucl, acc_mp)
-        D_mp = mp_dissim(self.X, p=2, n_bins=10, bin_size='r', n_jobs=-1, verbose=1)
+        #=======================================================================
+        # print("Hub:", h_eucl, h_mp)
+        # print("Acc:", acc_eucl, acc_mp)
+        # D_mp = mp_dissim(self.X, p=2, n_bins=10, bin_size='r', n_jobs=-1, verbose=1)
+        #=======================================================================
         self.assertLess(h_mp, h_eucl)
         self.assertGreater(acc_mp, acc_eucl)
 

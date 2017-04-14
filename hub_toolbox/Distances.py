@@ -12,7 +12,8 @@ The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
-
+import ctypes
+from multiprocessing import Pool, cpu_count, Array, RawArray
 import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 try: # for scikit-learn >= 0.18
@@ -87,6 +88,170 @@ def lp_norm(X:np.ndarray, Y:np.ndarray=None, p:float=None, n_jobs:int=1):
         return pairwise_distances(X=X, Y=Y, metric='minkowski',
                                   n_jobs=n_jobs, **{'p' : p})
 
+#===============================================================================
+# #=============================================================================
+# # 
+# #                        m_p dissimilarity
+# # 
+# #=============================================================================
+#===============================================================================
+def _mp_load_shared_Y(Y_, n_bins_):
+    global Y, n_bins
+    Y = Y_
+    n_bins = n_bins_
+
+def _mp_load_shared_data(X_, Y_, p_, n_bins_, R_bins_, R_bins_np_, R_, R_np_,
+                     mp_, mp_np_):
+    global X, Y, n_bins, n_x, n_y, d, p, R_bins, R_bins_np, R, R_np, mp, mp_np
+    X = X_
+    Y = Y_
+    n_bins = n_bins_
+    n_x, d = X.shape
+    n_y = Y.shape[0]
+    p = p_
+    R_bins = R_bins_
+    R_bins_np = R_bins_np_
+    R = R_
+    R_np = R_np_
+    mp = mp_
+    mp_np = mp_np_
+
+def _mp_find_bin_edges(i):
+    return np.partition(Y[:, i], kth=kth)[kth]
+
+def _mp_calc_histograms(i):
+    bins = _mp_find_bin_edges(i)
+    return np.histogram(Y[:, i], bins=bins)
+
+def _mp_calc_histograms_n_bins(i):
+    return np.histogram(Y[:, i], bins=n_bins)
+
+def _mp_create_r_bins(i):
+    hist, _ = histograms[i]
+    for b in range(n_bins):
+        R_bins_np[i, b, b:] = np.cumsum(hist[b:])
+    R_bins_np[i] += np.triu(R_bins_np[i], k=1).T
+    return
+
+def _mp_estimate_r(i):
+    # Binning. Values outside the range are binned into the first/last bin
+    _, bin_edges = histograms[i]
+    bin_x = np.digitize(X[:, i], bins=bin_edges)
+    bin_x -= 1
+    np.clip(bin_x, 0, n_bins-1, out=bin_x)
+    bin_y = np.digitize(Y[:, i], bins=bin_edges)
+    bin_y -= 1
+    np.clip(bin_y, 0, n_bins-1, out=bin_y)
+    for x in range(X.shape[0]):
+        R_np[i, x, :] = R_bins_np[i, bin_x[x], bin_y]
+    return
+
+def _mp_calc_mp_dissim(i):
+    R_np[:, i, :] /= (n_x + n_y)
+    R_np[:, i, :] **= p
+    tmp = R_np[:, i, :].sum(axis=0, )
+    tmp /= d
+    tmp **= 1. / p
+    mp_np[i, :] =  tmp
+    return
+
+def mp_dissim(X:np.ndarray, Y:np.ndarray=None, p:float=2,
+              n_bins:int=0, bin_size:str='range', n_jobs:int=1, verbose:int=0):
+    """ Calculate m_p dissimilarity.
+
+    The data-dependent m_p dissimilarity measure considers the relative
+    positions of objects x and y with respect to the rest of the data
+    distribution in each dimension [1]_.
+
+    Parameters
+    ----------
+    X : ndarray
+        Vector data (e.g. test set), shape (n_x, d)
+
+    Y : ndarray, optional, default: None
+        Vector data (e.g. training set), shape (n_y, d).
+        Number of features ``d`` must be equal in `X` and `Y`.
+
+    p : float, optional, default: 2
+        Parameter, similar to `p` in Minkowski norm
+
+    n_bins : int, optional, default: 0
+        Number of bins for probability mass estimation
+
+    bin_size : str, optional, default: 'range'
+        Strategy for binning. May be one of:
+            'range' ... create bins with uniform range length
+            'mass'  ... create bins with approx. uniform mass
+
+    n_jobs : int, optional, default: 1
+        Parallel computation with multiple processes.
+
+    verbose : int, optional, default: 0
+        Increasing level of output
+
+    Returns
+    -------
+    D : ndarray, shape (X.shape[0], Y.shape[0])
+        m_p dissimilarity matrix
+
+    References
+    ----------
+    .. [1] Aryal et al. (2017). Data-dependent dissimilarity measure: an
+           effective alternative to geometric distance measures.
+           Knowledge and Information Systems, Springer-Verlag London.
+    """
+    # Some preparation
+    n_x, d = X.shape
+    # All-against-all in X, or X against Y?
+    if Y is None:
+        Y = X
+    n_y, d_y = Y.shape
+    # X and Y must have same dimensionality
+    assert d == d_y
+    if n_jobs == -1:
+        n_jobs = cpu_count()
+
+    # RawArrays have no locks. Must take EXTREME CARE!!
+    R_bins = RawArray(ctypes.c_double, d * n_bins * n_bins)
+    R_bins_np = np.frombuffer(R_bins).reshape((d, n_bins, n_bins))
+    R = RawArray(ctypes.c_float, d * n_x * n_y)
+    R_np = np.frombuffer(R, dtype=np.float32).reshape((d, n_x, n_y))
+    mp = RawArray(ctypes.c_double, n_x * n_y)
+    mp_np = np.frombuffer(mp).reshape((n_x, n_y))
+
+    global histograms, kth
+    kth = np.arange(0, n_y)[0:n_y:int(n_y/n_bins)]
+    if kth[-1] != n_y - 1:
+        kth = np.append(kth, n_y-1)
+    if verbose:
+        print("Creating bins for estimating probability data mass.")
+    with Pool(processes=n_jobs,
+              initializer=_mp_load_shared_Y,
+              initargs=(Y, n_bins)) as pool:
+        if 'mass'.startswith(bin_size):
+            histograms = pool.map(func=_mp_calc_histograms,
+                                  iterable=range(d))
+        elif 'range'.startswith(bin_size):
+            histograms = pool.map(func=_mp_calc_histograms_n_bins,
+                                  iterable=range(d))
+        else:
+            raise ValueError("{}' is not a valid value for `bin_size`. "
+                             "Please use 'range' or 'mass'.".format(bin_size))
+    # The second pool needs `histograms`
+    with Pool(processes=n_jobs,
+              initializer=_mp_load_shared_data,
+              initargs=(X, Y, p, n_bins, R_bins, 
+                        R_bins_np, R, R_np, mp, mp_np)) as pool:
+        pool.map(func=_mp_create_r_bins, iterable=range(d))
+        if verbose:
+            print("Estimating probability data mass in all regions R_i(x,y).")
+        pool.map(func=_mp_estimate_r, iterable=range(d))
+        if verbose:
+            print("Calculating m_p dissimilarity for all pairs x, y.")
+        pool.map(func=_mp_calc_mp_dissim, iterable=range(n_x))
+    if verbose:
+        print("Done.")
+    return mp_np
 
 def sample_distance(X, y, sample_size, metric='euclidean', strategy='a',
                     random_state=None):

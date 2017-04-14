@@ -212,8 +212,8 @@ def mp_dissim(X:np.ndarray, Y:np.ndarray=None, p:float=2,
         n_jobs = cpu_count()
 
     # RawArrays have no locks. Must take EXTREME CARE!!
-    R_bins = RawArray(ctypes.c_double, d * n_bins * n_bins)
-    R_bins_np = np.frombuffer(R_bins).reshape((d, n_bins, n_bins))
+    R_bins = RawArray(ctypes.c_int32, d * n_bins * n_bins)
+    R_bins_np = np.frombuffer(R_bins, dtype=np.int32).reshape((d, n_bins, n_bins))
     R = RawArray(ctypes.c_float, d * n_x * n_y)
     R_np = np.frombuffer(R, dtype=np.float32).reshape((d, n_x, n_y))
     mp = RawArray(ctypes.c_double, n_x * n_y)

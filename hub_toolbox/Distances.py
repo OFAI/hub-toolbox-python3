@@ -100,9 +100,10 @@ def _mp_load_shared_Y(Y_, n_bins_):
     Y = Y_
     n_bins = n_bins_
 
-def _mp_load_shared_data(X_, Y_, p_, n_bins_, R_bins_, R_bins_np_, R_, R_np_,
-                     mp_, mp_np_):
-    global X, Y, n_bins, n_x, n_y, d, p, R_bins, R_bins_np, R, R_np, mp, mp_np
+def _mp_load_shared_data(X_, Y_, p_, n_bins_, R_bins_, R_bins_np_,
+                         X_bins_, X_bins_np_, Y_bins_, Y_bins_np_, mp_, mp_np_):
+    global X, Y, n_bins, n_x, n_y, d, p
+    global X_bins, X_bins_np, Y_bins, Y_bins_np, R_bins, R_bins_np, mp, mp_np
     X = X_
     Y = Y_
     n_bins = n_bins_
@@ -111,8 +112,10 @@ def _mp_load_shared_data(X_, Y_, p_, n_bins_, R_bins_, R_bins_np_, R_, R_np_,
     p = p_
     R_bins = R_bins_
     R_bins_np = R_bins_np_
-    R = R_
-    R_np = R_np_
+    X_bins = X_bins_
+    X_bins_np = X_bins_np_
+    Y_bins = Y_bins_
+    Y_bins_np = Y_bins_np_
     mp = mp_
     mp_np = mp_np_
 
@@ -142,17 +145,19 @@ def _mp_estimate_r(i):
     bin_y = np.digitize(Y[:, i], bins=bin_edges)
     bin_y -= 1
     np.clip(bin_y, 0, n_bins-1, out=bin_y)
-    for x in range(X.shape[0]):
-        R_np[i, x, :] = R_bins_np[i, bin_x[x], bin_y]
+    X_bins_np[i, :] = bin_x
+    Y_bins_np[i, :] = bin_y
     return
 
-def _mp_calc_mp_dissim(i):
-    R_np[:, i, :] /= (n_x + n_y)
-    R_np[:, i, :] **= p
-    tmp = R_np[:, i, :].sum(axis=0, )
-    tmp /= d
-    tmp **= 1. / p
-    mp_np[i, :] =  tmp
+def _mp_calc_mp_dissim(x):
+    mp_xy = np.zeros(n_y, dtype=float)
+    for i in range(d):
+        tmp = R_bins_np[i, X_bins_np[i, x], Y_bins_np[i, :]] / (n_x + n_y)
+        tmp **= p
+        mp_xy += tmp
+    mp_xy /= d
+    mp_xy **= (1. / p)
+    mp_np[x, :] = mp_xy
     return
 
 def mp_dissim(X:np.ndarray, Y:np.ndarray=None, p:float=2,
@@ -214,8 +219,10 @@ def mp_dissim(X:np.ndarray, Y:np.ndarray=None, p:float=2,
     # RawArrays have no locks. Must take EXTREME CARE!!
     R_bins = RawArray(ctypes.c_int32, d * n_bins * n_bins)
     R_bins_np = np.frombuffer(R_bins, dtype=np.int32).reshape((d, n_bins, n_bins))
-    R = RawArray(ctypes.c_float, d * n_x * n_y)
-    R_np = np.frombuffer(R, dtype=np.float32).reshape((d, n_x, n_y))
+    X_bins = RawArray(ctypes.c_int32, d * n_x)
+    X_bins_np = np.frombuffer(X_bins, dtype=np.int32).reshape((d, n_x))
+    Y_bins = RawArray(ctypes.c_int32, d * n_y)
+    Y_bins_np = np.frombuffer(Y_bins, dtype=np.int32).reshape((d, n_y))
     mp = RawArray(ctypes.c_double, n_x * n_y)
     mp_np = np.frombuffer(mp).reshape((n_x, n_y))
 
@@ -240,8 +247,8 @@ def mp_dissim(X:np.ndarray, Y:np.ndarray=None, p:float=2,
     # The second pool needs `histograms`
     with Pool(processes=n_jobs,
               initializer=_mp_load_shared_data,
-              initargs=(X, Y, p, n_bins, R_bins, 
-                        R_bins_np, R, R_np, mp, mp_np)) as pool:
+              initargs=(X, Y, p, n_bins, R_bins, R_bins_np, X_bins, X_bins_np,
+                        Y_bins, Y_bins_np, mp, mp_np)) as pool:
         pool.map(func=_mp_create_r_bins, iterable=range(d))
         if verbose:
             print("Estimating probability data mass in all regions R_i(x,y).")
@@ -252,6 +259,7 @@ def mp_dissim(X:np.ndarray, Y:np.ndarray=None, p:float=2,
     if verbose:
         print("Done.")
     return mp_np
+
 
 def sample_distance(X, y, sample_size, metric='euclidean', strategy='a',
                     random_state=None):

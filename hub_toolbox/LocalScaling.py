@@ -19,7 +19,6 @@ import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
 from hub_toolbox import IO, Logging
-from multiprocess.sharedctypes import RawArray
 
 __all__ = ['local_scaling', 'local_scaling_sample', 'nicdm', 'nicdm_sample']
 
@@ -200,6 +199,12 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
 
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set.
+
+    n_jobs : int, optional, default: 1
+        Number of processes for parallel computations.
+
+        - `1`: Don't use multiprocessing.
+        - `-1`: Use all CPUs
 
     Returns
     -------
@@ -396,8 +401,38 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
             D_nicdm[sample, j] = self_value
         return D_nicdm[test_ind]
 
+
+#==============================================================================
+# #============================================================================
+# #             Non-iterative Contextual Dissimilarity Measure
+# #============================================================================
+#==============================================================================
+def _nicdm_load_shared_data(D_, train_ind_, r_, r_ctype_,
+                            D_nicdm_=None, D_nicdm_ctype_=None):
+    global D, train_ind, r, r_ctype, D_nicdm, D_nicdm_ctype
+    D = D_
+    train_ind = train_ind_
+    r = r_
+    r_ctype = r_ctype_
+    D_nicdm = D_nicdm_
+    D_nicdm_ctype = D_nicdm_ctype_
+    return
+
+def _nicdm_calculate_r(i, kth, k):
+    di = D[i, train_ind]
+    knn = np.partition(di, kth=kth)[:k]
+    r[i] = knn.mean()
+    return knn
+
+def _nicdm_calculate_sec_dist(i, r_geom, n, metric):
+    # vectorized inner loop
+    tmp = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
+    D_nicdm[i, i+1:] = tmp
+    D_nicdm[i+1:, i] = tmp
+    return
+
 def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
-          test_ind:np.ndarray=None):
+          test_ind:np.ndarray=None, n_jobs:int=1):
     """Transform a distance matrix with local scaling variant NICDM.
 
     Transforms the given distance matrix into new one using NICDM [1]_
@@ -423,6 +458,12 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set.
 
+    n_jobs : int, optional, default: 1
+        Number of processes for parallel computations.
+
+        - `1`: Don't use multiprocessing.
+        - `-1`: Use all CPUs
+
     Returns
     -------
     D_nicdm : ndarray
@@ -444,26 +485,50 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     else:
         kth = np.arange(k)
         exclude = np.inf
-        
+    if n_jobs == -1:
+        n_jobs = cpu_count()
     D = np.copy(D)
     n = D.shape[0]
 
     if test_ind is None:
-        train_set_ind = slice(0, n)
+        train_ind = slice(0, n)
     else:
-        train_set_ind = np.setdiff1d(np.arange(n), test_ind)
+        train_ind = np.setdiff1d(np.arange(n), test_ind)
 
     np.fill_diagonal(D, exclude)
-    knn = np.partition(D[:, train_set_ind], kth=kth, axis=1)[:, :k]
-    r = knn.mean(axis=1)
-    r_geom = _local_geomean(knn.ravel())
+    if n_jobs > 1:
+        r_ctype = RawArray(ctypes.c_double, n)
+        r = np.frombuffer(r_ctype, dtype=np.float64)
+        r_geom = np.zeros((n, k), dtype=np.float64)
+        with Pool(processes=n_jobs,
+                  initializer=_nicdm_load_shared_data,
+                  initargs=(D, train_ind, r, r_ctype)) as pool:
+            for i, knn in enumerate(pool.imap(
+                func=partial(_nicdm_calculate_r, kth=kth, k=k),
+                iterable=range(n))):
+                # r is handled within func
+                r_geom[i, :] = knn
+            r_geom = _local_geomean(r_geom.ravel())
+        D_nicdm_ctype = RawArray(ctypes.c_double, D.size)
+        D_nicdm = np.frombuffer(D_nicdm_ctype, dtype=np.float64).reshape(D.shape)
+        with Pool(processes=n_jobs,
+                  initializer=_nicdm_load_shared_data,
+                  initargs=(D, train_ind, r, r_ctype, D_nicdm, D_nicdm_ctype)) as pool:
+            for _ in pool.imap(
+                func=partial(_nicdm_calculate_sec_dist, r_geom=r_geom, n=n, metric=metric),
+                iterable=range(n)):
+                pass # results handled within func
+    else: # no multiprocessing
+        knn = np.partition(D[:, train_ind], kth=kth, axis=1)[:, :k]
+        r = knn.mean(axis=1)
+        r_geom = _local_geomean(knn.ravel())
 
-    D_nicdm = np.zeros_like(D)
-    for i in range(n):
-        # vectorized inner loop for 100x speed-up (using broadcasting)
-        #D_nicdm[i, i+1:] = ((r_geom**2) * D[i, i+1:]) / (r[i] * r[i+1:])
-        D_nicdm[i, i+1:] = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
-    D_nicdm += D_nicdm.T
+        D_nicdm = np.zeros_like(D)
+        for i in range(n):
+            # vectorized inner loop for 100x speed-up (using broadcasting)
+            #D_nicdm[i, i+1:] = ((r_geom**2) * D[i, i+1:]) / (r[i] * r[i+1:])
+            D_nicdm[i, i+1:] = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
+        D_nicdm += D_nicdm.T
 
     return D_nicdm
 

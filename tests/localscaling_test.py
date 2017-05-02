@@ -102,5 +102,13 @@ class TestLocalScaling(unittest.TestCase):
         self.setUpMod('toy')
         return self.assertRaises(NotImplementedError)
 
+    def test_nicdm_parallel_equals_sequential(self):
+        self.setUpMod('rnd')
+        ls_dist_par = nicdm(self.dist, n_jobs=4)
+        print(ls_dist_par)
+        ls_dist_seq = nicdm(self.dist, n_jobs=1)
+        print(ls_dist_seq)
+        return np.testing.assert_array_equal(ls_dist_seq, ls_dist_par)
+
 if __name__ == "__main__":
     unittest.main()

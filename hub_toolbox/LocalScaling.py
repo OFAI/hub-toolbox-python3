@@ -12,7 +12,9 @@ The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
-
+import ctypes
+from functools import partial
+from multiprocessing import cpu_count, RawArray, Pool
 import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
@@ -136,8 +138,42 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
             D_ls[sample, j] = self_value
         return D_ls[test_ind]
 
+#===============================================================================
+# #=============================================================================
+# #                             LOCAL SCALING
+# #=============================================================================
+#===============================================================================
+
+def _ls_load_shared_data(D_, train_ind_, r_, r_ctype_,
+                         D_ls_=None, D_ls_ctype_=None):
+    global D, train_ind, r, r_ctype, D_ls, D_ls_ctype
+    D = D_
+    train_ind = train_ind_
+    r = r_
+    r_ctype = r_ctype_
+    D_ls = D_ls_
+    D_ls_ctype = D_ls_ctype_
+    return
+
+def _ls_calculate_r(i, kth):
+    di = D[i, train_ind]
+    r[i] = np.partition(di, kth=kth)[kth]
+    return
+
+def _ls_calculate_sec_dist(i, n, metric, self_tmp_value):
+    # vectorized inner loop: calc only triu part
+    tmp = np.empty(n-i)
+    tmp[0] = self_tmp_value
+    if metric == 'similarity':
+        tmp[1:] = np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
+    else:
+        tmp[1:] = 1 - np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
+    D_ls[i, i:] = tmp
+    D_ls[i:, i] = tmp
+    return
+
 def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
-                  test_ind:np.ndarray=None):
+                  test_ind:np.ndarray=None, n_jobs:int=1):
     """Transform a distance matrix with Local Scaling.
 
     Transforms the given distance matrix into new one using local scaling [1]_
@@ -164,6 +200,12 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set.
 
+    n_jobs : int, optional, default: 1
+        Number of processes for parallel computations.
+
+        - `1`: Don't use multiprocessing.
+        - `-1`: Use all CPUs
+
     Returns
     -------
     D_ls : ndarray
@@ -181,12 +223,18 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     IO.check_valid_metric_parameter(metric)
     sparse = issparse(D)
     n = D.shape[0]
+    if n_jobs == -1:
+        n_jobs = cpu_count()
     if metric == 'similarity':
         kth = n - k
         exclude = -np.inf
         self_tmp_value = np.inf
         self_value = 1.
         log.warning("Similarity matrix support for LS is experimental.")
+        if sparse and n_jobs != 1:
+            log.warning("Parallel processing not implemented for sparse "
+                        "matrices. Using single process instead.")
+            n_jobs = 1
     else: # metric == 'distance':
         kth = k - 1
         exclude = np.inf
@@ -199,43 +247,61 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
     D = np.copy(D)
 
     if test_ind is None:
-        train_set_ind = slice(0, n) #take all        
+        train_ind = slice(0, n) #take all        
     else:
-        train_set_ind = np.setdiff1d(np.arange(n), test_ind)
-
-    r = np.zeros(n)
+        train_ind = np.setdiff1d(np.arange(n), test_ind)
     if sparse:
+        r = np.zeros(n)
         for i in range(n):
-            di = D[i, train_set_ind].toarray()
+            di = D[i, train_ind].toarray()
             di[i] = exclude
             r[i] = np.partition(di, kth=kth)[kth]
-    else:
-        np.fill_diagonal(D, exclude)
-        r = np.partition(D[:, train_set_ind], kth=kth)[:, kth]
-
-    if sparse:
         D_ls = lil_matrix(D.shape)
         # Number of nonzero cells per row
         nnz = D.getnnz(axis=1)
     else:
-        D_ls = np.zeros_like(D)
-
-    for i in range(n):
-        # vectorized inner loop: calc only triu part
-        tmp = np.empty(n-i)
-        tmp[0] = self_tmp_value
-        if metric == 'similarity':
-            if sparse and nnz[i] <= k:  # Don't rescale if there are
-                tmp[1:] = np.nan        # too few neighbors in row
-            else:
-                tmp[1:] = np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
+        np.fill_diagonal(D, exclude)
+        if n_jobs > 1:
+            r_ctype = RawArray(ctypes.c_double, n)
+            r = np.frombuffer(r_ctype, dtype=np.float64)
+            with Pool(processes=n_jobs,
+                      initializer=_ls_load_shared_data,
+                      initargs=(D, train_ind, r, r_ctype)) as pool:
+                for _ in pool.imap(func=partial(_ls_calculate_r, kth=kth),
+                                   iterable=range(n)):
+                    pass # results handled within func
         else:
-            tmp[1:] = 1 - np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
-        D_ls[i, i:] = tmp
-    # copy triu to tril -> symmetric matrix (diag=zeros)
-    # NOTE: does not affect self values, since inf+inf=inf and 0+0=0
-    D_ls += D_ls.T
+            r = np.partition(D[:, train_ind], kth=kth)[:, kth]
 
+    if sparse or n_jobs == 1:
+        D_ls = np.zeros_like(D)
+        for i in range(n):
+            # vectorized inner loop: calc only triu part
+            tmp = np.empty(n-i)
+            tmp[0] = self_tmp_value
+            if metric == 'similarity':
+                if sparse and nnz[i] <= k:  # Don't rescale if there are
+                    tmp[1:] = np.nan        # too few neighbors in row
+                else:
+                    tmp[1:] = np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
+            else:
+                tmp[1:] = 1 - np.exp(-1 * D[i, i+1:]**2 / (r[i] * r[i+1:]))
+            D_ls[i, i:] = tmp
+        # copy triu to tril -> symmetric matrix (diag=zeros)
+        # NOTE: does not affect self values, since inf+inf=inf and 0+0=0
+        D_ls += D_ls.T
+    else:
+        D_ls_ctype = RawArray(ctypes.c_double, D.size)
+        D_ls = np.frombuffer(D_ls_ctype, dtype=np.float64).reshape(D.shape)
+        with Pool(processes=n_jobs,
+                  initializer=_ls_load_shared_data,
+                  initargs=(D, train_ind, r, r_ctype, D_ls, D_ls_ctype)) as pool:
+            for _ in pool.imap(func=partial(_ls_calculate_sec_dist,
+                                  n=n, metric=metric,
+                                  self_tmp_value=self_tmp_value),
+                               iterable=range(n)):
+                pass # results handled within func
+        # triu is copied to tril within func
     if sparse:
         for i, nz in enumerate(nnz):
             if nz <= k: # too few neighbors
@@ -335,8 +401,38 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
             D_nicdm[sample, j] = self_value
         return D_nicdm[test_ind]
 
+
+#==============================================================================
+# #============================================================================
+# #             Non-iterative Contextual Dissimilarity Measure
+# #============================================================================
+#==============================================================================
+def _nicdm_load_shared_data(D_, train_ind_, r_, r_ctype_,
+                            D_nicdm_=None, D_nicdm_ctype_=None):
+    global D, train_ind, r, r_ctype, D_nicdm, D_nicdm_ctype
+    D = D_
+    train_ind = train_ind_
+    r = r_
+    r_ctype = r_ctype_
+    D_nicdm = D_nicdm_
+    D_nicdm_ctype = D_nicdm_ctype_
+    return
+
+def _nicdm_calculate_r(i, kth, k):
+    di = D[i, train_ind]
+    knn = np.partition(di, kth=kth)[:k]
+    r[i] = knn.mean()
+    return knn
+
+def _nicdm_calculate_sec_dist(i, r_geom, n, metric):
+    # vectorized inner loop
+    tmp = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
+    D_nicdm[i, i+1:] = tmp
+    D_nicdm[i+1:, i] = tmp
+    return
+
 def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
-          test_ind:np.ndarray=None):
+          test_ind:np.ndarray=None, n_jobs:int=1):
     """Transform a distance matrix with local scaling variant NICDM.
 
     Transforms the given distance matrix into new one using NICDM [1]_
@@ -362,6 +458,12 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set.
 
+    n_jobs : int, optional, default: 1
+        Number of processes for parallel computations.
+
+        - `1`: Don't use multiprocessing.
+        - `-1`: Use all CPUs
+
     Returns
     -------
     D_nicdm : ndarray
@@ -383,26 +485,50 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     else:
         kth = np.arange(k)
         exclude = np.inf
-        
+    if n_jobs == -1:
+        n_jobs = cpu_count()
     D = np.copy(D)
     n = D.shape[0]
 
     if test_ind is None:
-        train_set_ind = slice(0, n)
+        train_ind = slice(0, n)
     else:
-        train_set_ind = np.setdiff1d(np.arange(n), test_ind)
+        train_ind = np.setdiff1d(np.arange(n), test_ind)
 
     np.fill_diagonal(D, exclude)
-    knn = np.partition(D[:, train_set_ind], kth=kth, axis=1)[:, :k]
-    r = knn.mean(axis=1)
-    r_geom = _local_geomean(knn.ravel())
+    if n_jobs > 1:
+        r_ctype = RawArray(ctypes.c_double, n)
+        r = np.frombuffer(r_ctype, dtype=np.float64)
+        r_geom = np.zeros((n, k), dtype=np.float64)
+        with Pool(processes=n_jobs,
+                  initializer=_nicdm_load_shared_data,
+                  initargs=(D, train_ind, r, r_ctype)) as pool:
+            for i, knn in enumerate(pool.imap(
+                func=partial(_nicdm_calculate_r, kth=kth, k=k),
+                iterable=range(n))):
+                # r is handled within func
+                r_geom[i, :] = knn
+            r_geom = _local_geomean(r_geom.ravel())
+        D_nicdm_ctype = RawArray(ctypes.c_double, D.size)
+        D_nicdm = np.frombuffer(D_nicdm_ctype, dtype=np.float64).reshape(D.shape)
+        with Pool(processes=n_jobs,
+                  initializer=_nicdm_load_shared_data,
+                  initargs=(D, train_ind, r, r_ctype, D_nicdm, D_nicdm_ctype)) as pool:
+            for _ in pool.imap(
+                func=partial(_nicdm_calculate_sec_dist, r_geom=r_geom, n=n, metric=metric),
+                iterable=range(n)):
+                pass # results handled within func
+    else: # no multiprocessing
+        knn = np.partition(D[:, train_ind], kth=kth, axis=1)[:, :k]
+        r = knn.mean(axis=1)
+        r_geom = _local_geomean(knn.ravel())
 
-    D_nicdm = np.zeros_like(D)
-    for i in range(n):
-        # vectorized inner loop for 100x speed-up (using broadcasting)
-        #D_nicdm[i, i+1:] = ((r_geom**2) * D[i, i+1:]) / (r[i] * r[i+1:])
-        D_nicdm[i, i+1:] = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
-    D_nicdm += D_nicdm.T
+        D_nicdm = np.zeros_like(D)
+        for i in range(n):
+            # vectorized inner loop for 100x speed-up (using broadcasting)
+            #D_nicdm[i, i+1:] = ((r_geom**2) * D[i, i+1:]) / (r[i] * r[i+1:])
+            D_nicdm[i, i+1:] = (r_geom * D[i, i+1:]) / np.sqrt(r[i] * r[i+1:])
+        D_nicdm += D_nicdm.T
 
     return D_nicdm
 

@@ -383,7 +383,7 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
     # Statistics
     knn = np.zeros((n, k))
     r = np.partition(D, kth=kth, axis=1)[:, :k].mean(axis=1)
-    r_geom = _local_geomean(knn.ravel())
+    r_geom = _local_geomean(r) #knn.ravel())
 
     # Calculate secondary distances
     D_nicdm = np.zeros_like(D)
@@ -420,9 +420,8 @@ def _nicdm_load_shared_data(D_, train_ind_, r_, r_ctype_,
 
 def _nicdm_calculate_r(i, kth, k):
     di = D[i, train_ind]
-    knn = np.partition(di, kth=kth)[:k]
-    r[i] = knn.mean()
-    return knn
+    r[i] = np.partition(di, kth=kth)[:k].mean()
+    return
 
 def _nicdm_calculate_sec_dist(i, r_geom, n, metric):
     # vectorized inner loop
@@ -506,9 +505,8 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
             for i, knn in enumerate(pool.imap(
                 func=partial(_nicdm_calculate_r, kth=kth, k=k),
                 iterable=range(n))):
-                # r is handled within func
-                r_geom[i, :] = knn
-            r_geom = _local_geomean(r_geom.ravel())
+                pass # r is handled within func
+            r_geom = _local_geomean(r)
         D_nicdm_ctype = RawArray(ctypes.c_double, D.size)
         D_nicdm = np.frombuffer(D_nicdm_ctype, dtype=np.float64).reshape(D.shape)
         with Pool(processes=n_jobs,
@@ -521,7 +519,7 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     else: # no multiprocessing
         knn = np.partition(D[:, train_ind], kth=kth, axis=1)[:, :k]
         r = knn.mean(axis=1)
-        r_geom = _local_geomean(knn.ravel())
+        r_geom = _local_geomean(r)
 
         D_nicdm = np.zeros_like(D)
         for i in range(n):

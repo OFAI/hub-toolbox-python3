@@ -11,11 +11,13 @@ The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
-
+import ctypes
+from multiprocessing import cpu_count, Pool, RawArray
 import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances
 from hub_toolbox.Distances import cosine_distance as cos
 from hub_toolbox import IO
+from functools import partial
 
 __all__ = ['centering', 'weighted_centering', 'localized_centering', 
            'dis_sim_global', 'dis_sim_local']
@@ -163,8 +165,29 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
     X_wcent = X - vectors_mean_weighted
     return X_wcent
 
+#===============================================================================
+# #=============================================================================
+# #                         LOCALIZED CENTERING
+# #=============================================================================
+#===============================================================================
+
+def _lcent_load_shared_data(w_, sim_train_, local_affinity_):
+    global w, sim_train, local_affinity
+    w = w_
+    sim_train = sim_train_
+    local_affinity = local_affinity_
+    return
+
+def _lcent_calculate_loc_af(i, kappa):
+    # Get the kappa nearest neighbors (highest similarity)
+    nn = np.argpartition(sim_train[i, :], kth=-kappa)[-1:-kappa-1:-1]
+    # Local centroid
+    c_kappa_x = w[nn, :].mean(axis=0)
+    local_affinity[i] = np.inner(w[i, :], c_kappa_x)
+    return
+
 def localized_centering(X:np.ndarray, Y:np.ndarray=None,
-                        kappa:int=40, gamma:float=1.):
+                        kappa:int=40, gamma:float=1., n_jobs:int=1):
     """
     Perform localized centering.
     
@@ -193,6 +216,9 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
         "Parameter γ can be tuned so as to maximally reduce the skewness 
         of the Nk distribution" [2]_.
 
+    n_jobs : int, optional
+        Parallel execution
+
     Returns
     ------- 
     S_lcent : ndarray
@@ -212,6 +238,8 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
            Proceedings of the 29th AAAI Conference on Artificial Intelligence 
            (pp. 2645–2651).
     """
+    if n_jobs == -1:
+        n_jobs = cpu_count()
     # Rescale vectors to unit length
     div_ = np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
     div_[div_ == 0] = 1e-7
@@ -229,18 +257,30 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
         sim = v.dot(w.T)
         sim_train = w.dot(w.T)   
 
-    local_affinity = np.zeros(n)
-    for i in range(n):
-        # Get the kappa nearest neighbors (highest similarity)
-        nn = np.argsort(sim_train[i, :])[-1:-kappa-1:-1]
-        # Local centroid
-        c_kappa_x = w[nn, :].mean(axis=0)
-        local_affinity[i] = np.inner(w[i, :], c_kappa_x)
+    if n_jobs > 1:
+        local_affinity_ctype = RawArray(ctypes.c_double, n)
+        local_affinity = np.frombuffer(local_affinity_ctype, dtype=np.float64)
+        with Pool(processes=n_jobs,
+                  initializer=_lcent_load_shared_data,
+                  initargs=(w, sim_train, local_affinity)) as pool:
+            for _ in pool.imap(
+                func=partial(_lcent_calculate_loc_af, kappa=kappa), 
+                iterable=range(n)):
+                pass # local_affinity is handled within func
+    else:
+        local_affinity = np.zeros(n)
+        for i in range(n):
+            # Get the kappa nearest neighbors (highest similarity)
+            nn = np.argpartition(sim_train[i, :], kth=-kappa)[-1:-kappa-1:-1]
+            # Local centroid
+            c_kappa_x = w[nn, :].mean(axis=0)
+            local_affinity[i] = np.inner(w[i, :], c_kappa_x)
     # Only change penalty, if all values are positive 
     if gamma != 1 and (local_affinity < 0).sum() == 0:
         local_affinity **= gamma
     sim -= local_affinity
     return sim
+
 
 def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
     """
@@ -285,7 +325,25 @@ def dis_sim_global(X:np.ndarray, Y:np.ndarray=None):
     D_xq -= q_c
     return D_xq
 
-def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
+#===============================================================================
+# #=============================================================================
+# #                         DisSim LOCAL
+# #=============================================================================
+#===============================================================================
+
+def _dsl_init(c_k_X_or_Y_, D_test_or_train_, Y_):
+    global c_k_X_or_Y, D_test_or_train, Y
+    c_k_X_or_Y = c_k_X_or_Y_
+    D_test_or_train = D_test_or_train_
+    Y = Y_
+    return
+
+def _dsl_local_centroids(i, k):
+    knn_idx = np.argpartition(D_test_or_train[i, :], kth=k)[:k]
+    c_k_X_or_Y[i] = Y[knn_idx].mean(axis=0)
+    return
+
+def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10, n_jobs:int=1):
     """Calculate dissimilarity based on local 'sample-wise centrality' [1]_.
     
     Parameters
@@ -301,6 +359,9 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
     k : int, optional (default: 10)
         Neighborhood size used for determining the local centroids.
         Can be optimized as to maximally reduce hubness [1]_.
+
+    n_jobs : int, optional
+        Parallel execution
 
     Returns
     -------
@@ -340,10 +401,21 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
         D_test = euclidean_distances(X, Y, squared=True)
 
     # Local centroid for each point among its k-nearest training neighbors
-    c_k_X = np.zeros_like(X)
-    for i in range(n_test):
-        knn_idx = np.argsort(D_test[i, :])[:k]
-        c_k_X[i] = Y[knn_idx].mean(axis=0)
+    if n_jobs > 1:
+        c_k_X_ctype = RawArray(ctypes.c_double, X.size)
+        c_k_X = np.frombuffer(c_k_X_ctype, dtype=np.float64).reshape(X.shape)
+        with Pool(processes=n_jobs,
+                  initializer=_dsl_init,
+                  initargs=(c_k_X, D_test, Y)) as pool:
+            for _ in pool.imap(
+                func=partial(_dsl_local_centroids, k=k), 
+                iterable=range(n_test)):
+                pass # handling inside function
+    else:
+        c_k_X = np.zeros_like(X)
+        for i in range(n_test):
+            knn_idx = np.argpartition(D_test[i, :], kth=k)[:k]
+            c_k_X[i] = Y[knn_idx].mean(axis=0)
     X -= c_k_X
     X **= 2
     x_c_k = X.sum(axis=1)
@@ -351,10 +423,21 @@ def dis_sim_local(X:np.ndarray, Y:np.ndarray=None, k:int=10):
         c_k_Y = c_k_X
         y_c_k = x_c_k
     else:
-        c_k_Y = np.zeros_like(Y)
-        for i in range(n_train):
-            knn_idx = np.argsort(D_train[i, :])[:k]
-            c_k_Y[i] = Y[knn_idx].mean(axis=0)
+        if n_jobs > 1:
+            c_k_Y_ctype = RawArray(ctypes.c_double, Y.size)
+            c_k_Y = np.frombuffer(c_k_Y_ctype, dtype=np.float64).reshape(Y.shape)
+            with Pool(processes=n_jobs,
+                      initializer=_dsl_init,
+                      initargs=(c_k_Y, D_train, Y)) as pool:
+                for _ in pool.imap(
+                    func=partial(_dsl_local_centroids, k=k),
+                    iterable=range(n_train)):
+                    pass # handling within function
+        else:
+            c_k_Y = np.zeros_like(Y)
+            for i in range(n_train):
+                knn_idx = np.argpartition(D_train[i, :], kth=k)[:k]
+                c_k_Y[i] = Y[knn_idx].mean(axis=0)
         Y -= c_k_Y
         Y **= 2
         y_c_k = Y.sum(axis=1)

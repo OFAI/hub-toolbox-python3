@@ -498,7 +498,6 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
     if n_jobs > 1:
         r_ctype = RawArray(ctypes.c_double, n)
         r = np.frombuffer(r_ctype, dtype=np.float64)
-        r_geom = np.zeros((n, k), dtype=np.float64)
         with Pool(processes=n_jobs,
                   initializer=_nicdm_load_shared_data,
                   initargs=(D, train_ind, r, r_ctype)) as pool:

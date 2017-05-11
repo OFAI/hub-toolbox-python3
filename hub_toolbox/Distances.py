@@ -215,6 +215,7 @@ def mp_dissim(X:np.ndarray, Y:np.ndarray=None, p:float=2,
     assert d == d_y
     if n_jobs == -1:
         n_jobs = cpu_count()
+    n_bins = int(n_bins)
 
     # RawArrays have no locks. Must take EXTREME CARE!!
     R_bins = RawArray(ctypes.c_int32, d * n_bins * n_bins)

@@ -38,9 +38,10 @@ class TestLocalScaling(unittest.TestCase):
                  0.6321205588, 0.6471339185, 0.9342714714, 0.9844961464, 
                  0.8646647168, 0.8150186001])
             self.nicdm_dist_truth = squareform(
-                [0.2936782173, 0.1641711143, 0.7285259947, 0.4153237178, 
-                 0.381499195, 0.3526961306, 0.5629896449, 0.7886525234, 
-                 0.5395213357, 0.4489088861])
+                [0.310029690448236, 0.173311865721368, 0.769089007390428,
+                 0.438448192970227, 0.402740381783397, 0.37233361467179,
+                 0.594335892341949, 0.832563272714335, 0.569560910033398,
+                 0.473903322836619])
             self.vector = None
             self.label = None
 
@@ -85,8 +86,8 @@ class TestLocalScaling(unittest.TestCase):
     def test_nicdm(self):
         self.setUpMod('toy')
         dist_calc = nicdm(self.dist, k=2)
-        calc_equals_truth = np.allclose(dist_calc, self.nicdm_dist_truth)
-        return self.assertTrue(calc_equals_truth)
+        return np.testing.assert_array_almost_equal(
+            dist_calc, self.nicdm_dist_truth, decimal=7)
  
     def test_nicdm_basic_requirements(self):
         """Test that matrix is symmetric, diag==0, and in range [0, inf)"""
@@ -105,9 +106,7 @@ class TestLocalScaling(unittest.TestCase):
     def test_nicdm_parallel_equals_sequential(self):
         self.setUpMod('rnd')
         ls_dist_par = nicdm(self.dist, n_jobs=4)
-        print(ls_dist_par)
         ls_dist_seq = nicdm(self.dist, n_jobs=1)
-        print(ls_dist_seq)
         return np.testing.assert_array_equal(ls_dist_seq, ls_dist_par)
 
 if __name__ == "__main__":

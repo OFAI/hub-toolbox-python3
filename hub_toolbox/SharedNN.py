@@ -296,14 +296,55 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance',
     np.fill_diagonal(D_snn, self_value)
     return D_snn
 
+#==============================================================================
+# #============================================================================
+# #                               SIMHUB IN
+# #============================================================================
+#==============================================================================
+
+def _shi_init_knn(D_, knn_):
+    global distance, knn
+    distance = D_
+    knn = knn_
+    return
+
+def _shi_hood(i, s, sort_order):
+    di = distance[i, :]
+    # TODO change to np.partition for PERF
+    nn = np.argsort(di)[::sort_order]
+    knn[i, nn[:s]] = True
+    return
+
+def _shi_init_simhub(knn_, train_ind_, I_n_, D_shi_):
+    global knn, train_ind, I_n, D_shi
+    knn = knn_
+    train_ind = train_ind_
+    I_n = I_n_
+    D_shi = D_shi_
+    return
+
+def _shi_simhub_vect(i, s):
+    # using vectorization and broadcasting
+    x = np.logical_and(knn[i, :], knn[train_ind, :])
+    D_shi[i, :] = np.sum(x * I_n, axis=1)
+    return
+
+def _shi_simhub(i, s, m):
+    # use non-vectorized loops
+    for j in range(m):
+        x = np.logical_and(knn[i, :], knn[j, :])
+        D_shi[i, j] = np.sum(x * I_n)
+    return
+
 def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
-             test_ind:np.ndarray=None, s:int=50, return_distances:bool=True):
+             test_ind:np.ndarray=None, s:int=50, return_distances:bool=True,
+             n_jobs:int=1):
     """Calculate dissimilarity based on hubness-aware SNN distances [1]_.
 
     Parameters
     ----------
     D : ndarray
-        The ``n x s`` distance or similarity matrix, where ``n`` and ``s``
+        The ``n x s`` distance, where ``n`` and ``s``
         are the dataset and sample size, respectively.
 
     train_ind : ndarray, optional, default: None
@@ -323,6 +364,12 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     return_distances : bool, optional, default: True
         If True, return distances (1 - similarities).
         Otherwise return similarities.
+
+    n_jobs : int, optional, default: 1
+        Number of processes for parallel computations.
+
+        - `1`: Don't use multiprocessing.
+        - `-1`: Use all CPUs
 
     Returns
     -------
@@ -358,14 +405,26 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
         for j, sample in enumerate(train_ind):
             distance[sample, j] = exclude
 
-    knn = np.zeros_like(distance, bool)
-
-    # find nearest neighbors for each point
-    for i in range(n):
-        di = distance[i, :]
-        # TODO change to np.partition for PERF
-        nn = np.argsort(di)[::sort_order]
-        knn[i, nn[:s]] = True
+    if n_jobs == -1:
+        n_jobs = cpu_count()
+    if n_jobs > 1:
+        knn_ctype = RawArray(ctypes.c_bool, D.size)
+        knn = np.frombuffer(knn_ctype, dtype=bool).reshape(D.shape)
+        with Pool(processes=n_jobs,
+                  initializer=_shi_init_knn,
+                  initargs=(distance, knn)) as pool:
+            for _ in pool.imap(
+                func=partial(_shi_hood, s=s, sort_order=sort_order),
+                iterable=range(n)):
+                pass
+    else:
+        knn = np.zeros_like(distance, bool)
+        # find nearest neighbors for each point
+        for i in range(n):
+            di = distance[i, :]
+            # TODO change to np.partition for PERF
+            nn = np.argsort(di)[::sort_order]
+            knn[i, nn[:s]] = True
     del distance
 
     # "Occurence informativeness"
@@ -376,18 +435,35 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
     del occ_inf_knn
 
     # simhub calculation
-    D_shi = np.zeros_like(D)
     if train_ind is None:
         train_ind = ...
-    if m < 2000: # using vectorization and broadcasting
-        for i in n_ind:
-            x = np.logical_and(knn[i, :], knn[train_ind, :])
-            D_shi[i, :] = np.sum(x * I_n, axis=1)
-    else: # use non-vectorized loops
-        for i in n_ind:
-            for j in range(m):
-                x = np.logical_and(knn[i, :], knn[j, :])
-                D_shi[i, j] = np.sum(x * I_n)
+    if n_jobs > 1:
+        D_shi_ctype = RawArray(ctypes.c_double, D.size)
+        D_shi = np.frombuffer(D_shi_ctype, dtype=np.float64).reshape(D.shape)
+        with Pool(processes=n_jobs,
+                  initializer=_shi_init_simhub,
+                  initargs=(knn, train_ind, I_n, D_shi)) as pool:
+            if m < 2000:
+                for _ in pool.imap(
+                    func=partial(_shi_simhub_vect, s=s),
+                    iterable=n_ind):
+                    pass
+            else:
+                for _ in pool.imap(
+                    func=partial(_shi_simhub, s=s, m=m),
+                    iterable=n_ind):
+                    pass
+    else:
+        D_shi = np.zeros_like(D)
+        if m < 2000: # using vectorization and broadcasting
+            for i in n_ind:
+                x = np.logical_and(knn[i, :], knn[train_ind, :])
+                D_shi[i, :] = np.sum(x * I_n, axis=1)
+        else: # use non-vectorized loops
+            for i in n_ind:
+                for j in range(m):
+                    x = np.logical_and(knn[i, :], knn[j, :])
+                    D_shi[i, j] = np.sum(x * I_n)
     del knn
     # Normalization to [0, 1] range
     D_shi /= (s * np.log(m))

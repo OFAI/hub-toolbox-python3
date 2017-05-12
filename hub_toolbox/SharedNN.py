@@ -12,14 +12,48 @@ The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
-
+import ctypes
+from functools import partial
+from multiprocessing import cpu_count, Pool, RawArray
 import numpy as np
 from hub_toolbox import IO
 
 __all__ = ['snn_sample', 'shared_nearest_neighbors', 'simhub', 'simhubIN']
 
+#==============================================================================
+# #============================================================================
+# #                             SNN SAMPLE
+# #============================================================================
+#==============================================================================
+
+def _snns_init(D_, knn_, train_ind_, D_snn_):
+    global distance, knn, train_ind, D_snn
+    distance = D_
+    knn = knn_
+    train_ind = train_ind_
+    D_snn = D_snn_
+    return
+
+def _snns_my_hood(i, k, sort_order):
+    di = distance[i, :]
+    # TODO change to np.partition for PERF
+    nn = np.argsort(di)[::sort_order]
+    knn[i, nn[0:k]] = True
+    return
+
+def _snns_our_hood(i, k, metric):
+    knn_i = knn[i, :]
+    # using broadcasting
+    Dij = np.sum(np.logical_and(knn_i, knn[train_ind, :]), 1)
+    if metric == 'distance':
+        D_snn[i, :] = 1. - Dij / k
+    else: # metric == 'similarity':
+        D_snn[i, :] = Dij / k
+    return
+
 def snn_sample(D:np.ndarray, k:int=10, metric='distance',
-               train_ind:np.ndarray=None, test_ind:np.ndarray=None):
+               train_ind:np.ndarray=None, test_ind:np.ndarray=None,
+               n_jobs:int=1):
     """Transform distance matrix using shared nearest neighbors [1]_.
 
     __DRAFT_VERSION__
@@ -31,7 +65,7 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
     Parameters
     ----------
     D : np.ndarray
-        The ``n x n`` symmetric distance (similarity) matrix.
+        The ``n x s`` distance (similarity) matrix, where ``s==train_ind.size``
 
     k : int, optional (default: 10)
         Neighborhood radius: The `k` nearest neighbors are used to calculate SNN.
@@ -47,6 +81,12 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
 
         - None : Rescale all distances
         - ndarray : Hold out points indexed in this array as test set. 
+
+    n_jobs : int, optional, default: 1
+        Number of processes for parallel computations.
+
+        - `1`: Don't use multiprocessing.
+        - `-1`: Use all CPUs
 
     Returns
     -------
@@ -84,25 +124,41 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
     for j, sample in enumerate(train_ind):
         distance[sample, j] = exclude
 
-    knn = np.zeros_like(distance, bool)
-
-    # find nearest neighbors for each point
-    for i in range(n):
-        di = distance[i, :]
-        # TODO change to np.partition for PERF
-        nn = np.argsort(di)[::sort_order]
-        knn[i, nn[0:k]] = True
-
-    D_snn = np.zeros_like(distance)
-    for i in n_ind:
-        knn_i = knn[i, :]
-
-        # using broadcasting
-        Dij = np.sum(np.logical_and(knn_i, knn[train_ind, :]), 1)
-        if metric == 'distance':
-            D_snn[i, :] = 1. - Dij / k
-        else: # metric == 'similarity':
-            D_snn[i, :] = Dij / k
+    if n_jobs == -1:
+        n_jobs = cpu_count()
+    if n_jobs > 1:
+        knn_ctype = RawArray(ctypes.c_bool, distance.size)
+        knn = np.frombuffer(knn_ctype, dtype=bool).reshape(D.shape)
+        D_snn_ctype = RawArray(ctypes.c_double, distance.size)
+        D_snn = np.frombuffer(D_snn_ctype, dtype=np.float64).reshape(D.shape)
+        with Pool(processes=n_jobs,
+                  initializer=_snns_init,
+                  initargs=(distance, knn, train_ind, D_snn)) as pool:
+            for _ in pool.imap(
+                func=partial(_snns_my_hood, k=k, sort_order=sort_order),
+                iterable=range(n)):
+                pass # Handling inside function
+            for _ in pool.imap(
+                func=partial(_snns_our_hood, k=k, metric=metric),
+                iterable=n_ind):
+                pass # Handling inside function
+    else:
+        knn = np.zeros_like(distance, bool)
+        # find nearest neighbors for each point
+        for i in range(n):
+            di = distance[i, :]
+            # TODO change to np.partition for PERF
+            nn = np.argsort(di)[::sort_order]
+            knn[i, nn[0:k]] = True
+        D_snn = np.zeros_like(distance)
+        for i in n_ind:
+            knn_i = knn[i, :]
+            # using broadcasting
+            Dij = np.sum(np.logical_and(knn_i, knn[train_ind, :]), 1)
+            if metric == 'distance':
+                D_snn[i, :] = 1. - Dij / k
+            else: # metric == 'similarity':
+                D_snn[i, :] = Dij / k
 
     # Ensure correct self distances and return sec. dist. matrix
     if test_ind is None:
@@ -113,7 +169,37 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
             D_snn[sample, j] = self_value
         return D_snn[test_ind]
 
-def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
+#==============================================================================
+# #============================================================================
+# #                         SHARED NEAREST NEIGHBORS
+# #============================================================================
+#==============================================================================
+
+def _snn_init(distance_, knn_, D_snn_):
+    global distance, knn, D_snn
+    distance = distance_
+    knn = knn_
+    D_snn = D_snn_
+    return
+
+def _snn_my_hood(i, k, kth, sort_order):
+    di = distance[i, :]
+    nn = np.argpartition(di, kth=kth)[::sort_order]
+    knn[i, nn[:k]] = True
+    return
+
+def _snn_our_hood(i, k, metric):
+    knn_i = knn[i, :]
+    # using broadcasting
+    Dij = np.sum(np.logical_and(knn_i, knn[i+1:, :]), 1)
+    if metric == 'distance':
+        D_snn[i, i+1:] = 1. - Dij / k
+    else: # metric == 'similarity':
+        D_snn[i, i+1:] = Dij / k
+    return
+
+def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance',
+                             n_jobs:int=1):
     """Transform distance matrix using shared nearest neighbors [1]_.
 
     SNN similarity is based on computing the overlap between the `k` nearest
@@ -130,6 +216,12 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
 
     metric : {'distance', 'similarity'}, optional (default: 'distance')
         Define, whether the matrix `D` is a distance or similarity matrix
+
+    n_jobs : int, optional, default: 1
+        Number of processes for parallel computations.
+
+        - `1`: Don't use multiprocessing.
+        - `-1`: Use all CPUs
 
     Returns
     -------
@@ -149,38 +241,56 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance'):
     """
     IO.check_distance_matrix_shape(D)
     IO.check_valid_metric_parameter(metric)
+    n = D.shape[0]
     if metric == 'distance':
         self_value = 0.
         sort_order = 1
         exclude = np.inf
+        kth = k
     if metric == 'similarity':
         self_value = 1.
         sort_order = -1
         exclude = -np.inf
-
+        kth = n - k
     distance = D.copy()
     np.fill_diagonal(distance, exclude)
-    n = np.shape(distance)[0]
-    knn = np.zeros_like(distance, bool)
-
-    # find nearest neighbors for each point
-    for i in range(n):
-        di = distance[i, :]
-        # TODO change to np.partition for PERF
-        nn = np.argsort(di)[::sort_order]
-        knn[i, nn[0:k]] = True
-
-    D_snn = np.zeros_like(distance)
-    for i in range(n):
-        knn_i = knn[i, :]
-        j_idx = slice(i+1, n)
-
-        # using broadcasting
-        Dij = np.sum(np.logical_and(knn_i, knn[j_idx, :]), 1)
-        if metric == 'distance':
-            D_snn[i, j_idx] = 1. - Dij / k
-        else: # metric == 'similarity':
-            D_snn[i, j_idx] = Dij / k
+    
+    if n_jobs == -1:
+        n_jobs = cpu_count()
+    if n_jobs > 1:
+        knn_ctype = RawArray(ctypes.c_bool, D.size)
+        knn = np.frombuffer(knn_ctype, dtype=bool).reshape(D.shape)
+        D_snn_ctype = RawArray(ctypes.c_double, D.size)
+        D_snn = np.frombuffer(D_snn_ctype, dtype=np.float64).reshape(D.shape)
+        with Pool(processes=n_jobs,
+                  initializer=_snn_init,
+                  initargs=(distance, knn, D_snn)) as pool:
+            for _ in pool.imap(
+                func=partial(_snn_my_hood, k=k, kth=kth, sort_order=sort_order),
+                iterable=range(n)):
+                pass
+            for _ in pool.imap(
+                func=partial(_snn_our_hood, k=k, metric=metric),
+                iterable=range(n)):
+                pass
+    else:
+        knn = np.zeros_like(distance, bool)
+        # find nearest neighbors for each point
+        for i in range(n):
+            di = distance[i, :]
+            nn = np.argpartition(di, kth=kth)[::sort_order]
+            knn[i, nn[0:k]] = True
+        D_snn = np.zeros_like(distance)
+        for i in range(n):
+            knn_i = knn[i, :]
+            j_idx = slice(i+1, n)
+    
+            # using broadcasting
+            Dij = np.sum(np.logical_and(knn_i, knn[j_idx, :]), 1)
+            if metric == 'distance':
+                D_snn[i, j_idx] = 1. - Dij / k
+            else: # metric == 'similarity':
+                D_snn[i, j_idx] = Dij / k
 
     D_snn += D_snn.T
     np.fill_diagonal(D_snn, self_value)

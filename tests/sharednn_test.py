@@ -15,7 +15,7 @@ import unittest
 import numpy as np
 from scipy.spatial.distance import squareform
 from hub_toolbox.Distances import euclidean_distance
-from hub_toolbox.SharedNN import shared_nearest_neighbors, snn_sample
+from hub_toolbox.SharedNN import shared_nearest_neighbors, snn_sample, simhubIN
 
 class TestSharedNN(unittest.TestCase):
 
@@ -35,9 +35,6 @@ class TestSharedNN(unittest.TestCase):
                                               .5, 0., 0., .5, .5])
             self.vector = None
             self.label = None
-            
-    def tearDown(self):
-        del self.dist, self.label, self.vector
 
     def test_snn_matrix_basic_requirements(self):
         """Test that matrix is symmetric, diag==0, and in range [0, 1]"""
@@ -78,6 +75,20 @@ class TestSharedNN(unittest.TestCase):
         snn_par = snn_sample(
             D_sample, train_ind=train_ind, test_ind=test_ind, n_jobs=4)
         return np.testing.assert_array_almost_equal(snn_seq, snn_par, 14)
+
+    def test_simhubIN(self):
+        return self.skipTest("simhubIn requires test for correctness!")
+
+    def test_simhubIN_parallel(self):
+        self.setUpMod('rnd')
+        train_ind = np.arange(self.label.size//2)
+        test_ind = np.arange(self.label.size//2, self.label.size)
+        D_sample = self.dist[:, train_ind]
+        shi_seq = simhubIN(
+            D_sample, train_ind=train_ind, test_ind=test_ind, n_jobs=1)
+        shi_par = simhubIN(
+            D_sample, train_ind=train_ind, test_ind=test_ind, n_jobs=4)
+        return np.testing.assert_array_almost_equal(shi_seq, shi_par, 14)
 
 if __name__ == "__main__":
     unittest.main()

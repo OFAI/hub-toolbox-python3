@@ -67,7 +67,7 @@ class TestMpDisSim(unittest.TestCase):
         acc_eucl = accuracy_score(self.y_test, y_pred)
         h_eucl = hubness(D_part, k=5, metric='distance', n_jobs=4)[0]
         D_part_mp = mp_dissim(
-            X=self.X_test, Y=self.X_train, n_bins=10, bin_size='r', verbose=1, n_jobs=-1)
+            X=self.X_test, Y=self.X_train, p=0, n_bins=10, bin_size='r', verbose=1, n_jobs=-1)
         y_pred_mp = knn.predict(D_part_mp)
         acc_mp = accuracy_score(self.y_test, y_pred_mp)
         h_mp = hubness(D_part_mp, k=5, metric='distance', n_jobs=4)[0]

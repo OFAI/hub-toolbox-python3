@@ -22,6 +22,7 @@ except ImportError: # lower scikit-learn versions
     from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.metrics.pairwise import pairwise_distances
 from hub_toolbox.IO import check_vector_matrix_shape_fits_labels
+from hub_toolbox.Logging import ConsoleLogging
 
 __all__ = ['cosine_distance', 'euclidean_distance', 
            'lp_norm', 'sample_distance']
@@ -216,6 +217,11 @@ def mp_dissim(X:np.ndarray, Y:np.ndarray=None, p:float=2,
     if n_jobs == -1:
         n_jobs = cpu_count()
     n_bins = int(n_bins)
+    if p == 0:
+        log = ConsoleLogging()
+        log.warning('Got mpDisSim parameter p=0. Changed to default '
+                    'value p=2 instead, in order to avoid zero division.')
+        p = 2.
 
     # RawArrays have no locks. Must take EXTREME CARE!!
     R_bins = RawArray(ctypes.c_int32, d * n_bins * n_bins)

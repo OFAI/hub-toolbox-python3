@@ -13,13 +13,46 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
+import ctypes
+from functools import partial
 import multiprocessing as mp
+from multiprocessing import RawArray, Pool
 import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
 from hub_toolbox import IO, Logging
 
 #__all__ = ['hubness']
+
+
+def _hubness_load_shared_data(D_, D_k_):
+    global D, D_k
+    D = D_
+    D_k = D_k_
+    return
+
+def _hubness_nearest_neighbors(i, k, n, m, d_self, metric, 
+                               kth, sort_order, log, verbose):
+    if verbose and ((i+1)%10000==0 or i+1==n):
+        log.message("NN: {} of {}.".format(i+1, n), flush=True)
+    if issparse(D):
+        d = D[i, :].toarray().ravel() # dense copy of one row
+    else: # normal ndarray
+        d = D[i, :]
+    if n == m:
+        d[i] = d_self
+    else: # this does not hold for general dissimilarities
+        if metric == 'distance':
+            d[d==0] = d_self
+    d[~np.isfinite(d)] = d_self
+    # Randomize equal values in the distance matrix rows to avoid the
+    # problem case if all numbers to sort are the same, which would yield
+    # high hubness, even if there is none.
+    rp = np.random.permutation(m)
+    d2 = d[rp]
+    d2idx = np.argpartition(d2, kth=kth)
+    D_k[i, :] = rp[d2idx[kth]][::sort_order]
+    return
 
 def hubness(D:np.ndarray, k:int=5, metric='distance',
             verbose:int=0, n_jobs:int=1, random_state=None):
@@ -121,38 +154,20 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         NUMBER_OF_PROCESSES = mp.cpu_count() # @UndefinedVariable
     else:
         NUMBER_OF_PROCESSES = n_jobs
-    tasks = []
+    D_k_ctype = RawArray(ctypes.c_int32, n*k)
+    D_k = np.frombuffer(D_k_ctype, dtype=np.int32).reshape((n, k))
+    with Pool(processes=NUMBER_OF_PROCESSES,
+              initializer=_hubness_load_shared_data,
+              initargs=(D, D_k, )) as pool:
+        for _ in pool.imap(
+            func=partial(_hubness_nearest_neighbors, k=k, n=n, m=m, 
+                         d_self=d_self, metric=metric, kth=kth, 
+                         sort_order=sort_order, log=log, verbose=verbose),
+            #chunksize=int(1e2),
+            iterable=range(n)):
+            pass # results handled within func
 
-    batches = []
-    batch_size = n // NUMBER_OF_PROCESSES
-    for i in range(NUMBER_OF_PROCESSES-1):
-        batches.append(np.arange(i*batch_size, (i+1)*batch_size))
-    batches.append(np.arange((NUMBER_OF_PROCESSES-1)*batch_size, n))
-
-    for idx, batch in enumerate(batches):
-        submatrix = D[batch[0]:batch[-1]+1]
-        tasks.append((_partial_hubness,
-                      (k, kth, d_self, log, sort_order,
-                      batch, submatrix, idx, n, m, verbose)))
-
-    task_queue = mp.Queue()
-    done_queue = mp.Queue()
-
-    for task in tasks:
-        task_queue.put(task)
-
-    for i in range(NUMBER_OF_PROCESSES):
-        mp.Process(target=_worker, args=(task_queue, done_queue)).start()
-
-    for i in range(len(tasks)):
-        rows, Dk_part = done_queue.get()
-        #D_k[:, rows[0]:rows[-1]+1] = Dk_part
-        D_k[rows[0]:rows[-1]+1, :] = Dk_part
-
-    for i in range(NUMBER_OF_PROCESSES):
-        task_queue.put('STOP')
-
-    # k-occurence
+    # k-occurrence
     N_k = np.bincount(D_k.astype(int).ravel(), minlength=m)
     # Hubness
     S_k = stats.skew(N_k)
@@ -162,50 +177,6 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
 
     # return hubness, k-nearest neighbors, N occurence
     return S_k, D_k.T, N_k
-
-def _worker(work_input, work_output):
-    """A helper function for cv parallelization."""
-    for func, args in iter(work_input.get, 'STOP'):
-        result = _calculate(func, args)
-        work_output.put(result)
-
-def _calculate(func, args):
-    """A helper function for cv parallelization."""
-    return func(*args)
-
-def _partial_hubness(k, kth, d_self, log, sort_order,
-                     rows, submatrix, idx, n, m, verbose):
-    """Parallel hubness calculation: Get k nearest neighbors for all points
-    in 'rows'"""
-    #===========================================================================
-    # if sort_order == 1:
-    #     kth = np.arange(k)
-    # elif sort_order == -1:
-    #     kth = np.arange(m - k, m)
-    #===========================================================================
-
-    Dk = np.zeros((len(rows), k), dtype=np.float64)
-
-    for i, row in enumerate(submatrix):
-        if verbose and ((rows[i]+1)%10000==0 or rows[i]+1==n):
-            log.message("NN: {} of {}.".format(rows[i]+1, n), flush=True)
-        if issparse(submatrix):
-            d = row.toarray().ravel() # dense copy of one row
-        else: # normal ndarray
-            d = row
-        d[rows[i]] = d_self
-        d[~np.isfinite(d)] = d_self
-        # randomize the distance matrix rows to avoid the problem case
-        # if all numbers to sort are the same, which would yield high
-        # hubness, even if there is none
-        rp = np.random.permutation(m)
-        d2 = d[rp]
-        #d2idx = np.argsort(d2, axis=0)[::sort_order]
-        #Dk[i, :] = rp[d2idx[:k]]
-        d2idx = np.argpartition(d2, kth=kth)[::sort_order]
-        Dk[i, :] = rp[d2idx[:k]]
-
-    return rows, Dk
 
 def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
                                 verbose:int=0, random_state=None):

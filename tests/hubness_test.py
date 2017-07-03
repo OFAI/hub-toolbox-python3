@@ -64,7 +64,7 @@ class TestHubness(unittest.TestCase):
 
     def test_parallel_hubness_equal_serial_hubness_distance_based(self):
         S_k_p, D_k_p, N_k_p = hubness(
-            self.dist, k=5, metric='distance', verbose=True, n_jobs=2)
+            self.dist, k=5, metric='distance', verbose=True, n_jobs=-1)
         S_k_s, D_k_s, N_k_s = hubness(
             self.dist, k=5, metric='distance', verbose=False, n_jobs=1)
         result = np.allclose(S_k_p, S_k_s) & \

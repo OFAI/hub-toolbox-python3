@@ -303,7 +303,18 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
 
     return D_mp
 
-def _map_mpes(ind, args):
+#==============================================================================
+# #============================================================================
+# #                             MP empiric sparse
+# #============================================================================
+#==============================================================================
+def _mpes_init(S_, shared_data_):
+    global S
+    S = S_
+    global S_mp_data
+    S_mp_data = shared_data_
+
+def _mpes_sec_dist(ind, args):
     """Compute MP between two objects i and j in CSR matrix."""
     i, j = ind
     verbose, log, n, min_nnz = args
@@ -338,12 +349,6 @@ def _map_mpes(ind, args):
             S_mp_data[data_idx] = s_mp
         return #i, j, s_mp
 
-def _load_shared_csr(S_, shared_data_):
-    global S
-    S = S_
-    global S_mp_data
-    S_mp_data = shared_data_
-
 def _mutual_proximity_empiric_sparse(S:csr_matrix,
                                      test_set_ind:np.ndarray=None, 
                                      min_nnz=0,
@@ -373,17 +378,18 @@ def _mutual_proximity_empiric_sparse(S:csr_matrix,
     if verbose and log:
         log.message("Spawning processes and starting MP computation.")
     with Pool(processes=n_jobs,
-              initializer=_load_shared_csr,
+              initializer=_mpes_init,
               initargs=(S, shared_data)) as pool:  
         S_nonzero = filterfalse(lambda ij: ij[0] > ij[1], zip(*S.nonzero()))
-        for _ in pool.imap(func=partial(_map_mpes, args=(verbose, log, n, min_nnz)), 
-                           iterable=S_nonzero, 
-                           chunksize=int(1e5)):
+        for _ in pool.imap(
+            func=partial(_mpes_sec_dist, args=(verbose, log, n, min_nnz)),
+            iterable=S_nonzero,
+            chunksize=int(1e5)):
             pass # output stored by function in shared array
     pool.join()
     if verbose and log:
         log.message("Assemble upper-triangular MP matrix.")
-    S_mp = csr_matrix((shared_data_np, S.indices, S.indptr), 
+    S_mp = csr_matrix((shared_data_np, S.indices, S.indptr),
                       shape=S.shape, copy=False).tolil()
     del shared_data, shared_data_np
     if verbose and log:

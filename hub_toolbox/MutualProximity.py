@@ -139,9 +139,6 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
     IO.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
-    j = np.ones(n, int)
-    j *= (n+1) # illegal indices will throw index out of bounds error
-    j[idx] = np.arange(s)
     if metric == 'similarity':
         self_value = 1
         exclude_value = np.inf

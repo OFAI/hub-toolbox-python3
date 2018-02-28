@@ -440,8 +440,6 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 self.ann_index_ = lsh_index
             self.fixed_vantage_pts_ = False
         else:
-            # Some other instance selection algorithm?!
-            # E.g. CNN, DROP3, ICF, but: supervised.
             raise NotImplementedError(
                 f'Value for `sampling_algorithm` must be one of '
                 f'{VALID_SAMPLE}. NOTE: This error indicates a software bug.')
@@ -504,9 +502,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             self.ann_index_ = ann_index
             self.fixed_vantage_pts_ = False
         else:
-            raise NotImplementedError(f'Value for `sampling_algorithm` must be '
-                                      f'one of {VALID_SAMPLE}. NOTE: This error '
-                                      f'indicates a software bug.')
+            raise NotImplementedError(
+                f'Value for `sampling_algorithm` must be one of '
+                f'{VALID_SAMPLE}. NOTE: This error indicates a software bug.')
         self.X_train_ = X
         self.y_train_ = y
         self.ind_train_ = ind
@@ -617,11 +615,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 self.ann_index_ = lsh_index
             self.fixed_vantage_pts_ = False
         else:
-            # Some other instance selection algorithm?!
-            # E.g. CNN, DROP3, ICF, but: supervised.
-            raise NotImplementedError(f'Value for `sampling_algorithm` must be '
-                                      f'one of {VALID_SAMPLE}. NOTE: This error '
-                                      f'indicates a software bug.')
+            raise NotImplementedError(
+                f'Value for `sampling_algorithm` must be one of '
+                f'{VALID_SAMPLE}. NOTE: This error indicates a software bug.')
         self.X_train_ = X
         self.y_train_ = y
         self.ind_train_ = ind
@@ -699,9 +695,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             self.r_train_ = D_train[:, :kth-1] # self distances filtered by ann_filtering() methods
             self.fixed_vantage_pts_ = False
         else:
-            raise NotImplementedError(f'Value for `sampling_algorithm` must be '
-                                      f'one of {VALID_SAMPLE}. NOTE: This error '
-                                      f'indicates a software bug.')
+            raise NotImplementedError(
+                f'Value for `sampling_algorithm` must be one of '
+                f'{VALID_SAMPLE}. NOTE: This error indicates a software bug.')
         self.X_train_ = X
         self.y_train_ = y
         self.ind_train_ = ind
@@ -799,9 +795,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             for i in range(X.shape[0]): # ind argsorts D_train
                 centroids[i, :] = X[ind[i, :kth], :].mean(axis=0)
         else:
-            raise NotImplementedError(f'Value for `sampling_algorithm` must be '
-                                      f'one of {VALID_SAMPLE}. NOTE: This error '
-                                      f'indicates a software bug.')
+            raise NotImplementedError(
+                f'Value for `sampling_algorithm` must be one of '
+                f'{VALID_SAMPLE}. NOTE: This error indicates a software bug.')
         dist_to_cent = ((X - centroids) ** 2).sum(axis=1)
         self.X_train_centroids_ = centroids
         self.X_train_dist_to_cent_ = dist_to_cent

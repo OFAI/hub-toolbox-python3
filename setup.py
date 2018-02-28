@@ -8,7 +8,7 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2018, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 
@@ -32,13 +32,12 @@ Otherwise you may consider filing a bug report on github.
 """
 import re, os, sys
 REQ_MAJOR = 3
-REQ_MINOR = 5
+REQ_MINOR = 6
 if sys.version_info < (REQ_MAJOR, REQ_MINOR):
-    sys.stdout.write(("The HUB TOOLBOX requires Python {}.{} or higher.\n"
-                     "Please try to run as python3 setup.py or\n"
-                     "update your Python environment.\n"
-                     "Consider using Anaconda for easy package handling.\n"
-                     ).format(REQ_MAJOR, REQ_MINOR))
+    sys.stdout.write(
+        (f"The HUB TOOLBOX requires Python {REQ_MAJOR}.{REQ_MINOR} or higher."
+         f"\nPlease try to run as python3 setup.py or update your Python "
+         f"environment.\n Consider using Anaconda for easy package handling."))
     sys.exit(1)
 
 try:
@@ -97,7 +96,6 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 "
         "or later (GPLv3+)",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Topic :: Scientific/Engineering"
     ],

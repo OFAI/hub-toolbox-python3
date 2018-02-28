@@ -465,7 +465,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
         else:
             if self.verbose > 2:
                 print(f'LS.transform(full)')
-            D_test = euclidean_distances(X, self.X_train_, squared=True)
+            D_test = euclidean_distances(
+                X=X, Y=self.X_train_, Y_norm_squared=self.X_train_norm_squared_,
+                squared=True)
             ind = np.tile(np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
         self.sec_dist_ = D_test
@@ -590,19 +592,18 @@ class SuQHR(BaseEstimator, TransformerMixin):
         if self.sampling_algorithm in ['random', 'kmeans++', None]:
             if self.sampling_algorithm == 'random':
                 X, y, ind, X_norm_squared = self._random_sampling(X, y)
-                D_train = euclidean_distances(X, Y_norm_squared=X_norm_squared, squared=True)
             elif self.sampling_algorithm == 'kmeans++':
                 X, y, ind, X_norm_squared = self._kmeanspp_sampling(X, y)
-                D_train = euclidean_distances(X, Y_norm_squared=X_norm_squared, squared=True)
             elif self.sampling_algorithm is None:
                 ind = np.arange(n_train) # use all objects
-                self.n_samples = n_train
                 X_norm_squared = row_norms(X, squared=True)
-                D_train = euclidean_distances(X, Y_norm_squared=X_norm_squared, squared=True)
-                np.fill_diagonal(D_train, np.nan)
-                self.mu_train_ = np.nanmean(D_train, axis=0)
-                self.sd_train_ = np.nanstd(D_train, axis=0, ddof=0)
-                np.fill_diagonal(D_train, 0)
+                self.n_samples = n_train
+            D_train = euclidean_distances(
+                X, X_norm_squared=X_norm_squared, squared=True)
+            np.fill_diagonal(D_train, np.nan)
+            self.mu_train_ = np.nanmean(D_train, axis=0)
+            self.sd_train_ = np.nanstd(D_train, axis=0, ddof=0)
+            np.fill_diagonal(D_train, 0)
             self.X_train_norm_squared_ = X_norm_squared
             self.fixed_vantage_pts_ = True
         # Approximate Nearest Neighbor Filtering
@@ -644,7 +645,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
             if self.verbose > 2:
                 print(f'LS.transform(full)')
             D_test = euclidean_distances(
-                X, self.X_train_, Y_norm_squared=self.X_train_norm_squared_, squared=True)
+                X=X, Y=self.X_train_, 
+                Y_norm_squared=self.X_train_norm_squared_, squared=True)
             ind = np.tile(np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
         # Calculate MP G

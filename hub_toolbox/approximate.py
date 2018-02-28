@@ -11,7 +11,9 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-from multiprocessing import cpu_count
+import ctypes
+from functools import partial
+from multiprocessing import cpu_count, RawArray, Pool
 
 import numpy as np
 from scipy.sparse.base import issparse
@@ -52,7 +54,105 @@ def enforce_finite_distances(arr):
         arr[nonfin_ind] = d_max
     return arr
 
+#==============================================================================
+# HELPER FUNCTIONS FOR MULTIPROCESSING
+#==============================================================================
+def _load_shared_data(X_train_=None, X_test_=None,
+                      ind_train_=None, ind_test_=None,
+                      D_train_=None, D_test_=None,
+                      D_sec_=None, ann_index_=None):
+    global X_train, X_test, ind_train, ind_test, D_train, D_test, D_sec
+    global ann_index
+    X_train = X_train_
+    X_test = X_test_
+    ind_train = ind_train_
+    ind_test = ind_test_
+    D_train = D_train_
+    D_test = D_test_
+    D_sec = D_sec_
+    ann_index = ann_index_
 
+def _shared_lsh(X_train_, ind_train_, D_train_, lsh_index_, num_probes):
+    global X_train, ind_train, D_train, ann_index
+    X_train = X_train_
+    ind_train = ind_train_
+    D_train = D_train_
+    ann_index = lsh_index_.construct_query_object()
+    ann_index.set_num_probes(num_probes)
+
+def _shared_lsh_trafo(X_train_, X_test_, ind_test_, D_test_,
+                      lsh_index_, num_probes):
+    global X_train, X_test, ind_test, D_test, ann_index
+    X_train = X_train_
+    X_test = X_test_
+    ind_test = ind_test_
+    D_test = D_test_
+    ann_index = lsh_index_.construct_query_object()
+    ann_index.set_num_probes(num_probes)
+
+def _lsh_filt(i, k, verbose):
+    # LSH will find object itself as 1-NN
+    x = X_train[i, :]
+    knn = np.array(ann_index.find_k_nearest_neighbors(x, k=k+1))[1:]
+    ind_train[i, :knn.size] = knn
+    D_train[i, :knn.size] = euclidean_distances(
+        x.reshape(1, -1), X_train[knn], squared=True)
+    if knn.size < k:
+        ind_train[i, knn.size:] = knn[-1]
+        D_train[i, knn.size:] = D_train[i].max()
+
+def _lsh_trafo(i, k, verbose):
+    x = X_test[i, :]
+    lsh_nn = np.array(ann_index.find_k_nearest_neighbors(x, k=k))
+    D_test[i, :lsh_nn.size] = euclidean_distances(
+        x.reshape((1, -1)), X_train[lsh_nn], squared=True).ravel()
+    ind_test[i, :lsh_nn.size] = lsh_nn
+    if lsh_nn.size < k:
+        ind_test[i, lsh_nn.size:] = lsh_nn[-1]
+    D_test[i, lsh_nn.size:] = D_test[i].max()
+
+def _mp_hnsw(i, n_train, n_test, n_samples, verbose):
+    if verbose > 1 and (i % 1000 == 0 or i == n_test-1):
+        print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
+    for j in range(n_samples):
+        d = D_test[i, j]
+        t_idx = ind_test[i, j]
+        # O(1) instead of O(n_samples)
+        ind_x = ind_test[i, :j+1]
+        # O(log n_samples) instead of O(n_samples)
+        thresh_ind = np.searchsorted(D_train[t_idx], d, side='right')
+        ind_t = ind_train[t_idx, :thresh_ind]
+        mp_complement = np.union1d(ind_x, ind_t)
+        mp_ind = np.setdiff1d(range(n_train), mp_complement, assume_unique=True)
+        D_sec[i, j] = 1 - mp_ind.size / n_train
+
+def _mp_lsh(i, n_train, n_test, n_samples, verbose):
+    if verbose > 1 and (i % 1000 == 0 or i == n_test-1):
+        print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
+    x = X_test[i, :]
+    for j in range(n_samples):
+        d = D_test[i, j]
+        t = X_train[ind_test[i, j], :]
+        # So far, only FALCONN is supported
+        ind_x = ann_index.find_near_neighbors(query=x, threshold=d)
+        ind_t = ann_index.find_near_neighbors(query=t, threshold=d)
+        mp_complement = np.union1d(ind_x, ind_t)
+        mp_ind = np.setdiff1d(range(n_train), mp_complement, assume_unique=True)
+        D_sec[i, j] = 1 - mp_ind.size / n_train
+
+def _mp_full(i, n_train, n_test, n_samples, verbose):
+    if verbose > 1 and (i % 1000 == 0 or i == n_test-1):
+        print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
+    dI = D_test[i, :][np.newaxis, :] # broadcasted afterwards
+    dJ = D_train#[self.train_ind_, :] # fancy indexing, thus copy
+    d = dI.T # D[i, :][:, np.newaxis] # both versions are equal
+    # div by n
+    n_pts = n_samples
+    D_sec[i, :] = 1 - (np.sum((dI > d) & (dJ > d), axis=1) / n_pts)
+
+#==============================================================================
+# INSTANCE SELECTION ALGORITHMS
+#==============================================================================
 def kmeanspp(X, n_clusters, x_squared_norms, random_state,
              n_local_trials=None, return_ind=True):
     """Select vantage points according to k-means++
@@ -375,6 +475,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         except KeyError:
             distance = falconn.DistanceFunction.EuclideanSquared  # @UndefinedVariable
             num_probes = 50
+            self.num_probes_ = num_probes
         # Set up the LSH index
         lsh_cp = falconn.get_default_parameters(*X.shape, distance=distance)
         lsh_index = falconn.LSHIndex(lsh_cp)
@@ -382,33 +483,61 @@ class SuQHR(BaseEstimator, TransformerMixin):
         # Constructing a query object
         query = lsh_index.construct_query_object()
         query.set_num_probes(num_probes)
-        ind = np.empty((n_train, k), dtype=np.int32)
-        D_train = np.empty_like(ind, dtype=np.float32)
-        for i, x in enumerate(X):
-            # LSH will find object itself as 1-NN
-            knn = np.array(query.find_k_nearest_neighbors(x, k=k+1))[1:]
-            ind[i, :knn.size] = knn
-            D_train[i, :knn.size] = euclidean_distances(
-                x.reshape(1, -1), X[knn], squared=True)
-            if knn.size < k:
-                ind[i, knn.size:] = knn[-1]
-                D_train[i, knn.size:] = D_train[i].max()
+        if self.n_jobs == 1:
+            ind = np.empty((n_train, k), dtype=np.int32)
+            D_train = np.empty_like(ind, dtype=np.float32)
+            for i, x in enumerate(X):
+                # LSH will find object itself as 1-NN
+                knn = np.array(query.find_k_nearest_neighbors(x, k=k+1))[1:]
+                ind[i, :knn.size] = knn
+                D_train[i, :knn.size] = euclidean_distances(
+                    x.reshape(1, -1), X[knn], squared=True)
+                if knn.size < k:
+                    ind[i, knn.size:] = knn[-1]
+                    D_train[i, knn.size:] = D_train[i].max()
+        else:
+            ind_ctype = RawArray(ctypes.c_int32, n_train * k)
+            ind = np.frombuffer(ind_ctype, dtype=np.int32).reshape((n_train, k))
+            D_train_ctype = RawArray(ctypes.c_float, ind.size)
+            D_train = np.frombuffer(D_train_ctype, dtype=np.float32).reshape(ind.shape)
+            with Pool(processes=self.n_jobs,
+                      initializer=_shared_lsh,
+                      initargs=(X, ind, D_train, lsh_index, num_probes)) as pool:
+                    for _ in pool.map(
+                        func=partial(_lsh_filt, k=k, verbose=self.verbose),
+                                       iterable=range(n_train)):
+                        pass # results handled within func
+        self.lsh_index_ = lsh_index
         return ind, D_train, query
 
     def _lsh_trafo(self, X, k):
         n_test = X.shape[0]
         if self.verbose > 2:
             print(f'HR.transform(lsh)')
-        D_test = np.empty((n_test, k), dtype=X.dtype)
-        ind = np.empty_like(D_test, dtype=np.int32)
-        for i, x in enumerate(X):
-            lsh_nn = np.array(self.ann_index_.find_k_nearest_neighbors(x, k=k))
-            D_test[i, :lsh_nn.size] = euclidean_distances(
-                x.reshape((1, -1)), self.X_train_[lsh_nn], squared=True).ravel()
-            ind[i, :lsh_nn.size] = lsh_nn
-            if lsh_nn.size < k:
-                ind[i, lsh_nn.size:] = lsh_nn[-1]
-                D_test[i, lsh_nn.size:] = D_test[i].max()
+        if self.n_jobs == 1:
+            D_test = np.empty((n_test, k), dtype=X.dtype)
+            ind = np.empty_like(D_test, dtype=np.int32)
+            for i, x in enumerate(X):
+                lsh_nn = np.array(self.ann_index_.find_k_nearest_neighbors(x, k=k))
+                D_test[i, :lsh_nn.size] = euclidean_distances(
+                    x.reshape((1, -1)), self.X_train_[lsh_nn], squared=True).ravel()
+                ind[i, :lsh_nn.size] = lsh_nn
+                if lsh_nn.size < k:
+                    ind[i, lsh_nn.size:] = lsh_nn[-1]
+                    D_test[i, lsh_nn.size:] = D_test[i].max()
+        else:
+            ind_ctype = RawArray(ctypes.c_int32, n_test * k)
+            ind = np.frombuffer(ind_ctype, dtype=np.int32).reshape((n_test, k))
+            D_test_ctype = RawArray(ctypes.c_float, ind.size)
+            D_test = np.frombuffer(D_test_ctype, dtype=np.float32).reshape(ind.shape)
+            with Pool(processes=self.n_jobs,
+                      initializer=_shared_lsh_trafo,
+                      initargs=(self.X_train_, X, ind, D_test, self.lsh_index_,
+                                self.num_probes_)) as pool:
+                    for _ in pool.map(
+                        func=partial(_lsh_trafo, k=k, verbose=self.verbose),
+                                       iterable=range(n_test)):
+                        pass # results handled within func
         return ind, D_test
 
     ############################################################################
@@ -464,8 +593,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
             if self.verbose > 2:
                 print(f'LS.transform(full)')
             D_test = euclidean_distances(
-                X=X, Y=self.X_train_, Y_norm_squared=self.X_train_norm_squared_,
-                squared=True)
+                X=X, Y=self.X_train_,
+                Y_norm_squared=self.X_train_norm_squared_, squared=True)
             ind = np.tile(np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
         self.sec_dist_ = D_test
@@ -518,44 +647,50 @@ class SuQHR(BaseEstimator, TransformerMixin):
             ind, D_test = self._hnsw_trafo(X, k)
             self.ind_test_ = ind
             # Calculate MP empiric
-            D_mp = np.empty_like(D_test)
-            for i in range(n_test):
-                if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
-                    print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
-                #x = X[i, :]
-                for j in range(self.n_samples):
-                    d = D_test[i, j]
-                    t_idx = ind[i, j]
-                    t = self.X_train_[t_idx, :]
-                    # O(1) instead of O(n_samples)
-                    ind_x = ind[i, :j+1]#.reshape(-1, 1)
-                    # O(log n_samples) instead of O(n_samples)
-                    thresh_ind = np.searchsorted(self.D_train_[t_idx], d, side='right')
-                    ind_t = self.ind_train_[t_idx, :thresh_ind]#.reshape(-1, 1)
-                    mp_complement = np.union1d(ind_x, ind_t)
-                    mp_ind = np.setdiff1d(range(n_train), mp_complement, assume_unique=True)
-                    D_mp[i, j] = 1 - mp_ind.size / n_train
-            self.sec_dist_ = D_mp
+            D_sec_ctype = RawArray(ctypes.c_double, D_test.size)
+            D_sec = np.frombuffer(D_sec_ctype, dtype=np.float64).reshape(D_test.shape)
+            with Pool(processes=self.n_jobs,
+                      initializer=_load_shared_data,
+                      initargs=(None, None, self.ind_train_, ind,
+                                self.D_train_, D_test, D_sec)) as pool:
+                for _ in pool.imap(
+                    func=partial(_mp_hnsw, n_train=n_train, n_test=n_test,
+                                 n_samples=k, verbose=self.verbose),
+                                   iterable=range(n_test)):
+                    pass # results handled within func
+            self.sec_dist_ = D_sec
         elif self.sampling_algorithm == 'lsh':
             ind, D_test = self._lsh_trafo(X, k)
             self.ind_test_ = ind
-
             # Calculate MP empiric
-            D_mp = np.empty_like(D_test)
-            for i in range(n_test):
-                if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
-                    print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
-                x = X[i, :]
-                for j in range(self.n_samples):
-                    d = D_test[i, j]
-                    t = self.X_train_[ind[i, j], :]
-                    # So far, only FALCONN is supported
-                    ind_x = self.ann_index_.find_near_neighbors(query=x, threshold=d)
-                    ind_t = self.ann_index_.find_near_neighbors(query=t, threshold=d)
-                    mp_complement = np.union1d(ind_x, ind_t)
-                    mp_ind = np.setdiff1d(range(n_train), mp_complement, assume_unique=True)
-                    D_mp[i, j] = 1 - mp_ind.size / n_train
-            self.sec_dist_ = D_mp
+            if self.n_jobs == 1:
+                D_sec = np.empty_like(D_test)
+                for i in range(n_test):
+                    if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
+                        print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
+                    x = X[i, :]
+                    for j in range(self.n_samples):
+                        d = D_test[i, j]
+                        t = self.X_train_[ind[i, j], :]
+                        # So far, only FALCONN is supported
+                        ind_x = self.ann_index_.find_near_neighbors(query=x, threshold=d)
+                        ind_t = self.ann_index_.find_near_neighbors(query=t, threshold=d)
+                        mp_complement = np.union1d(ind_x, ind_t)
+                        mp_ind = np.setdiff1d(range(n_train), mp_complement, assume_unique=True)
+                        D_sec[i, j] = 1 - mp_ind.size / n_train
+            else:
+                D_sec_ctype = RawArray(ctypes.c_double, D_test.size)
+                D_sec = np.frombuffer(D_sec_ctype, dtype=np.float64).reshape(D_test.shape)
+                with Pool(processes=self.n_jobs,
+                      initializer=_load_shared_data,
+                      initargs=(self.X_train_, X, None, ind,
+                                None, D_test, D_sec, self.ann_index_)) as pool:
+                    for _ in pool.map(
+                        func=partial(_mp_lsh, n_train=n_train, n_test=n_test,
+                                     n_samples=k, verbose=self.verbose),
+                                       iterable=range(n_test)):
+                        pass # results handled within func
+            self.sec_dist_ = D_sec
         else:
             if self.verbose > 2:
                 print(f'HR.transform(full)')
@@ -565,17 +700,30 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 self.X_train_, Y_norm_squared=self.X_train_norm_squared_, squared=True)
             np.fill_diagonal(D_train, np.inf)
             # Calculate MP empiric
-            D_mp = np.empty_like(D_test)
-            for i in range(n_test):
-                if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
-                    print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
-                dI = D_test[i, :][np.newaxis, :] # broadcasted afterwards
-                dJ = D_train#[self.train_ind_, :] # fancy indexing, thus copy
-                d = dI.T # D[i, :][:, np.newaxis] # both versions are equal
-                # div by n
-                n_pts = self.n_samples
-                D_mp[i, :] = 1 - (np.sum((dI > d) & (dJ > d), axis=1) / n_pts)
-            self.sec_dist_ = D_mp
+            if self.n_jobs == 1:
+                D_sec = np.empty_like(D_test)
+                for i in range(n_test):
+                    if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
+                        print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
+                    dI = D_test[i, :][np.newaxis, :] # broadcasted afterwards
+                    dJ = D_train#[self.train_ind_, :] # fancy indexing, thus copy
+                    d = dI.T # D[i, :][:, np.newaxis] # both versions are equal
+                    # div by n
+                    n_pts = self.n_samples
+                    D_sec[i, :] = 1 - (np.sum((dI > d) & (dJ > d), axis=1) / n_pts)
+            else:
+                D_sec_ctype = RawArray(ctypes.c_double, D_test.size)
+                D_sec = np.frombuffer(D_sec_ctype, dtype=np.float64).reshape(D_test.shape)
+                with Pool(processes=self.n_jobs,
+                      initializer=_load_shared_data,
+                      initargs=(None, None, None, None,
+                                D_train, D_test, D_sec)) as pool:
+                    for _ in pool.map(
+                        func=partial(_mp_full, n_train=n_train, n_test=n_test,
+                                     n_samples=k, verbose=self.verbose),
+                                       iterable=range(n_test)):
+                        pass # results handled within func
+            self.sec_dist_ = D_sec
         return
 
     ############################################################################
@@ -597,7 +745,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 X_norm_squared = row_norms(X, squared=True)
                 self.n_samples = n_train
             D_train = euclidean_distances(
-                X, X_norm_squared=X_norm_squared, squared=True)
+                X, X_norm_squared=X_norm_squared.reshape(1, -1), squared=True)
             np.fill_diagonal(D_train, np.nan)
             self.mu_train_ = np.nanmean(D_train, axis=0)
             self.sd_train_ = np.nanstd(D_train, axis=0, ddof=0)
@@ -650,8 +798,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
         mu_train = self.mu_train_
         sd_train = self.sd_train_
         for i in range(n_test):
-            if self.verbose > 1:
-                print(f"MP_G: {i+1} of {n_test}.", end='\r', flush=True)
+            if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
+                    print(f"MP_Gaussian: {i+1} of {n_test}.", end='\r', flush=True)
             j_mom = ind[i]
             mu = np.nanmean(D_test[i])
             sd = np.nanstd(D_test[i], ddof=0)
@@ -732,6 +880,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
             r_train = np.sort(self.r_train_)[:, kth-1]
             r_test = np.sort(r_test)[:, kth-1]
             for i in range(n_test):
+                if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
+                    print(f"Local scaling: {i+1} of {n_test}.", end='\r', flush=True)
                 if self.fixed_vantage_pts_:
                     D_sec[i, :] = 1 - np.exp(-1 * D_test[i]**2 \
                                              / (r_test[i] * r_train[:]))
@@ -743,6 +893,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
             r_train = self.r_train_.mean(axis=1)
             r_test = r_test.mean(axis=1)
             for i in range(n_test):
+                if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
+                    print(f"NICDM: {i+1} of {n_test}.", end='\r', flush=True)
                 if self.fixed_vantage_pts_:
                     D_sec[i, :] = D_test[i] / np.sqrt((r_test[i] * r_train[:]))
                 else:

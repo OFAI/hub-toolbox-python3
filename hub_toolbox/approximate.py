@@ -875,10 +875,11 @@ class SuQHR(BaseEstimator, TransformerMixin):
             r_test = np.partition(D_test, kth=kth)[:, :self.n_neighbors]
         # Calculate LS or NICDM
         D_sec = np.empty_like(D_test)
-        sample_ind = self.ind_test_
-        assert sample_ind is None or sample_ind.shape[0] == n_test, \
-            (f'sample_ind.shape={sample_ind.shape} '
-             f'incompatible with D_test.shape={D_test.shape}')
+        if not self.fixed_vantage_pts_:
+            sample_ind = self.ind_test_
+            assert sample_ind.shape[0] == n_test, \
+                (f'sample_ind.shape={sample_ind.shape} '
+                 f'incompatible with D_test.shape={D_test.shape}')
         if self.hr_algorithm.upper() == 'LS':
             r_train = self.r_train_[:, kth]
             r_test = r_test[:, kth]

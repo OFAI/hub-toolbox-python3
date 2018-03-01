@@ -875,7 +875,10 @@ class SuQHR(BaseEstimator, TransformerMixin):
             r_test = np.partition(D_test, kth=kth)[:, :self.n_neighbors]
         # Calculate LS or NICDM
         D_sec = np.empty_like(D_test)
-        sample_ind = self.ind_train_
+        sample_ind = self.ind_test_
+        assert sample_ind.shape[0] == n_test, \
+            (f'sample_ind.shape={sample_ind.shape} '
+             f'incompatible with D_test.shape={D_test.shape}')
         if self.hr_algorithm.upper() == 'LS':
             r_train = self.r_train_[:, kth]
             r_test = r_test[:, kth]
@@ -985,8 +988,6 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 knn = np.argpartition(D_test, kth=kth)[:, :kth]
                 centroid_test[i, :] = self.X_train_[knn[i, :], :].mean(axis=0)
         # DisSim Local
-        sample_ind = self.ind_train_
-
         X_test = X - centroid_test
         X_test **= 2
         X_test_dist_to_cent = X_test.sum(axis=1)

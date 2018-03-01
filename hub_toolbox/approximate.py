@@ -817,7 +817,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
     def _fit_ls(self, X, y=None):
         X = check_array(X, dtype=float)
         k = self.n_samples
-        kth = self.n_neighbors + 1 # for self distance
+        kth = self.n_neighbors
         # Sampling
         if self.sampling_algorithm in ['random', 'kmeans++', None]:
             if self.sampling_algorithm == 'random':
@@ -829,7 +829,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 X_norm_squared = row_norms(X, squared=True)
             D_train = euclidean_distances(
                 X, Y_norm_squared=X_norm_squared, squared=True)
-            self.r_train_ = np.partition(D_train, kth=kth)[:, 1:kth]
+            self.r_train_ = np.partition(D_train, kth=kth)[:, 1:kth+1]
             self.X_train_norm_squared_ = X_norm_squared
             self.fixed_vantage_pts_ = True
         # Approximate Nearest Neighbor Filtering
@@ -840,7 +840,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
             if self.sampling_algorithm == 'lsh':
                 ind, D_train, ann_index = self._lsh_filtering(X, k)
             self.ann_index_ = ann_index
-            self.r_train_ = D_train[:, :kth-1] # self distances filtered by ann_filtering() methods
+            self.r_train_ = D_train[:, :kth] # self distances filtered by ann_filtering() methods
             self.fixed_vantage_pts_ = False
         else:
             raise NotImplementedError(
@@ -855,7 +855,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         n_test, _ = X.shape
         n_train = self.X_train_.shape[0]
         k = self.n_samples
-        kth = self.n_neighbors
+        kth = self.n_neighbors - 1
         if self.sampling_algorithm in ['hnsw', 'lsh']:
             # TODO use X_nrom_squared
             if self.sampling_algorithm == 'hnsw':
@@ -872,13 +872,13 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 squared=True)
             ind = np.tile(np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
-            r_test = np.partition(D_test, kth=kth)[:, :kth]
+            r_test = np.partition(D_test, kth=kth)[:, :self.n_neighbors]
         # Calculate LS or NICDM
         D_sec = np.empty_like(D_test)
         sample_ind = self.ind_train_
         if self.hr_algorithm.upper() == 'LS':
-            r_train = np.sort(self.r_train_)[:, kth-1]
-            r_test = np.sort(r_test)[:, kth-1]
+            r_train = self.r_train_[:, kth]
+            r_test = r_test[:, kth]
             for i in range(n_test):
                 if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
                     print(f"Local scaling: {i+1} of {n_test}.", end='\r', flush=True)

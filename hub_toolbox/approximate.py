@@ -13,6 +13,7 @@ Contact: <roman.feldbauer@ofai.at>
 
 import ctypes
 from functools import partial
+import warnings
 from multiprocessing import cpu_count, RawArray, Pool
 
 import numpy as np
@@ -388,7 +389,14 @@ class SuQHR(BaseEstimator, TransformerMixin):
     ##
     def _random_sampling(self, X, y=None):
         random_state = check_random_state(self.random_state)
-        if y is None:
+        n_classes = np.unique(y).size # Also works for y=None
+        if y is None or n_classes > self.n_samples:
+            if n_classes > self.n_samples:
+                warnings.warn(
+                    f'For stratified random sampling n_samples = '
+                    f'{self.n_samples} must be greater or equal to the '
+                    f'number of classes = {n_classes}. Resorting to '
+                    f'non-stratified sampling. Some classes will be lost!')
             shuffle = ShuffleSplit(
                 n_splits=1, test_size=self.n_samples, random_state=random_state)
         else:
@@ -985,8 +993,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
             ind = np.tile(np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
             centroid_test = np.empty_like(X)
+            knn = np.argpartition(D_test, kth=kth)[:, :kth]
             for i in range(n_test):
-                knn = np.argpartition(D_test, kth=kth)[:, :kth]
                 centroid_test[i, :] = self.X_train_[knn[i, :], :].mean(axis=0)
         # DisSim Local
         X_test = X - centroid_test

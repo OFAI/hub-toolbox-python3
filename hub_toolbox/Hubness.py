@@ -20,6 +20,7 @@ from multiprocessing import RawArray, Pool
 import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
+from sklearn.metrics.pairwise import pairwise_distances
 from hub_toolbox import IO, Logging
 
 #__all__ = ['hubness']
@@ -247,9 +248,90 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
         log.message("Hubness calculation done.", flush=True)
     return S_k, D_k.T, N_k
 
+def hubness_from_vectors(X:np.ndarray, Y:np.ndarray=None, k:int=5,
+                         metric='euclidean', verbose:int=0,
+                         n_jobs:int=1, random_state=None):
+    """Compute hubness from vectors.
+
+    Hubness [1]_ is the skewness of the `k`-occurrence histogram (reverse
+    nearest neighbor count, i.e. how often does a point occur in the
+    `k`-nearest neighbor lists of other points).
+
+    Parameters
+    ----------
+    X : ndarray, shape (n_test, n_features)
+        Test vectors. Will compute distances between each vector in X
+        and all vectors in Y.
+
+    Y : ndarray, shape (n_train, n_features)
+        Training vectors. If None, compute all-against-all distances in X.
+
+    k : int, optional (default: 5)
+        Neighborhood size for `k`-occurrence.
+
+    metric : string, default
+        The metric used for distance calculations. May be any of the
+        allowed metrics from http://scikit-learn.org/stable/modules/
+        generated/sklearn.metrics.pairwise.pairwise_distances.html
+
+    verbose : int, optional (default: 0)
+        Increasing level of output (progress report).
+
+    n_jobs : int, optional (default: 1)
+        Number of parallel processes spawned for hubness calculation.
+        Value 1 (default): One process (not using multiprocessing)
+        Value (-1): As many processes as number of available CPUs.
+
+    random_state : int, optional
+        Seed the RNG for reproducible results.
+        
+        NOTE: Currently only compatible with `n_jobs`=1
+
+    Returns
+    -------
+    S_k : float
+        Hubness (skewness of `k`-occurrence distribution)
+    D_k : ndarray
+        `k`-nearest neighbor lists
+    N_k : ndarray
+        `k`-occurrence list
+
+    References
+    ----------
+    .. [1] Radovanović, M., Nanopoulos, A., & Ivanović, M. (2010).
+           Hubs in Space : Popular Nearest Neighbors in High-Dimensional Data.
+           Journal of Machine Learning Research, 11, 2487–2531. Retrieved from
+           http://jmlr.csail.mit.edu/papers/volume11/radovanovic10a/
+           radovanovic10a.pdf
+    """
+    if Y is None:
+        Y = X
+        kth = np.arange(k + 1)
+        start = 1
+        end = k + 1
+    else:
+        kth = np.arange(k)
+        start = 0
+        end = k
+    assert end - start == k, f'Implementation error'
+    n_test, m_test = X.shape
+    n_train, m_train = Y.shape
+    assert m_test == m_train, f'Number of features do not match'
+    Dk = np.empty((n_test, k), dtype=np.int32)
+    for i in range(n_test):
+        d = pairwise_distances(X[i, :].reshape(1, -1), Y, metric, n_jobs)
+        nn = np.argpartition(d, kth=kth)[0, start:end]
+        Dk[i, :] = nn
+    # N-occurence
+    Nk = np.bincount(Dk.astype(int).ravel(), minlength=n_train)
+    # Hubness
+    Sk = stats.skew(Nk)
+    return Sk, Dk, Nk
+
 if __name__ == '__main__':
     # Simple test case
     from hub_toolbox.IO import load_dexter
     dexter_distance, l, v = load_dexter()
     Sn, Dk, Nk = hubness(dexter_distance)
-    print("Hubness =", Sn)
+    Snv, Dkv, Nkv = hubness_from_vectors(v, metric='cosine')
+    print("Hubness =", Sn, Snv)

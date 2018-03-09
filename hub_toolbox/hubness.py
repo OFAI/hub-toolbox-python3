@@ -20,7 +20,7 @@ from scipy.sparse.base import issparse
 from sklearn.metrics.pairwise import pairwise_distances
 from hub_toolbox import io, logging
 
-#__all__ = ['hubness']
+__all__ = ['hubness', 'hubness_from_vectors']
 
 
 def _hubness_load_shared_data(D_, D_k_):

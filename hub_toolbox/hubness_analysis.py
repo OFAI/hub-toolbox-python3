@@ -17,7 +17,7 @@ from hub_toolbox.knn_classification import score
 from hub_toolbox.goodman_kruskal import goodman_kruskal_index
 from hub_toolbox.intrinsic_dimension import intrinsic_dimension
 from hub_toolbox.global_scaling import mutual_proximity_empiric, \
-    mutual_proximity_gammai, mutual_proximity_gauss, mutual_proximity_gaussi
+    mutual_proximity_gammai, mutual_proximity_gaussi
 from hub_toolbox.local_scaling import nicdm, local_scaling
 from hub_toolbox.shared_neighbors import shared_nearest_neighbors
 from hub_toolbox.centering import centering, weighted_centering, \
@@ -47,7 +47,6 @@ def _primary_distance(D:np.ndarray, metric):
 
 # New types of hubness reduction methods must be added here
 SEC_DIST = {'mp' : mutual_proximity_empiric,
-            'mp_gauss': mutual_proximity_gauss,
             'mp_gaussi' : mutual_proximity_gaussi,
             'mp_gammai' : mutual_proximity_gammai,
             'ls' : local_scaling,
@@ -145,7 +144,6 @@ class HubnessAnalysis():
     @property
     def _header(self):
         return {'mp' : "MUTUAL PROXIMITY (Empiric)",
-                'mp_gauss': "MUTUAL PROXIMITY (Gaussian)",
                 'mp_gaussi' : "MUTUAL PROXIMITY (Independent Gaussians)",
                 'mp_gammai' : "MUTUAL PROXIMITY (Independent Gamma)",
                 'ls' : "LOCAL SCALING (original)",
@@ -176,7 +174,6 @@ class HubnessAnalysis():
 
             - "orig" : Original, primary distances
             - "mp" : Mutual Proximity (empiric)
-            - "mp_gauss" : Mutual Proximity (Gaussians)
             - "mp_gaussi" : Mutual Proximity (independent Gaussians)
             - "mp_gammai" ... Mutual Proximity (independent Gamma)
             - "ls" : Local Scaling (using k-th neighbor)

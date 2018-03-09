@@ -151,7 +151,7 @@ def intrinsic_dimension(X:np.ndarray, k1:int=6, k2:int=12,
         dhat **= -1
         dhat_k = dhat.mean(0)
         no_dims = (dhat_k ** -1).mean()
-    return int(no_dims.round())
+    return no_dims
 
 if __name__ == '__main__':
     m_dim = 100

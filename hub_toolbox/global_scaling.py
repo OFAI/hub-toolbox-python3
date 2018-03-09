@@ -15,11 +15,12 @@ from itertools import filterfalse
 import ctypes
 import numpy as np
 from scipy.special import gammainc  # @UnresolvedImport
-from scipy.stats import norm, mvn
+from scipy.stats import norm
 from scipy.sparse import lil_matrix, csr_matrix, issparse
 from multiprocessing import Pool, cpu_count, current_process
 from multiprocessing.sharedctypes import Array
-from hub_toolbox import io, logging
+from hub_toolbox import io
+from hub_toolbox.htlogging import ConsoleLogging
 
 __all__ = ['mutual_proximity_empiric', 'mutual_proximity_gammai', 
            'mutual_proximity_gaussi', '_mutual_proximity_gumbel_sparse']
@@ -131,7 +132,7 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
            Learning Research, 13(1), 2871–2902.
     """
     # Initialization and checking input
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     io.check_sample_shape_fits(D, idx)
     io.check_valid_metric_parameter(metric)
     n = D.shape[0]
@@ -243,7 +244,7 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
     """
     # Initialization
     n = D.shape[0]
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     
     # Check input
     io.check_distance_matrix_shape(D)
@@ -456,7 +457,7 @@ def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray,
            Learning Research, 13(1), 2871–2902.
     """
     # Initialization and checking input
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     io.check_sample_shape_fits(D, idx)
     io.check_valid_metric_parameter(metric)
     n = D.shape[0]
@@ -583,7 +584,7 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
            Learning Research, 13(1), 2871–2902.
     """    
     # Initialization   
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
 
     # Checking input
     if idx is None:
@@ -791,7 +792,7 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     """
     # Initialization
     n = D.shape[0]
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
 
     # Checking input
     io.check_distance_matrix_shape(D)

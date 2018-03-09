@@ -16,7 +16,8 @@ from multiprocessing import cpu_count, RawArray, Pool
 import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
-from hub_toolbox import io, logging
+from hub_toolbox import io
+from hub_toolbox.htlogging import ConsoleLogging
 
 __all__ = ['local_scaling', 'local_scaling_sample', 'nicdm', 'nicdm_sample']
 
@@ -64,7 +65,7 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
            Local and global scaling reduce hubs in space. The Journal of Machine
            Learning Research, 13(1), 2871–2902.
     """
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     # Checking input
     io.check_sample_shape_fits(D, train_ind)
     io.check_valid_metric_parameter(metric)
@@ -215,7 +216,7 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
            Local and global scaling reduce hubs in space. The Journal of Machine
            Learning Research, 13(1), 2871–2902.
     """
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     # Checking input
     io.check_distance_matrix_shape(D)
     io.check_valid_metric_parameter(metric)
@@ -379,7 +380,6 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
         D[sample, j] = exclude
 
     # Statistics
-    knn = np.zeros((n, k))
     r = np.partition(D, kth=kth, axis=1)[:, :k].mean(axis=1)
     r_geom = _local_geomean(r) #knn.ravel())
 

@@ -85,11 +85,11 @@ def centering(X:np.ndarray, metric:str='vector', test_set_mask:np.ndarray=None):
         n = X.shape[0]
         if test_set_mask is None:
             # center among all data
-            return X - np.mean(X, 0)
+            return X - np.mean(X, axis=0)
         else: 
             # center among training data
             train_ind = np.setdiff1d(np.arange(n), test_set_mask)
-            return X - np.mean(X[train_ind], 0)        
+            return X - np.mean(X[train_ind], axis=0)
     else:
         raise ValueError("Parameter 'metric' must be 'inner' or 'vector'.")
 
@@ -148,7 +148,7 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
     d = np.zeros(n)
     
     if metric == 'cosine':
-        vectors_sum = X[train_set_mask].sum(0)
+        vectors_sum = X[train_set_mask].sum(axis=0)
         for i in np.arange(n):
             d[i] = n_train * cos(np.array([X[i], vectors_sum/n_train]))[0, 1]
     # Using euclidean distances does not really make sense
@@ -160,7 +160,7 @@ def weighted_centering(X:np.ndarray, metric:str='cosine', gamma:float=1.,
         raise ValueError("Weighted centering only supports cosine distances.")
     d_sum = np.sum(d ** gamma)
     w = (d ** gamma) / d_sum
-    vectors_mean_weighted = np.sum(w.reshape(n, 1) * X, 0)
+    vectors_mean_weighted = np.sum(w.reshape(n, 1) * X, axis=0)
     X_wcent = X - vectors_mean_weighted
     return X_wcent
 
@@ -240,7 +240,7 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
     if n_jobs == -1:
         n_jobs = cpu_count()
     # Rescale vectors to unit length
-    div_ = np.sqrt((X ** 2).sum(-1))[..., np.newaxis]
+    div_ = np.sqrt((X ** 2).sum(axis=-1))[..., np.newaxis]
     div_[div_ == 0] = 1e-7
     v = X / div_
     if Y is None: # calc all-against-all in X
@@ -249,7 +249,7 @@ def localized_centering(X:np.ndarray, Y:np.ndarray=None,
         sim = v.dot(w.T)
         sim_train = sim
     else: # calc sim from test data in X against train data in Y
-        div_ = np.sqrt((Y ** 2).sum(-1))[..., np.newaxis]
+        div_ = np.sqrt((Y ** 2).sum(axis=-1))[..., np.newaxis]
         div_[div_ == 0] = 1e-7
         w = Y / div_
         n, _ = Y.shape

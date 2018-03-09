@@ -16,7 +16,8 @@ import multiprocessing as mp
 import numpy as np
 from scipy.sparse.base import issparse
 from sklearn.preprocessing.label import LabelEncoder
-from hub_toolbox import logging, io
+from hub_toolbox import io
+from hub_toolbox.htlogging import ConsoleLogging
 
 __all__ = ['score', 'predict', 'r_precision',
            'f1_score', 'f1_macro', 'f1_micro', 'f1_weighted']
@@ -89,7 +90,7 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     """
 
     # Check input sanity
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     if sample_idx is None:
         io.check_distance_matrix_shape(D)
     else:
@@ -314,7 +315,7 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
     """
 
     # Check input sanity
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     if sample_idx is None:
         io.check_distance_matrix_shape(D)
     else:
@@ -576,7 +577,7 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     io.check_distance_matrix_shape(S)
     io.check_distance_matrix_shape_fits_labels(S, y)
     io.check_valid_metric_parameter(metric)
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     n, _ = S.shape
     S_is_sparse = issparse(S)
     if metric != 'similarity' or not S_is_sparse:

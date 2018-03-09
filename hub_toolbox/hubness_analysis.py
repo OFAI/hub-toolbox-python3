@@ -12,18 +12,18 @@ Contact: <roman.feldbauer@ofai.at>
 """
 from inspect import signature
 import numpy as np
-from hub_toolbox.hubness import hubness
-from hub_toolbox.knn_classification import score
-from hub_toolbox.goodman_kruskal import goodman_kruskal_index
-from hub_toolbox.intrinsic_dimension import intrinsic_dimension
-from hub_toolbox.global_scaling import mutual_proximity_empiric, \
-    mutual_proximity_gammai, mutual_proximity_gaussi
-from hub_toolbox.local_scaling import nicdm, local_scaling
-from hub_toolbox.shared_neighbors import shared_nearest_neighbors
+from hub_toolbox import io
 from hub_toolbox.centering import centering, weighted_centering, \
     localized_centering, dis_sim_global, dis_sim_local
 from hub_toolbox.distances import cosine_distance
-from hub_toolbox import io
+from hub_toolbox.global_scaling import mutual_proximity_empiric, \
+    mutual_proximity_gammai, mutual_proximity_gaussi
+from hub_toolbox.goodman_kruskal import goodman_kruskal_index
+from hub_toolbox.hubness import hubness
+from hub_toolbox.intrinsic_dimension import intrinsic_dimension
+from hub_toolbox.knn_classification import score
+from hub_toolbox.local_scaling import nicdm, local_scaling
+from hub_toolbox.shared_neighbors import shared_nearest_neighbors
 
 __all__ = ['HubnessAnalysis']
 

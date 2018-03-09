@@ -18,7 +18,8 @@ import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
 from sklearn.metrics.pairwise import pairwise_distances
-from hub_toolbox import io, logging
+from hub_toolbox import io
+from hub_toolbox.htlogging import ConsoleLogging
 
 __all__ = ['hubness', 'hubness_from_vectors']
 
@@ -111,7 +112,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
                                            verbose=verbose, random_state=random_state)
     if random_state is not None:
         raise ValueError("Seeding the RNG is not compatible with using n_jobs > 1.")
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     io.check_is_nD_array(arr=D, n=2, arr_type='Distance')
     io.check_valid_metric_parameter(metric)
     n, m = D.shape
@@ -179,7 +180,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
 def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
                                 verbose:int=0, random_state=None):
     """ Hubness calculations without multiprocessing overhead. """
-    log = logging.ConsoleLogging()
+    log = ConsoleLogging()
     io.check_is_nD_array(arr=D, n=2, arr_type='Distance')
     io.check_valid_metric_parameter(metric)
     n, m = D.shape

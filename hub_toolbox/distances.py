@@ -20,7 +20,7 @@ except ImportError: # lower scikit-learn versions
     from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.metrics.pairwise import pairwise_distances
 from hub_toolbox.io import check_vector_matrix_shape_fits_labels
-from hub_toolbox.logging import ConsoleLogging
+from hub_toolbox.htlogging import ConsoleLogging
 
 __all__ = ['cosine_distance', 'euclidean_distance', 
            'lp_norm', 'sample_distance']

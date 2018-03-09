@@ -37,6 +37,6 @@ from hub_toolbox import intrinsic_dimension
 from hub_toolbox import io
 from hub_toolbox import knn_classification
 from hub_toolbox import local_scaling
-from hub_toolbox import logging
+from hub_toolbox import htlogging
 from hub_toolbox import global_scaling
 from hub_toolbox import shared_neighbors

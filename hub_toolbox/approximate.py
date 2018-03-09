@@ -278,7 +278,6 @@ def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
     else:
         return centers
 
-
 class SuQHR(BaseEstimator, TransformerMixin):
     """ Approximate hubness reduction with subquadratic complexity.
 
@@ -1205,3 +1204,6 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     f'is not (yet) implemented.')
         transform(X)
         return self.sec_dist_
+
+class ApproximateHubnessReduction(SuQHR):
+    pass

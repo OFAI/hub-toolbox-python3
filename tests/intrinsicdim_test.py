@@ -25,18 +25,18 @@ class TestIntrinsicDim(unittest.TestCase):
     def test_intrinsic_dim_mle_levina(self):
         """Test against value calc. by matlab reference implementation."""
         _, _, vector = load_dexter()
-        ID_MLE_REF = 74.742
+        ID_MLE_REF = 74.472
         id_mle = intrinsic_dimension(vector, k1=6, k2=12, 
             estimator='levina', metric='vector', trafo=None)
-        return self.assertEqual(id_mle, int(ID_MLE_REF))
+        return np.testing.assert_almost_equal(id_mle, ID_MLE_REF, decimal=3)
 
     def test_intrinsic_dim_mle_levina_low_memory(self):
         """ Same as above, but invoking the speed-memory trade-off. """
         _, _, vector = load_dexter()
-        ID_MLE_REF = 74.742
+        ID_MLE_REF = 74.472
         id_mle = intrinsic_dimension(vector, 6, 12, 'levina', 
                                      'vector', None, mem_threshold=0)
-        return self.assertEqual(id_mle, int(ID_MLE_REF))
+        return np.testing.assert_almost_equal(id_mle, ID_MLE_REF, decimal=3)
 
     def test_incorrect_est_params(self):
         """ Test handling of incorrect estimator. """

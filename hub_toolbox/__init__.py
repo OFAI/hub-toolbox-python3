@@ -31,7 +31,6 @@ except ImportError:  # pragma: no cover
 from hub_toolbox import centering
 from hub_toolbox import distances
 from hub_toolbox import goodman_kruskal
-from . import Hubness_parallel
 from hub_toolbox import hubness
 from hub_toolbox import hubness_analysis
 from hub_toolbox import intrinsic_dimension
@@ -40,5 +39,4 @@ from hub_toolbox import knn_classification
 from hub_toolbox import local_scaling
 from hub_toolbox import logging
 from hub_toolbox import global_scaling
-from . import MutualProximity_parallel
 from hub_toolbox import shared_neighbors

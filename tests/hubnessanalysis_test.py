@@ -25,7 +25,7 @@ class TestHubnessAnalysis(unittest.TestCase):
         self.vector = 99. * (np.random.rand(points, dim) - 0.5)
         self.label = np.random.randint(0, 5, points)
         self.dist = euclidean_distance(self.vector)
-        self.SEC_DIST = set(['mp', 'mp_gauss', 'mp_gaussi', 'mp_gammai', 
+        self.SEC_DIST = set(['mp', 'mp_gaussi', 'mp_gammai', 
                             'ls', 'nicdm', 'snn', 'cent', 'wcent', 'lcent', 
                             'dsg', 'dsl', 'orig'])
 

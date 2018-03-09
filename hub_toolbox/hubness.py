@@ -175,7 +175,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         log.message("Hubness calculation done.", flush=True)
 
     # return hubness, k-nearest neighbors, N occurence
-    return S_k, D_k.T, N_k
+    return S_k, D_k, N_k
 
 def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
                                 verbose:int=0, random_state=None):
@@ -244,7 +244,7 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
     # return k-hubness, k-nearest neighbors, k-occurence
     if verbose:
         log.message("Hubness calculation done.", flush=True)
-    return S_k, D_k.T, N_k
+    return S_k, D_k, N_k
 
 def hubness_from_vectors(X:np.ndarray, Y:np.ndarray=None, k:int=5,
                          metric='euclidean', verbose:int=0,

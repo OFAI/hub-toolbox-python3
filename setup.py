@@ -3,8 +3,6 @@
 
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
@@ -46,10 +44,18 @@ except ImportError:
     sys.stdout.write("The HUB TOOLBOX requires numpy, scipy and scikit-learn. "
                      "Please make sure these packages are available locally. "
                      "Consider using Anaconda for easy package handling.\n")
+    sys.exit(1)
 try:
     import pandas, joblib  # @UnusedImport
 except ImportError:
     sys.stdout.write("Some modules of the HUB TOOLBOX require pandas and joblib. "
+                     "Please make sure these packages are available locally. "
+                     "Consider using Anaconda for easy package handling.\n")
+try:
+    import nmslib, falconn  # @UnusedImport
+except ImportError:
+    sys.stdout.write("The 'approximate' module uses 'nmslib' and 'falconn' "
+                     "libraries for approximate nearest neighbor search. "
                      "Please make sure these packages are available locally. "
                      "Consider using Anaconda for easy package handling.\n")
 setup_options = {}

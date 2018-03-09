@@ -15,7 +15,7 @@ Contact: <roman.feldbauer@ofai.at>
 import sys
 import numpy as np
 from scipy.sparse import csr_matrix, lil_matrix
-from hub_toolbox import IO
+from hub_toolbox import io
 
 __all__ = ['goodman_kruskal_index', 'sparse_goodman_kruskal_index']
 
@@ -67,9 +67,9 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     """
     
     # Checking input
-    IO.check_distance_matrix_shape(D)
-    IO.check_distance_matrix_shape_fits_labels(D, classes)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_distance_matrix_shape_fits_labels(D, classes)
+    io.check_valid_metric_parameter(metric)
     
     # Calculations
     Q_c = 0.0
@@ -207,9 +207,9 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     """
     
     # Checking input
-    IO.check_distance_matrix_shape(S)
-    IO.check_distance_matrix_shape_fits_labels(S, classes)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(S)
+    io.check_distance_matrix_shape_fits_labels(S, classes)
+    io.check_valid_metric_parameter(metric)
     
     if verbose:
         print("Sparse Goodman-Kruskal")
@@ -378,9 +378,9 @@ def _naive_goodman_kruskal(D:np.ndarray, labels:np.ndarray, metric='distance'):
     """
     
     # Checking input
-    IO.check_distance_matrix_shape(D)
-    IO.check_distance_matrix_shape_fits_labels(D, labels)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_distance_matrix_shape_fits_labels(D, labels)
+    io.check_valid_metric_parameter(metric)
     n = D.shape[0]
     Q_c = 0
     Q_d = 0

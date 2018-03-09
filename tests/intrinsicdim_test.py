@@ -13,8 +13,8 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from hub_toolbox.IO import load_dexter
-from hub_toolbox.IntrinsicDim import intrinsic_dimension
+from hub_toolbox.io import load_dexter
+from hub_toolbox.intrinsic_dimension import intrinsic_dimension
 
 class TestIntrinsicDim(unittest.TestCase):
 

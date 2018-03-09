@@ -14,13 +14,13 @@ Contact: <roman.feldbauer@ofai.at>
 """
 
 import ctypes
+from functools import partial
 import multiprocessing as mp
 import numpy as np
 from scipy.sparse.base import issparse
-from hub_toolbox import Logging, IO
-from sklearn.preprocessing.label import LabelEncoder
 from scipy.sparse.csr import csr_matrix
-from functools import partial
+from sklearn.preprocessing.label import LabelEncoder
+from hub_toolbox import logging, io
 
 __all__ = ['score', 'predict', 'r_precision',
            'f1_score', 'f1_macro', 'f1_micro', 'f1_weighted']
@@ -93,13 +93,13 @@ def score(D:np.ndarray, target:np.ndarray, k=5,
     """
 
     # Check input sanity
-    log = Logging.ConsoleLogging()
+    log = logging.ConsoleLogging()
     if sample_idx is None:
-        IO.check_distance_matrix_shape(D)
+        io.check_distance_matrix_shape(D)
     else:
-        IO.check_sample_shape_fits(D, sample_idx)
-    IO.check_distance_matrix_shape_fits_labels(D, target)
-    IO.check_valid_metric_parameter(metric)
+        io.check_sample_shape_fits(D, sample_idx)
+    io.check_distance_matrix_shape_fits_labels(D, target)
+    io.check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
         sort_order = 1
@@ -318,13 +318,13 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
     """
 
     # Check input sanity
-    log = Logging.ConsoleLogging()
+    log = logging.ConsoleLogging()
     if sample_idx is None:
-        IO.check_distance_matrix_shape(D)
+        io.check_distance_matrix_shape(D)
     else:
-        IO.check_sample_shape_fits(D, sample_idx)
-    #IO._check_distance_matrix_shape_fits_labels(D, target)
-    IO.check_valid_metric_parameter(metric)
+        io.check_sample_shape_fits(D, sample_idx)
+    #io._check_distance_matrix_shape_fits_labels(D, target)
+    io.check_valid_metric_parameter(metric)
     if metric == 'distance':
         d_self = np.inf
         sort_order = 1
@@ -343,7 +343,7 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
     # Handle LOO-CV vs. test set mode
     if test_ind is None:
         n = D.shape[0]
-        test_set_ind = range(n)    # dummy     IO.check_valid_metric_parameter(metric)
+        test_set_ind = range(n)    # dummy     io.check_valid_metric_parameter(metric)
         train_set_ind = n   # dummy
     else:
         # number of points to be classified
@@ -577,10 +577,10 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
         y_pred : ndarray
             Labels of some k-nearest neighbors
     '''
-    IO.check_distance_matrix_shape(S)
-    IO.check_distance_matrix_shape_fits_labels(S, y)
-    IO.check_valid_metric_parameter(metric)
-    log = Logging.ConsoleLogging()
+    io.check_distance_matrix_shape(S)
+    io.check_distance_matrix_shape_fits_labels(S, y)
+    io.check_valid_metric_parameter(metric)
+    log = logging.ConsoleLogging()
     n, _ = S.shape
     S_is_sparse = issparse(S)
     if metric != 'similarity' or not S_is_sparse:

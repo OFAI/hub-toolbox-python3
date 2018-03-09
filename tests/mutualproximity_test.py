@@ -13,8 +13,8 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from hub_toolbox.Distances import euclidean_distance
-from hub_toolbox.MutualProximity import mutual_proximity_empiric,\
+from hub_toolbox.distances import euclidean_distance
+from hub_toolbox.global_scaling import mutual_proximity_empiric,\
     mutual_proximity_gauss, mutual_proximity_gaussi, mutual_proximity_gammai
 from scipy.sparse.csr import csr_matrix
 from scipy.spatial.distance import squareform
@@ -165,7 +165,8 @@ class TestMutualProximity(unittest.TestCase):
         mp_dist = mutual_proximity_gauss(self.dist, verbose=1)
         mp_self_distances_all_zero = np.all(mp_dist.diagonal() == 0.)
         mp_dist_symmetric = np.all(mp_dist == mp_dist.T)
-        return self.assertTrue(mp_self_distances_all_zero and mp_dist_symmetric)
+        return self.assertTrue(
+            mp_self_distances_all_zero and mp_dist_symmetric)
   
     def test_mp_gauss_dist_equal_sim(self):
         """Test most basic requirements for MP Gauss.
@@ -198,7 +199,8 @@ class TestMutualProximity(unittest.TestCase):
              [0.575452874, 0.9702788336, 0.7660250185, 0.975462801, 0.0003114667]])
         # Gaussians can go below distance 0; self dist anyway defined as 0.
         np.fill_diagonal(mp_gaussi_hand, 0.)
-        mp_gaussi_allclose_gaussi_by_hand = np.allclose(mp_gaussi, mp_gaussi_hand)
+        mp_gaussi_allclose_gaussi_by_hand = \
+            np.allclose(mp_gaussi, mp_gaussi_hand)
         return self.assertTrue(mp_gaussi_allclose_gaussi_by_hand)
 
     def test_mp_gaussi_all_zero_self_distances(self):
@@ -241,7 +243,8 @@ class TestMutualProximity(unittest.TestCase):
              [0.230927083, 0.5761291218, 0., 0.9817785746, 0.8286910286], 
              [0.9558409888, 0.7088478962, 0.9817785746, 0., 0.9646050169], 
              [0.6744697939, 0.9585297208, 0.8286910286, 0.9646050169, 0.]])
-        mp_gammai_allclose_gammai_by_hand = np.allclose(mp_gammai, mp_gammai_hand)
+        mp_gammai_allclose_gammai_by_hand = \
+            np.allclose(mp_gammai, mp_gammai_hand)
         return self.assertTrue(mp_gammai_allclose_gammai_by_hand)
  
     def test_mp_gammai_all_zero_self_distances(self):
@@ -258,12 +261,12 @@ class TestMutualProximity(unittest.TestCase):
 
     def test_mp_gammai_dist_equal_sim(self):
         self.setUpMod('rnd')
-        #=======================================================================
+        #=====================================================================
         # sim = 1. - self.dist
         # mp_dist = mutual_proximity_gammai(self.dist, 'distance')
         # mp_sim = mutual_proximity_gammai(sim, 'similarity')
         # dist_allclose_one_minus_sim = np.allclose(mp_dist, 1. - mp_sim)
-        #=======================================================================
+        #=====================================================================
         msg = "MP GammaI similarity differs from GammaI distance. "\
             + "Whether the currently implemented similarity function makes "\
             + "any sense, is yet to be investigated."

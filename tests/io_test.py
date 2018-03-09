@@ -15,8 +15,8 @@ import unittest
 import tempfile
 import numpy as np
 from scipy.sparse.csr import csr_matrix
-from hub_toolbox.IO import random_sparse_matrix, load_dexter
-from hub_toolbox import IO
+from hub_toolbox.io import random_sparse_matrix, load_dexter
+from hub_toolbox import io
 
 class TestIO(unittest.TestCase):
 
@@ -32,7 +32,7 @@ class TestIO(unittest.TestCase):
 
     def test_save_and_load_csr_matrix(self):
         tmp = tempfile.mkstemp(suffix='.npz')[1]
-        io_sim = IO.load_csr_matrix(IO.save_csr_matrix(tmp, self.similarity))
+        io_sim = io.load_csr_matrix(io.save_csr_matrix(tmp, self.similarity))
         # If both are identical, the difference must be all-zeros
         return self.assertEqual((self.similarity - io_sim).nnz, 0.)
 
@@ -77,24 +77,24 @@ class TestIO(unittest.TestCase):
     def test_check_shape(self):
         with self.assertRaises(TypeError):
             d = np.empty((2, 3))
-            IO.check_distance_matrix_shape(d)
+            io.check_distance_matrix_shape(d)
 
     def test_check_dist_vs_classes(self):
         with self.assertRaises(TypeError):
             D = np.empty((5, 5))
             classes = np.empty(4)
-            IO.check_distance_matrix_shape_fits_labels(D, classes)
+            io.check_distance_matrix_shape_fits_labels(D, classes)
 
     def test_check_dist_vs_vectors(self):
         with self.assertRaises(TypeError):
             D = np.zeros((5, 5))
             vectors = np.zeros((4, 5))
-            IO.check_distance_matrix_shape_fits_vectors(D, vectors)
+            io.check_distance_matrix_shape_fits_vectors(D, vectors)
 
     def test_check_valid_metric(self):
         with self.assertRaises(ValueError):
             metric = 'dissimilarity'
-            IO.check_valid_metric_parameter(metric)
+            io.check_valid_metric_parameter(metric)
 
 if __name__ == "__main__":
     unittest.main()

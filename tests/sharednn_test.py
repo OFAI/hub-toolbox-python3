@@ -14,8 +14,9 @@ Contact: <roman.feldbauer@ofai.at>
 import unittest
 import numpy as np
 from scipy.spatial.distance import squareform
-from hub_toolbox.Distances import euclidean_distance
-from hub_toolbox.SharedNN import shared_nearest_neighbors, snn_sample, simhubIN
+from hub_toolbox.distances import euclidean_distance
+from hub_toolbox.shared_neighbors import \
+    shared_nearest_neighbors, snn_sample, simhubIN
 
 class TestSharedNN(unittest.TestCase):
 

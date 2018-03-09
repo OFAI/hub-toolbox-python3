@@ -13,10 +13,10 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from hub_toolbox.Distances import euclidean_distance
-from hub_toolbox.MutualProximity import mutual_proximity_empiric as mpe_s
-from hub_toolbox.MutualProximity import mutual_proximity_gaussi as mpmvni_s
-from hub_toolbox.MutualProximity import mutual_proximity_gammai as mpgam_s 
+from hub_toolbox.distances import euclidean_distance
+from hub_toolbox.global_scaling import mutual_proximity_empiric as mpe_s
+from hub_toolbox.global_scaling import mutual_proximity_gaussi as mpmvni_s
+from hub_toolbox.global_scaling import mutual_proximity_gammai as mpgam_s 
 from hub_toolbox.MutualProximity_parallel import mutual_proximity_empiric, \
     mutual_proximity_gaussi, mutual_proximity_gammai
 from scipy.sparse.csr import csr_matrix

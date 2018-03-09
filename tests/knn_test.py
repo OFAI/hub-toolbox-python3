@@ -21,10 +21,10 @@ except ImportError: # lower scikit-learn versions
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, f1_score as f1_score_sklearn
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer, OneHotEncoder
-from hub_toolbox.Distances import sample_distance
-from hub_toolbox.IO import load_dexter, random_sparse_matrix
-from hub_toolbox.KnnClassification import score, predict, f1_score, r_precision
-from hub_toolbox.KnnClassification import f1_macro, f1_micro, f1_weighted
+from hub_toolbox.distances import sample_distance
+from hub_toolbox.io import load_dexter, random_sparse_matrix
+from hub_toolbox.knn_classification import \
+    score, predict, f1_score, r_precision, f1_macro, f1_micro, f1_weighted
 
 class TestKnnClassification(unittest.TestCase):
 
@@ -39,7 +39,8 @@ class TestKnnClassification(unittest.TestCase):
         ''' Does not test correctness of result! '''
         sim = csr_matrix(1 - self.distance)
         y = self.label
-        r = r_precision(sim, y, metric='similarity', return_y_pred=1, verbose=1, n_jobs=2)
+        r = r_precision(sim, y, metric='similarity', return_y_pred=1,
+                        verbose=1, n_jobs=2)
         r_precision_weighted = r['weighted']
         r_precision_macro = r['macro']
         y_pred = np.array(r['y_pred'])
@@ -58,7 +59,8 @@ class TestKnnClassification(unittest.TestCase):
                [0.0, 0.0, 0.0, 0.0, 0.0, 1]] # 0 / 0 .. 1 nnz
         sim = csr_matrix(np.array(sim))
         y = np.array(y)
-        r = r_precision(sim, y, metric='similarity', return_y_pred=2, verbose=1, n_jobs=2)
+        r = r_precision(sim, y, metric='similarity', return_y_pred=2,
+                        verbose=1, n_jobs=2)
         rpw = r['weighted']
         rpm = r['macro']
         r_peritem = r['per_item']
@@ -110,7 +112,8 @@ class TestKnnClassification(unittest.TestCase):
         y_pred_sklearn = cross_val_predict(
             knn, self.distance, y, cv=loo_cv)
         f1_binary_hub = f1_score(cmat[0, 0, :, :])
-        f1_binary_sklearn = f1_score_sklearn(y, y_pred_sklearn, average='binary')
+        f1_binary_sklearn = f1_score_sklearn(
+            y, y_pred_sklearn, average='binary')
         return self.assertEqual(f1_binary_hub, f1_binary_sklearn)
 
     def test_f1_micro_macro_weighted(self):
@@ -165,11 +168,6 @@ class TestKnnClassification(unittest.TestCase):
         acc = acc[0, 0]
         correct = correct[0]
         cmat = cmat[0]
-        # This should work too, but is much slower than using precomp. dist.
-        #=======================================================================
-        # knclassifier = KNeighborsClassifier(n_neighbors=5, algorithm='brute', 
-        #                                     metric='cosine')
-        #=======================================================================
         knclassifier = KNeighborsClassifier(n_neighbors=5, algorithm='brute', 
                                             metric='precomputed')
         n = self.distance.shape[0] # for LOO-CV

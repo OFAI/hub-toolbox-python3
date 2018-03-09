@@ -35,7 +35,7 @@ def load_dexter():
     vectors : ndarray
         Vector data matrix
     """
-    from hub_toolbox.Distances import cosine_distance
+    from hub_toolbox.distances import cosine_distance
         
     n = 300
     dim = 20000

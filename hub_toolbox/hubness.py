@@ -21,7 +21,7 @@ import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
 from sklearn.metrics.pairwise import pairwise_distances
-from hub_toolbox import IO, Logging
+from hub_toolbox import io, logging
 
 #__all__ = ['hubness']
 
@@ -114,9 +114,9 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
                                            verbose=verbose, random_state=random_state)
     if random_state is not None:
         raise ValueError("Seeding the RNG is not compatible with using n_jobs > 1.")
-    log = Logging.ConsoleLogging()
-    IO.check_is_nD_array(arr=D, n=2, arr_type='Distance')
-    IO.check_valid_metric_parameter(metric)
+    log = logging.ConsoleLogging()
+    io.check_is_nD_array(arr=D, n=2, arr_type='Distance')
+    io.check_valid_metric_parameter(metric)
     n, m = D.shape
     if k >= m:
         k_old = k
@@ -182,9 +182,9 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
 def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
                                 verbose:int=0, random_state=None):
     """ Hubness calculations without multiprocessing overhead. """
-    log = Logging.ConsoleLogging()
-    IO.check_is_nD_array(arr=D, n=2, arr_type='Distance')
-    IO.check_valid_metric_parameter(metric)
+    log = logging.ConsoleLogging()
+    io.check_is_nD_array(arr=D, n=2, arr_type='Distance')
+    io.check_valid_metric_parameter(metric)
     n, m = D.shape
     if k >= m:
         k_old = k
@@ -330,7 +330,7 @@ def hubness_from_vectors(X:np.ndarray, Y:np.ndarray=None, k:int=5,
 
 if __name__ == '__main__':
     # Simple test case
-    from hub_toolbox.IO import load_dexter
+    from hub_toolbox.io import load_dexter
     dexter_distance, l, v = load_dexter()
     Sn, Dk, Nk = hubness(dexter_distance)
     Snv, Dkv, Nkv = hubness_from_vectors(v, metric='cosine')

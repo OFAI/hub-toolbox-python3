@@ -8,18 +8,20 @@ Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2017, Dominik Schnitzer, Roman Feldbauer
+(c) 2011-2018, Dominik Schnitzer, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-__version__ = '2.5.0.dev1'
+__version__ = '3.0.dev1'
 
 try:
     import numpy
     import scipy
+    import sklearn
     del numpy
     del scipy
+    del sklearn
 except ImportError:  # pragma: no cover
     raise ImportError("Could not import numpy and/or scipy.\n"
                       "Please make sure you install the following Python3 "
@@ -28,25 +30,17 @@ except ImportError:  # pragma: no cover
                       "http://hub-toolbox-python3.readthedocs.io/en/latest/"
                       "user/installation.html#numpy-scipy-scikit-learn")
 
-try:
-    import sklearn
-    del sklearn
-except ImportError:  # pragma: no cover
-    print("Could not import scikit-learn. While most modules of the Hub "
-          "Toolbox do not require it, it is still advised to install scikit-"
-          "learn for Python3 to enable all functionality and unit tests.")
-
-from . import Centering
-from . import Distances
-from . import GoodmanKruskal
+from hub_toolbox import centering
+from hub_toolbox import distances
+from hub_toolbox import goodman_kruskal
 from . import Hubness_parallel
-from . import Hubness
-from . import HubnessAnalysis
-from . import IntrinsicDim
-from . import IO
-from . import KnnClassification
-from . import LocalScaling
-from . import Logging
-from . import MutualProximity
+from hub_toolbox import hubness
+from hub_toolbox import hubness_analysis
+from hub_toolbox import intrinsic_dimension
+from hub_toolbox import io
+from hub_toolbox import knn_classification
+from hub_toolbox import local_scaling
+from hub_toolbox import logging
+from hub_toolbox import global_scaling
 from . import MutualProximity_parallel
-from . import SharedNN
+from hub_toolbox import shared_neighbors

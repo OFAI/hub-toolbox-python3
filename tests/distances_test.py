@@ -16,10 +16,10 @@ import numpy as np
 from scipy.spatial.distance import pdist, cdist, squareform
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
-from hub_toolbox.Distances import (cosine_distance, euclidean_distance,
+from hub_toolbox.distances import (cosine_distance, euclidean_distance,
                                    mp_dissim)
-from hub_toolbox.IO import load_dexter
-from hub_toolbox.Hubness import hubness
+from hub_toolbox.io import load_dexter
+from hub_toolbox.hubness import hubness
 
 class TestDistances(unittest.TestCase):
 

@@ -13,11 +13,11 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from hub_toolbox import HubnessAnalysis
-from hub_toolbox.Distances import euclidean_distance
+from hub_toolbox import hubness_analysis
+from hub_toolbox.distances import euclidean_distance
 
 class TestHubnessAnalysis(unittest.TestCase):
-    """Test the HubnessAnalysis class (check for results,
+    """Test the hubness_analysis class (check for results,
        but not for *correct* results.)
     """
 
@@ -36,13 +36,13 @@ class TestHubnessAnalysis(unittest.TestCase):
 
     def test_all_sec_dist_are_covered_in_unittests(self):
         n_self_sec_dist = len(self.SEC_DIST)
-        hub_ana_sec_dist = set(HubnessAnalysis.SEC_DIST.keys())
+        hub_ana_sec_dist = set(hubness_analysis.SEC_DIST.keys())
         n_intersection = len(hub_ana_sec_dist & self.SEC_DIST)
         return self.assertEqual(n_self_sec_dist, n_intersection)
 
     def test_all_sec_dist_have_header(self):
-        ha_sec_dist = set(HubnessAnalysis.SEC_DIST.keys())
-        header_sec_dist = set(HubnessAnalysis.HubnessAnalysis()._header.keys())
+        ha_sec_dist = set(hubness_analysis.SEC_DIST.keys())
+        header_sec_dist = set(hubness_analysis.HubnessAnalysis()._header.keys())
         n_sec_dist = len(ha_sec_dist)
         n_intersection = len(ha_sec_dist & header_sec_dist)
         return self.assertEqual(n_sec_dist, n_intersection)
@@ -55,7 +55,7 @@ class TestHubnessAnalysis(unittest.TestCase):
 
     def _perform(self, dist_type):
         """Test whether the given secondary distance type is supported."""
-        ana = HubnessAnalysis.HubnessAnalysis(
+        ana = hubness_analysis.HubnessAnalysis(
             self.dist, self.label, self.vector, 'distance')
         ana = ana.analyze_hubness(
             experiments=dist_type, print_results=True, verbose=1)
@@ -72,7 +72,7 @@ class TestHubnessAnalysis(unittest.TestCase):
 
     def test_hubness_analysis_only_with_distances(self):
         """ Check correct handling when no labels, vectors are given."""
-        ana = HubnessAnalysis.HubnessAnalysis(self.dist)
+        ana = hubness_analysis.HubnessAnalysis(self.dist)
         ana = ana.analyze_hubness("orig")
         exp = ana.experiments[0]
         got_all_results = \

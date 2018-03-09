@@ -14,11 +14,11 @@ Contact: <roman.feldbauer@ofai.at>
 import unittest
 import numpy as np
 from scipy.spatial.distance import squareform, pdist
-from hub_toolbox.GoodmanKruskal import goodman_kruskal_index,\
-    _naive_goodman_kruskal, sparse_goodman_kruskal_index
-from hub_toolbox.IO import random_sparse_matrix
-from hub_toolbox.SharedNN import shared_nearest_neighbors
 from scipy.sparse.csr import csr_matrix
+from hub_toolbox.goodman_kruskal import goodman_kruskal_index,\
+    _naive_goodman_kruskal, sparse_goodman_kruskal_index
+from hub_toolbox.io import random_sparse_matrix
+from hub_toolbox.shared_neighbors import shared_nearest_neighbors
 
 class TestGoodmanKruskal(unittest.TestCase):
 

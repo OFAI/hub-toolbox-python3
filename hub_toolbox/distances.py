@@ -13,7 +13,7 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 import ctypes
-from multiprocessing import Pool, cpu_count, Array, RawArray
+from multiprocessing import Pool, cpu_count, RawArray
 import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 try: # for scikit-learn >= 0.18
@@ -21,8 +21,8 @@ try: # for scikit-learn >= 0.18
 except ImportError: # lower scikit-learn versions
     from sklearn.cross_validation import StratifiedShuffleSplit
 from sklearn.metrics.pairwise import pairwise_distances
-from hub_toolbox.IO import check_vector_matrix_shape_fits_labels
-from hub_toolbox.Logging import ConsoleLogging
+from hub_toolbox.io import check_vector_matrix_shape_fits_labels
+from hub_toolbox.logging import ConsoleLogging
 
 __all__ = ['cosine_distance', 'euclidean_distance', 
            'lp_norm', 'sample_distance']

@@ -14,10 +14,10 @@ Contact: <roman.feldbauer@ofai.at>
 import unittest
 import numpy as np
 from scipy.spatial.distance import squareform
-from hub_toolbox.Distances import euclidean_distance
-from hub_toolbox.LocalScaling import local_scaling, nicdm
-from hub_toolbox.Hubness import hubness
-from hub_toolbox.KnnClassification import score
+from hub_toolbox.distances import euclidean_distance
+from hub_toolbox.local_scaling import local_scaling, nicdm
+from hub_toolbox.hubness import hubness
+from hub_toolbox.knn_classification import score
 
 class TestLocalScaling(unittest.TestCase):
     """Unit tests for the LocalScaling class"""

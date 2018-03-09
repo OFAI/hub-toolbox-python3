@@ -20,7 +20,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
             verbose:int=0, n_jobs:int=-1):
     """
     .. note:: Deprecated in hub-toolbox 2.4: Parallel code merged into the
-              Hubness module (hub_toolbox.Hubness). Please use that module
+              Hubness module (hub_toolbox.hubness). Please use that module
               instead.
               Hubness_parallel module will be removed in hub-toolbox 3.0.
     """

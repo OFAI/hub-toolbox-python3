@@ -13,12 +13,12 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from hub_toolbox.Centering import centering, weighted_centering, \
-    localized_centering, dis_sim_global, dis_sim_local
-from hub_toolbox.IO import load_dexter
 from sklearn.preprocessing import StandardScaler
-from hub_toolbox.Hubness import hubness
-from hub_toolbox.KnnClassification import score
+from hub_toolbox.centering import centering, weighted_centering, \
+    localized_centering, dis_sim_global, dis_sim_local
+from hub_toolbox.io import load_dexter
+from hub_toolbox.hubness import hubness
+from hub_toolbox.knn_classification import score
 
 class TestCentering(unittest.TestCase):
     

@@ -14,9 +14,9 @@ Contact: <roman.feldbauer@ofai.at>
 import unittest
 import numpy as np
 from scipy.spatial.distance import squareform
-from hub_toolbox.Hubness import hubness
-from hub_toolbox.Distances import euclidean_distance
-from hub_toolbox.IO import random_sparse_matrix
+from hub_toolbox.hubness import hubness
+from hub_toolbox.distances import euclidean_distance
+from hub_toolbox.io import random_sparse_matrix
 
 class TestHubness(unittest.TestCase):
     """Test hubness calculations"""

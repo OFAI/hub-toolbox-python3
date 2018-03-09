@@ -22,7 +22,7 @@ from scipy.stats import norm, mvn
 from scipy.sparse import lil_matrix, csr_matrix, issparse
 from multiprocessing import Pool, cpu_count, current_process
 from multiprocessing.sharedctypes import Array
-from hub_toolbox import IO, Logging
+from hub_toolbox import io, logging
 
 __all__ = ['mutual_proximity_empiric', 'mutual_proximity_gammai', 
            'mutual_proximity_gaussi', '_mutual_proximity_gumbel_sparse']
@@ -134,9 +134,9 @@ def _mutual_proximity_empiric_sample(D:np.ndarray, idx:np.ndarray,
            Learning Research, 13(1), 2871–2902.
     """
     # Initialization and checking input
-    log = Logging.ConsoleLogging()
-    IO.check_sample_shape_fits(D, idx)
-    IO.check_valid_metric_parameter(metric)
+    log = logging.ConsoleLogging()
+    io.check_sample_shape_fits(D, idx)
+    io.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
     if metric == 'similarity':
@@ -246,11 +246,11 @@ def _mutual_proximity_empiric_full(D:np.ndarray, metric:str='distance',
     """
     # Initialization
     n = D.shape[0]
-    log = Logging.ConsoleLogging()
+    log = logging.ConsoleLogging()
     
     # Check input
-    IO.check_distance_matrix_shape(D)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
         exclude_value = np.inf
@@ -458,11 +458,11 @@ def mutual_proximity_gauss(D:np.ndarray, metric:str='distance',
     """
     # Initialization
     n = D.shape[0]
-    log = Logging.ConsoleLogging()
+    log = logging.ConsoleLogging()
     
     # Checking input
-    IO.check_distance_matrix_shape(D)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':
@@ -555,9 +555,9 @@ def mutual_proximity_gaussi_sample(D:np.ndarray, idx:np.ndarray,
            Learning Research, 13(1), 2871–2902.
     """
     # Initialization and checking input
-    log = Logging.ConsoleLogging()
-    IO.check_sample_shape_fits(D, idx)
-    IO.check_valid_metric_parameter(metric)
+    log = logging.ConsoleLogging()
+    io.check_sample_shape_fits(D, idx)
+    io.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
     j = np.ones(n, int)
@@ -682,14 +682,14 @@ def mutual_proximity_gaussi(D:np.ndarray, metric:str='distance',
            Learning Research, 13(1), 2871–2902.
     """    
     # Initialization   
-    log = Logging.ConsoleLogging()
+    log = logging.ConsoleLogging()
 
     # Checking input
     if idx is None:
-        IO.check_distance_matrix_shape(D)
+        io.check_distance_matrix_shape(D)
     else:
-        IO.check_sample_shape_fits(D, idx)
-    IO.check_valid_metric_parameter(metric)
+        io.check_sample_shape_fits(D, idx)
+    io.check_valid_metric_parameter(metric)
     n = D.shape[0]
     s = D.shape[1]
 
@@ -890,11 +890,11 @@ def mutual_proximity_gammai(D:np.ndarray, metric:str='distance',
     """
     # Initialization
     n = D.shape[0]
-    log = Logging.ConsoleLogging()
+    log = logging.ConsoleLogging()
 
     # Checking input
-    IO.check_distance_matrix_shape(D)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         self_value = 1
     else: # metric == 'distance':

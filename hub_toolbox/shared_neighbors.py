@@ -16,7 +16,7 @@ import ctypes
 from functools import partial
 from multiprocessing import cpu_count, Pool, RawArray
 import numpy as np
-from hub_toolbox import IO
+from hub_toolbox import io
 
 __all__ = ['snn_sample', 'shared_nearest_neighbors', 'simhub', 'simhubIN']
 
@@ -104,8 +104,8 @@ def snn_sample(D:np.ndarray, k:int=10, metric='distance',
            International Conference on Data Mining Workshops, 460–467.
            http://doi.org/10.1109/ICDMW.2013.101
     """
-    IO.check_sample_shape_fits(D, train_ind)
-    IO.check_valid_metric_parameter(metric)
+    io.check_sample_shape_fits(D, train_ind)
+    io.check_valid_metric_parameter(metric)
     if metric == 'distance':
         self_value = 0.
         sort_order = 1
@@ -239,8 +239,8 @@ def shared_nearest_neighbors(D:np.ndarray, k:int=10, metric='distance',
            International Conference on Data Mining Workshops, 460–467.
            http://doi.org/10.1109/ICDMW.2013.101
     """
-    IO.check_distance_matrix_shape(D)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_valid_metric_parameter(metric)
     n = D.shape[0]
     if metric == 'distance':
         self_value = 0.
@@ -385,9 +385,9 @@ def simhubIN(D:np.ndarray, train_ind:np.ndarray=None,
            http://doi.org/10.1007/s10115-012-0607-5
     """
     if train_ind is None:
-        IO.check_distance_matrix_shape(D)
+        io.check_distance_matrix_shape(D)
     else:
-        IO.check_sample_shape_fits(D, train_ind)
+        io.check_sample_shape_fits(D, train_ind)
     # Assuming distances in D
     self_value = 0.
     sort_order = 1
@@ -536,9 +536,9 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
            http://doi.org/10.1007/s10115-012-0607-5
     """
     if train_ind is None:
-        IO.check_distance_matrix_shape(D)
+        io.check_distance_matrix_shape(D)
     else:
-        IO.check_sample_shape_fits(D, train_ind)
+        io.check_sample_shape_fits(D, train_ind)
     # Assuming distances in D
     self_value = 0.
     sort_order = 1
@@ -638,9 +638,9 @@ def simhub(D:np.ndarray, y:np.ndarray, train_ind:np.ndarray=None,
         return D_shi[test_ind]
 
 if __name__ == '__main__':
-    from hub_toolbox.Hubness import hubness
-    from hub_toolbox.KnnClassification import score
-    D, y, X = IO.load_dexter()
+    from hub_toolbox.hubness import hubness
+    from hub_toolbox.knn_classification import score
+    D, y, X = io.load_dexter()
     print("D", D.shape)
     print("y", y.shape)
     print("X", X.shape)

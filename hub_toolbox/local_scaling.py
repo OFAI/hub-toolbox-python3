@@ -18,7 +18,7 @@ from multiprocessing import cpu_count, RawArray, Pool
 import numpy as np
 from scipy.sparse.base import issparse
 from scipy.sparse.lil import lil_matrix
-from hub_toolbox import IO, Logging
+from hub_toolbox import io, logging
 
 __all__ = ['local_scaling', 'local_scaling_sample', 'nicdm', 'nicdm_sample']
 
@@ -66,10 +66,10 @@ def local_scaling_sample(D:np.ndarray, k:int=7, metric:str='distance',
            Local and global scaling reduce hubs in space. The Journal of Machine
            Learning Research, 13(1), 2871–2902.
     """
-    log = Logging.ConsoleLogging()
+    log = logging.ConsoleLogging()
     # Checking input
-    IO.check_sample_shape_fits(D, train_ind)
-    IO.check_valid_metric_parameter(metric)
+    io.check_sample_shape_fits(D, train_ind)
+    io.check_valid_metric_parameter(metric)
     sparse = issparse(D)
     n = D.shape[0]
     if metric == 'similarity':
@@ -217,10 +217,10 @@ def local_scaling(D:np.ndarray, k:int=7, metric:str='distance',
            Local and global scaling reduce hubs in space. The Journal of Machine
            Learning Research, 13(1), 2871–2902.
     """
-    log = Logging.ConsoleLogging()
+    log = logging.ConsoleLogging()
     # Checking input
-    IO.check_distance_matrix_shape(D)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_valid_metric_parameter(metric)
     sparse = issparse(D)
     n = D.shape[0]
     if n_jobs == -1:
@@ -357,8 +357,8 @@ def nicdm_sample(D:np.ndarray, k:int=7, metric:str='distance',
            Learning Research, 13(1), 2871–2902.
     """
     # Checking input
-    IO.check_sample_shape_fits(D, train_ind)
-    IO.check_valid_metric_parameter(metric)
+    io.check_sample_shape_fits(D, train_ind)
+    io.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         raise NotImplementedError("NICDM does not support similarity matrices "
                                   "at the moment.")
@@ -474,10 +474,10 @@ def nicdm(D:np.ndarray, k:int=7, metric:str='distance',
            Local and global scaling reduce hubs in space. The Journal of Machine
            Learning Research, 13(1), 2871–2902.
     """
-    #log = Logging.ConsoleLogging()
+    #log = logging.ConsoleLogging()
     # Checking input
-    IO.check_distance_matrix_shape(D)
-    IO.check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_valid_metric_parameter(metric)
     if metric == 'similarity':
         raise NotImplementedError("NICDM does not support similarity matrices "
                                   "at the moment.")

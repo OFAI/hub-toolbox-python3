@@ -14,13 +14,13 @@ Contact: <roman.feldbauer@ofai.at>
 import unittest
 import numpy as np
 from hub_toolbox.Hubness_parallel import hubness as hubness_p
-from hub_toolbox.Hubness import hubness as hubness_s
-from hub_toolbox.IO import random_sparse_matrix, load_dexter
+from hub_toolbox.hubness import hubness as hubness_s
+from hub_toolbox.io import random_sparse_matrix, load_dexter
 
 class TestHubnessParallel(unittest.TestCase):
     """
     .. note:: Deprecated in hub-toolbox 2.4: Parallel code merged into the
-              Hubness module (hub_toolbox.Hubness). Please use that module
+              Hubness module (hub_toolbox.hubness). Please use that module
               instead.
               Hubness_parallel module will be removed in hub-toolbox 3.0.
     

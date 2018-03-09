@@ -27,21 +27,21 @@ class TestCentering(unittest.TestCase):
         vectors_cent = centering(self.vectors, 'vector')
         scaler = StandardScaler(with_mean=True, with_std=False)
         vectors_sklearn_cent = scaler.fit_transform(self.vectors)
-        result = np.allclose(vectors_cent, vectors_sklearn_cent, rtol=1e-7)
-        return self.assertTrue(result)
+        return np.testing.assert_array_almost_equal(
+            vectors_cent, vectors_sklearn_cent, decimal=7)
 
     def test_weighted_centering_with_gamma_zero_equal_centering(self):
         vectors_wcent = weighted_centering(self.vectors, 'cosine', gamma=0.)
         vectors_cent = centering(self.vectors, 'vector')
-        result = np.allclose(vectors_cent, vectors_wcent)
-        return self.assertTrue(result)
+        return np.testing.assert_array_almost_equal(
+            vectors_cent, vectors_wcent, decimal=7)
 
     def test_weighted_centering_with_gamma_notzero_changes_result(self):
         gamma = np.random.rand(1)
         vectors_wcent = weighted_centering(self.vectors, 'cosine', gamma)
         vectors_cent = centering(self.vectors, 'vector')
-        result = np.allclose(vectors_cent, vectors_wcent)
-        return self.assertFalse(result)
+        return np.testing.assert_array_almost_equal(
+            vectors_cent, vectors_wcent, decimal=7)
 
     def test_localized_centering(self):
         """Test whether hubness and k-NN accuracy improve for dexter"""

@@ -65,10 +65,9 @@ class TestHubness(unittest.TestCase):
             self.dist, k=5, metric='distance', verbose=True, n_jobs=-1)
         S_k_s, D_k_s, N_k_s = hubness(
             self.dist, k=5, metric='distance', verbose=False, n_jobs=1)
-        result = np.allclose(S_k_p, S_k_s) & \
-            np.allclose(D_k_p, D_k_s) & \
-            np.allclose(N_k_p, N_k_s)
-        return self.assertTrue(result)
+        np.testing.assert_array_almost_equal(S_k_p, S_k_s, decimal=7)
+        np.testing.assert_array_almost_equal(D_k_p, D_k_s, decimal=7)
+        np.testing.assert_array_almost_equal(N_k_p, N_k_s, decimal=7)
 
     def test_parallel_hubness_equal_serial_hubness_similarity_based(self):
         similarity = random_sparse_matrix(size=1000)
@@ -76,10 +75,9 @@ class TestHubness(unittest.TestCase):
             similarity, k=5, metric='similarity', verbose=False, n_jobs=-1)
         S_k_s, D_k_s, N_k_s = hubness(
             similarity, k=5, metric='similarity', verbose=False, n_jobs=1)
-        result = np.allclose(S_k_p, S_k_s) & \
-            np.allclose(D_k_p, D_k_s) & \
-            np.allclose(N_k_p, N_k_s)
-        return self.assertTrue(result)
+        np.testing.assert_array_almost_equal(S_k_p, S_k_s, decimal=7)
+        np.testing.assert_array_almost_equal(D_k_p, D_k_s, decimal=7)
+        np.testing.assert_array_almost_equal(N_k_p, N_k_s, decimal=7)
 
 if __name__ == "__main__":
     unittest.main()

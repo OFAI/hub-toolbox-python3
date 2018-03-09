@@ -60,8 +60,8 @@ class TestMutualProximity(unittest.TestCase):
         mp_sample_dist = mutual_proximity_empiric(D=self.dist,
                                                   sample_ind=y,
                                                   metric='distance')
-        mp_sample_equal_pop = np.allclose(mp_dist, mp_sample_dist, atol=1e-15)
-        return self.assertTrue(mp_sample_equal_pop)
+        return np.testing.assert_array_almost_equal(
+            mp_dist, mp_sample_dist, decimal=7)
 
     """
     def test_mp_gaussi_sample(self):
@@ -91,10 +91,8 @@ class TestMutualProximity(unittest.TestCase):
         """Test MP Empiric for toy example (ground truth calc by hand)"""
         self.setUpMod('toy')
         mp_dist_calc = mutual_proximity_empiric(self.dist, 'distance', verbose=1)
-        mp_calc_equal_truth = np.allclose(mp_dist_calc,
-                                          self.mp_dist_truth,
-                                          atol=1e-16)
-        return self.assertTrue(mp_calc_equal_truth)
+        return np.testing.assert_array_almost_equal(
+            mp_dist_calc, self.mp_dist_truth, decimal=7)
 
     def test_mp_empiric_all_zero_self_distances(self):
         self.setUpMod('rnd')
@@ -105,16 +103,16 @@ class TestMutualProximity(unittest.TestCase):
     def test_mp_empiric_symmetric(self):
         self.setUpMod('rnd')
         mp_dist = mutual_proximity_empiric(self.dist)
-        mp_dist_is_symmetric = np.all(mp_dist == mp_dist.T)
-        return self.assertTrue(mp_dist_is_symmetric)
+        return np.testing.assert_array_almost_equal(
+            mp_dist, mp_dist.T, decimal=14)
 
     def test_mp_empiric_dist_equal_sim(self):
         self.setUpMod('rnd')
         sim = 1. - self.dist
         mp_dist = mutual_proximity_empiric(self.dist, 'distance')
         mp_sim = mutual_proximity_empiric(sim, 'similarity')
-        dist_allclose_one_minus_sim = np.allclose(mp_dist, 1. - mp_sim)
-        return self.assertTrue(dist_allclose_one_minus_sim)
+        return np.testing.assert_array_almost_equal(
+            mp_dist, 1. - mp_sim, decimal=7)
 
     def test_mp_empiric_sparse_equal_dense(self):
         self.setUpMod('rnd')
@@ -123,30 +121,8 @@ class TestMutualProximity(unittest.TestCase):
         mp_dense = mutual_proximity_empiric(sim_dense, 'similarity')
         mp_sparse = mutual_proximity_empiric(
             sim_sparse, 'similarity', verbose=1, n_jobs=4)
-        dense_allclose_sparse = np.allclose(mp_dense, mp_sparse.toarray())
-        return self.assertTrue(dense_allclose_sparse)
-
-    def test_mp_gauss(self):
-        """Do NOT test for correct MP Gauss results. Just pass the test.
-
-        Background
-        ----------
-        1. MP Gauss requires MVN-CDF, for which there is no closed formula.
-           Calculation by hand would be a tedious, error-prone task, even for 
-           a small toy example.
-        2. Nobody really cares about MP Gauss, since it is very well 
-           approximated by MP GaussI, but very expensive to calculate
-           (a lot more expensive than MP Empiric).
-
-        Notes
-        -----
-            Deprecated in hub-toolbox 2.4: This is the last version to support
-            MP Gauss, which is going to be removed in hub-toolbox 3.0.
-            Please consider using MP GaussI, which usually yields very good
-            approximations at much lower computational cost.
-        """
-        self.setUpMod('rnd')
-        return self.skipTest("MP Gauss deprecated.")
+        return np.testing.assert_array_almost_equal(
+            mp_dense, mp_sparse.toarray(), decimal=7)
 
     def test_mp_gaussi(self):
         """Test MP GaussI for toy example (ground truth calc by 'hand')"""
@@ -161,9 +137,8 @@ class TestMutualProximity(unittest.TestCase):
              [0.575452874, 0.9702788336, 0.7660250185, 0.975462801, 0.0003114667]])
         # Gaussians can go below distance 0; self dist anyway defined as 0.
         np.fill_diagonal(mp_gaussi_hand, 0.)
-        mp_gaussi_allclose_gaussi_by_hand = \
-            np.allclose(mp_gaussi, mp_gaussi_hand)
-        return self.assertTrue(mp_gaussi_allclose_gaussi_by_hand)
+        return np.testing.assert_array_almost_equal(
+            mp_gaussi, mp_gaussi_hand, decimal=7)
 
     def test_mp_gaussi_all_zero_self_distances(self):
         self.setUpMod('rnd')
@@ -174,25 +149,25 @@ class TestMutualProximity(unittest.TestCase):
     def test_mp_gaussi_symmetric(self):
         self.setUpMod('rnd')
         mp_dist = mutual_proximity_gaussi(self.dist)
-        mp_dist_is_symmetric = np.all(mp_dist == mp_dist.T)
-        self.assertTrue(mp_dist_is_symmetric)
+        return np.testing.assert_array_almost_equal(
+            mp_dist, mp_dist.T, decimal=7)
     
     def test_mp_gaussi_dist_equal_sim(self):
         self.setUpMod('rnd')
         sim = 1. - self.dist
         mp_dist = mutual_proximity_gaussi(self.dist, 'distance')
         mp_sim = mutual_proximity_gaussi(sim, 'similarity')
-        dist_allclose_one_minus_sim = np.allclose(mp_dist, 1. - mp_sim)
-        return self.assertTrue(dist_allclose_one_minus_sim)
- 
+        return np.testing.assert_array_almost_equal(
+            mp_dist, 1. - mp_sim, decimal=7)
+
     def test_mp_gaussi_sparse_equal_dense(self):
         self.setUpMod('rnd')
         sim_dense = 1. - self.dist
         sim_sparse = csr_matrix(sim_dense)
         mp_dense = mutual_proximity_gaussi(sim_dense, 'similarity')
         mp_sparse = mutual_proximity_gaussi(sim_sparse, 'similarity')
-        dense_allclose_sparse = np.allclose(mp_dense, mp_sparse.toarray())
-        return self.assertTrue(dense_allclose_sparse)
+        return np.testing.assert_array_almost_equal(
+            mp_dense, mp_sparse.toarray(), decimal=7)
 
     def test_mp_gammai(self):
         """Test MP GammaI for toy example (ground truth calc by 'hand')"""
@@ -205,9 +180,8 @@ class TestMutualProximity(unittest.TestCase):
              [0.230927083, 0.5761291218, 0., 0.9817785746, 0.8286910286],
              [0.9558409888, 0.7088478962, 0.9817785746, 0., 0.9646050169],
              [0.6744697939, 0.9585297208, 0.8286910286, 0.9646050169, 0.]])
-        mp_gammai_allclose_gammai_by_hand = \
-            np.allclose(mp_gammai, mp_gammai_hand)
-        return self.assertTrue(mp_gammai_allclose_gammai_by_hand)
+        return np.testing.assert_array_almost_equal(
+            mp_gammai, mp_gammai_hand, decimal=7)
 
     def test_mp_gammai_all_zero_self_distances(self):
         self.setUpMod('rnd')
@@ -218,8 +192,8 @@ class TestMutualProximity(unittest.TestCase):
     def test_mp_gammai_symmetric(self):
         self.setUpMod('rnd')
         mp_dist = mutual_proximity_gammai(self.dist)
-        mp_dist_is_symmetric = np.all(mp_dist == mp_dist.T)
-        return self.assertTrue(mp_dist_is_symmetric)
+        return np.testing.assert_array_almost_equal(
+            mp_dist, mp_dist.T, decimal=7)
 
     def test_mp_gammai_dist_equal_sim(self):
         self.setUpMod('rnd')

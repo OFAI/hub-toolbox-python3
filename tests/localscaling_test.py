@@ -49,8 +49,8 @@ class TestLocalScaling(unittest.TestCase):
     def test_local_scaling(self):
         self.setUpMod('toy')
         dist_calc = local_scaling(self.dist, k=2)
-        calc_equals_truth = np.allclose(dist_calc, self.ls_dist_truth)
-        return self.assertTrue(calc_equals_truth)
+        return np.testing.assert_array_almost_equal(
+            dist_calc, self.ls_dist_truth, decimal=7)
  
     def test_ls_basic_requirements(self):
         """Test that matrix is symmetric, diag==0, and in range [0, 1]"""

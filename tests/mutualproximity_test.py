@@ -2,12 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2016-2017, Roman Feldbauer
+(c) 2016-2018, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
@@ -37,15 +35,15 @@ class TestMutualProximity(unittest.TestCase):
             self.dist = squareform([.2, .1, .8, .4, .3, .5, .7, 1., .6, .9])
 
             # MP with div/(n-0)
-            self.mp_dist_truth = squareform([.6, .4, 1., .8, .6, 
+            self.mp_dist_truth = squareform([.6, .4, 1., .8, .6,
                                              .8, 1., 1., .8, 1.])
             """
             # MP with div/(n-1)
-            self.mp_dist_truth = squareform([.5, .25, 1., .75, .5, 
+            self.mp_dist_truth = squareform([.5, .25, 1., .75, .5,
                                              .75, 1., 1., .75, 1.])
 
             # MP with div/(n-2)
-            self.mp_dist_truth = squareform([1/3, 0., 1., 2/3, 1/3, 
+            self.mp_dist_truth = squareform([1/3, 0., 1., 2/3, 1/3,
                                              2/3, 1., 1., 2/3, 1.])
             """
             self.vector = None
@@ -93,8 +91,8 @@ class TestMutualProximity(unittest.TestCase):
         """Test MP Empiric for toy example (ground truth calc by hand)"""
         self.setUpMod('toy')
         mp_dist_calc = mutual_proximity_empiric(self.dist, 'distance', verbose=1)
-        mp_calc_equal_truth = np.allclose(mp_dist_calc, 
-                                          self.mp_dist_truth, 
+        mp_calc_equal_truth = np.allclose(mp_dist_calc,
+                                          self.mp_dist_truth,
                                           atol=1e-16)
         return self.assertTrue(mp_calc_equal_truth)
 
@@ -109,7 +107,7 @@ class TestMutualProximity(unittest.TestCase):
         mp_dist = mutual_proximity_empiric(self.dist)
         mp_dist_is_symmetric = np.all(mp_dist == mp_dist.T)
         return self.assertTrue(mp_dist_is_symmetric)
-  
+
     def test_mp_empiric_dist_equal_sim(self):
         self.setUpMod('rnd')
         sim = 1. - self.dist
@@ -117,7 +115,7 @@ class TestMutualProximity(unittest.TestCase):
         mp_sim = mutual_proximity_empiric(sim, 'similarity')
         dist_allclose_one_minus_sim = np.allclose(mp_dist, 1. - mp_sim)
         return self.assertTrue(dist_allclose_one_minus_sim)
-  
+
     def test_mp_empiric_sparse_equal_dense(self):
         self.setUpMod('rnd')
         sim_dense = 1. - self.dist
@@ -127,10 +125,10 @@ class TestMutualProximity(unittest.TestCase):
             sim_sparse, 'similarity', verbose=1, n_jobs=4)
         dense_allclose_sparse = np.allclose(mp_dense, mp_sparse.toarray())
         return self.assertTrue(dense_allclose_sparse)
-  
+
     def test_mp_gauss(self):
         """Do NOT test for correct MP Gauss results. Just pass the test.
-        
+
         Background
         ----------
         1. MP Gauss requires MVN-CDF, for which there is no closed formula.
@@ -238,15 +236,15 @@ class TestMutualProximity(unittest.TestCase):
         mp_gammai = mutual_proximity_gammai(self.dist, verbose=1)
         # Calculated with formula (3) in JMLR paper, aided by LibreOffice Calc
         mp_gammai_hand = np.array(
-            [[0., 0.4334769987, 0.230927083, 0.9558409888, 0.6744697939], 
-             [0.4334769987, 0., 0.5761291218, 0.7088478962, 0.9585297208], 
-             [0.230927083, 0.5761291218, 0., 0.9817785746, 0.8286910286], 
-             [0.9558409888, 0.7088478962, 0.9817785746, 0., 0.9646050169], 
+            [[0., 0.4334769987, 0.230927083, 0.9558409888, 0.6744697939],
+             [0.4334769987, 0., 0.5761291218, 0.7088478962, 0.9585297208],
+             [0.230927083, 0.5761291218, 0., 0.9817785746, 0.8286910286],
+             [0.9558409888, 0.7088478962, 0.9817785746, 0., 0.9646050169],
              [0.6744697939, 0.9585297208, 0.8286910286, 0.9646050169, 0.]])
         mp_gammai_allclose_gammai_by_hand = \
             np.allclose(mp_gammai, mp_gammai_hand)
         return self.assertTrue(mp_gammai_allclose_gammai_by_hand)
- 
+
     def test_mp_gammai_all_zero_self_distances(self):
         self.setUpMod('rnd')
         mp_dist = mutual_proximity_gammai(self.dist)
@@ -281,6 +279,6 @@ class TestMutualProximity(unittest.TestCase):
         mp_sparse = mutual_proximity_gammai(sim_sparse, 'similarity')
         dense_allclose_sparse = np.allclose(mp_dense, mp_sparse.toarray())
         return self.assertTrue(dense_allclose_sparse)
-    
+
 if __name__ == "__main__":
     unittest.main()

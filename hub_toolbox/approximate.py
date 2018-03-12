@@ -428,18 +428,19 @@ class SuQHR(BaseEstimator, TransformerMixin):
             shuffle = ShuffleSplit(n_splits=1, test_size=self.n_samples,
                                    random_state=random_state)
         else:
-            try:
-                shuffle = StratifiedShuffleSplit(
-                    n_splits=1, test_size=self.n_samples,
-                    random_state=random_state)
-            except ValueError as e:
-                warnings.warn(
-                    f'Stratified sampling failed (see error message below). '
-                    f'Resorting to non-stratified sampling. '
-                    f'Some classes will be lost!\nError:\n{e}')
-                shuffle = ShuffleSplit(n_splits=1, test_size=self.n_samples,
-                                       random_state=random_state)
-        _, ind = next(shuffle.split(X=X, y=y))
+            shuffle = StratifiedShuffleSplit(
+                n_splits=1, test_size=self.n_samples,
+                random_state=random_state)
+        try:
+            _, ind = next(shuffle.split(X=X, y=y))
+        except ValueError as e:
+            warnings.warn(
+                f'Stratified sampling failed (see error message below). '
+                f'Resorting to non-stratified sampling. '
+                f'Some classes will be lost!\nError:\n{e}')
+            shuffle = ShuffleSplit(n_splits=1, test_size=self.n_samples,
+                                   random_state=random_state)
+            _, ind = next(shuffle.split(X=X, y=y))
         X = X[ind, :]
         if y is not None:
             y = y[ind]

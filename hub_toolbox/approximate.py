@@ -367,10 +367,14 @@ class SuQHR(BaseEstimator, TransformerMixin):
         self.kwargs = kwargs
 
         # Making sure parameters have sensible values
-        if hr_algorithm is not None and hr_algorithm.upper() not in VALID_HR:
-            raise ValueError(
-                f'Unknown hubness reduction algorithm "{hr_algorithm}". '
-                f'Must be one of {VALID_HR}.')
+        if hr_algorithm is not None:
+            hr_algorithm = hr_algorithm.upper()
+            if hr_algorithm not in VALID_HR:
+                raise ValueError(
+                    f'Unknown hubness reduction algorithm "{hr_algorithm}". '
+                    f'Must be one of {VALID_HR}.')
+            else:
+                self.hr_algorithm = hr_algorithm
         if n_neighbors is not None:
             if n_neighbors < 1:
                 raise ValueError(f"Neighborhood size 'n_neighbors' must "
@@ -381,6 +385,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
                                  f"be >= 1, but is {n_samples}. "
                                  f"Try a value in [100..1000].")
         if sampling_algorithm is not None:
+            sampling_algorithm = sampling_algorithm.lower()
             if sampling_algorithm not in VALID_SAMPLE:
                 raise ValueError(
                     f'Unknown sampling algorithm "{sampling_algorithm}". '
@@ -391,6 +396,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
             elif sampling_algorithm == 'hnsw' and not nms_avail:
                 raise ImportError(f'HNSW not available. Please make sure '
                                   f'NMSLIB is installed.')
+            else:
+                self.sampling_algorithm = sampling_algorithm
         if metric not in VALID_METRICS:
             raise ValueError(f"Unknown metric '{metric}'. "
                              f"Must be one of {VALID_METRICS}.")

@@ -95,12 +95,15 @@ def _lsh_filt(i, k, metric, verbose):
     x = X_train[i, :]
     knn = np.array(ann_index.find_k_nearest_neighbors(x, k=k+1))[1:]
     ind_train[i, :knn.size] = knn
-    if metric == 'sqeucliean':
+    if metric == 'sqeuclidean':
         D_train[i, :knn.size] = euclidean_distances(
             x.reshape(1, -1), X_train[knn], squared=True)
     elif metric == 'cosine':
         D_train[i, :knn.size] = cosine_distances(
             x.reshape(1, -1), X_train[knn])
+    else:
+        raise ValueError(f'Invalid metric "{metric}". This indicates a'
+                         f'software bug.')
     if knn.size < k:
         ind_train[i, knn.size:] = knn[-1]
         D_train[i, knn.size:] = D_train[i].max()
@@ -108,12 +111,15 @@ def _lsh_filt(i, k, metric, verbose):
 def _lsh_trafo(i, k, metric, verbose):
     x = X_test[i, :]
     lsh_nn = np.array(ann_index.find_k_nearest_neighbors(x, k=k))
-    if metric == 'sqeucliean':
+    if metric == 'sqeuclidean':
         D_test[i, :lsh_nn.size] = euclidean_distances(
             x.reshape((1, -1)), X_train[lsh_nn], squared=True).ravel()
     elif metric == 'cosine':
         D_test[i, :lsh_nn.size] = cosine_distances(
             x.reshape((1, -1)), X_train[lsh_nn])
+    else:
+        raise ValueError(f'Invalid metric "{metric}". This indicates a'
+                         f'software bug.')
     ind_test[i, :lsh_nn.size] = lsh_nn
     if lsh_nn.size < k:
         ind_test[i, lsh_nn.size:] = lsh_nn[-1]
@@ -229,6 +235,9 @@ def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
             squared=True)
     elif metric == 'cosine':
         closest_dist_sq = cosine_distances(centers[0, np.newaxis], X)
+    else:
+        raise ValueError(f'Invalid metric "{metric}". This indicates a'
+                         f'software bug.')
     current_pot = closest_dist_sq.sum()
 
     # Pick the remaining n_clusters-1 points
@@ -246,6 +255,9 @@ def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
                 squared=True)
         elif metric == 'cosine':
             distance_to_candidates = cosine_distances(X[candidate_ids], X)
+        else:
+            raise ValueError(f'Invalid metric "{metric}". This indicates a'
+                             f'software bug.')
 
         # Decide which candidate is the best
         best_candidate = None
@@ -489,6 +501,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             space = 'l2'
         elif self.metric == 'cosine':
             space = 'cosinesimil'
+        else:
+            raise ValueError(f'Invalid metric "{self.metric}". '
+                             f'This indicates a software bug.')
         self.hnsw_squared_euclidean_ = True if space == 'l2' else False
         self.hnsw_cosine_simil_ = True if space == 'cosinesimil' else False
         assert not (self.hnsw_cosine_simil_
@@ -548,6 +563,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             distance = falconn.DistanceFunction.EuclideanSquared  # @UndefinedVariable
         elif self.metric == 'cosine':
             distance = falconn.DistanceFunction.NegativeInnerProduct  # @UndefinedVariable
+        else:
+            raise ValueError(f'Invalid metric "{self.metric}". '
+                             f'This indicates a software bug.')
         try:
             num_probes = self.kwargs['falconn__num_probes']
         except KeyError:
@@ -613,6 +631,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 elif metric == 'cosine':
                     D_test[i, :lsh_nn.size] = cosine_distances(
                         x.reshape((1, -1)), self.X_train_[lsh_nn]).ravel()
+                else:
+                    raise ValueError(f'Invalid metric "{metric}". '
+                                     f'This indicates a software bug.')
                 ind[i, :lsh_nn.size] = lsh_nn
                 if lsh_nn.size < k:
                     ind[i, lsh_nn.size:] = lsh_nn[-1]
@@ -694,6 +715,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
+            else:
+                raise ValueError(f'Invalid metric "{self.metric}". '
+                                 f'This indicates a software bug.')
             ind = np.tile(
                 np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
@@ -806,6 +830,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X, self.X_train_)
                 D_train = cosine_distances(self.X_train_)
+            else:
+                raise ValueError(f'Invalid metric "{self.metric}". '
+                                 f'This indicates a software bug.')
             np.fill_diagonal(D_train, np.inf)
             # Calculate MP empiric
             if self.n_jobs == 1:
@@ -859,6 +886,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     squared=True)
             elif self.metric == 'cosine':
                 D_train = cosine_distances(X)
+            else:
+                raise ValueError(f'Invalid metric "{self.metric}". '
+                                 f'This indicates a software bug.')
             np.fill_diagonal(D_train, np.nan)
             self.mu_train_ = np.nanmean(D_train, axis=0)
             self.sd_train_ = np.nanstd(D_train, axis=0, ddof=0)
@@ -907,6 +937,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
+            else:
+                raise ValueError(f'Invalid metric "{self.metric}". '
+                                 f'This indicates a software bug.')
             ind = np.tile(
                 np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
@@ -993,6 +1026,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
+            else:
+                raise ValueError(f'Invalid metric "{self.metric}". '
+                                 f'This indicates a software bug.')
             ind = np.tile(
                 np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
@@ -1059,6 +1095,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             elif self.metric == 'cosine':
                 # A rather exploratory approach...
                 D_train = cosine_distances(X)
+            else:
+                raise ValueError(f'Invalid metric "{self.metric}". '
+                                 f'This indicates a software bug.')
             knn = np.argpartition(D_train, kth=kth+1)[:, 1:kth+1]
             del D_train
             centroids = np.empty_like(X)
@@ -1092,6 +1131,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             dist_to_cent = 1 - (X * centroids).sum(axis=1) \
                             / np.linalg.norm(X, ord=2, axis=1) \
                             / np.linalg.norm(centroids, ord=2, axis=1)
+        else:
+            raise ValueError(f'Invalid metric "{self.metric}". '
+                             f'This indicates a software bug.')
         self.X_train_centroids_ = centroids
         self.X_train_dist_to_cent_ = dist_to_cent
         self.X_train_ = X
@@ -1124,6 +1166,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
+            else:
+                raise ValueError(f'Invalid metric "{self.metric}". '
+                                 f'This indicates a software bug.')
             ind = np.tile(
                 np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
@@ -1141,6 +1186,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 1. - (X * centroid_test).sum(axis=1) \
                     / np.linalg.norm(X, ord=2, axis=1) \
                     / np.linalg.norm(centroid_test, ord=2, axis=1)
+        else:
+            raise ValueError(f'Invalid metric "{self.metric}". '
+                             f'This indicates a software bug.')
         X_train_dist_to_cent = np.empty_like(ind, dtype=X.dtype)
         for i in range(n_test):
             # TODO check correct use of ind

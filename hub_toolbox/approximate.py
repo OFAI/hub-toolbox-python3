@@ -640,7 +640,6 @@ class SuQHR(BaseEstimator, TransformerMixin):
     ##  Baseline without hubness reduction
     ##
     def _fit_without_hr(self, X, y=None):
-        X = check_array(X, dtype=float)
         k = self.n_samples
         # Sampling
         if self.sampling_algorithm in ['random', 'kmeans++', None]:
@@ -706,7 +705,6 @@ class SuQHR(BaseEstimator, TransformerMixin):
     ##  Mutual proximity using empiric distance distributions ('exact' MP)
     ##
     def _fit_mp(self, X, y=None):
-        X = check_array(X, dtype=float)
         k = self.n_samples
         n_train, _ = X.shape
         # Sampling
@@ -843,7 +841,6 @@ class SuQHR(BaseEstimator, TransformerMixin):
     ##  Mutual proximity assuming independent Gaussian distance distributions
     ##
     def _fit_mpg(self, X, y=None):
-        X = check_array(X, dtype=float)
         n_train, _ = X.shape
         k = self.n_samples
         # Sampling
@@ -935,7 +932,6 @@ class SuQHR(BaseEstimator, TransformerMixin):
     ##  Local scaling / NICDM
     ##
     def _fit_ls(self, X, y=None):
-        X = check_array(X, dtype=float)
         k = self.n_samples
         kth = self.n_neighbors
         # Sampling

@@ -10,7 +10,6 @@ Licensed under the terms of the GNU GPLv3.
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
-
 import ctypes
 from functools import partial
 import warnings
@@ -19,7 +18,6 @@ from multiprocessing import cpu_count, RawArray, Pool
 import numpy as np
 from scipy.sparse.base import issparse
 from scipy.stats import norm
-
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
 from sklearn.metrics import euclidean_distances
@@ -56,9 +54,9 @@ def enforce_finite_distances(arr):
         arr[nonfin_ind] = d_max
     return arr
 
-#==============================================================================
+#=============================================================================
 # HELPER FUNCTIONS FOR MULTIPROCESSING
-#==============================================================================
+#=============================================================================
 def _load_shared_data(X_train_=None, X_test_=None,
                       ind_train_=None, ind_test_=None,
                       D_train_=None, D_test_=None,
@@ -133,7 +131,8 @@ def _mp_hnsw(i, n_train, n_test, n_samples, verbose):
         thresh_ind = np.searchsorted(D_train[t_idx], d, side='right')
         ind_t = ind_train[t_idx, :thresh_ind]
         mp_complement = np.union1d(ind_x, ind_t)
-        mp_ind = np.setdiff1d(range(n_train), mp_complement, assume_unique=True)
+        mp_ind = np.setdiff1d(
+            range(n_train), mp_complement, assume_unique=True)
         D_sec[i, j] = 1 - mp_ind.size / n_train
 
 def _mp_lsh(i, n_train, n_test, n_samples, verbose):
@@ -147,22 +146,23 @@ def _mp_lsh(i, n_train, n_test, n_samples, verbose):
         ind_x = ann_index.find_near_neighbors(query=x, threshold=d)
         ind_t = ann_index.find_near_neighbors(query=t, threshold=d)
         mp_complement = np.union1d(ind_x, ind_t)
-        mp_ind = np.setdiff1d(range(n_train), mp_complement, assume_unique=True)
+        mp_ind = np.setdiff1d(
+            range(n_train), mp_complement, assume_unique=True)
         D_sec[i, j] = 1 - mp_ind.size / n_train
 
 def _mp_full(i, n_train, n_test, n_samples, verbose):
     if verbose > 1 and (i % 1000 == 0 or i == n_test-1):
         print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
     dI = D_test[i, :][np.newaxis, :] # broadcasted afterwards
-    dJ = D_train#[self.train_ind_, :] # fancy indexing, thus copy
-    d = dI.T # D[i, :][:, np.newaxis] # both versions are equal
+    dJ = D_train
+    d = dI.T
     # div by n
     n_pts = n_samples
     D_sec[i, :] = 1 - (np.sum((dI > d) & (dJ > d), axis=1) / n_pts)
 
-#==============================================================================
+#=============================================================================
 # INSTANCE SELECTION ALGORITHMS
-#==============================================================================
+#=============================================================================
 def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
              n_local_trials=None, return_ind=True, metric='sqeuclidean'):
     """Select vantage points according to k-means++
@@ -170,8 +170,8 @@ def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
     Parameters
     -----------
     X : array or sparse matrix, shape (n_samples, n_features)
-        The data to select vantage points from. To avoid memory copy, the input
-        data should be double precision (dtype=np.float64).
+        The data to select vantage points from. To avoid memory copy, the
+        input data should be single precision (dtype=np.float32).
     n_clusters : integer
         The number of vantage points to choose
     x_squared_norms : array, shape (n_samples,)
@@ -311,7 +311,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
         If None, compute full distance matrices (FuQHR)
     metric : string, one of ['sqeuclidean', 'cosine']
         Metric to use for distance computation. Currently, only squared
-        Euclidean distances are supported (GCD of all used libraries).
+        Euclidean and cosine distances are supported
+        (GCD of all used libraries).
     random_state : int, RandomState instance or None, optional
         If int, random_state is the seed used by the random number generator;
         If RandomState instance, random_state is the random number generator;
@@ -330,10 +331,10 @@ class SuQHR(BaseEstimator, TransformerMixin):
     ----------
     ...
     fixed_vantage_pts_ : bool
-        True: Random, kmeans++ sampling use the same training objects
+        True: 'Random', 'kmeans++' sampling use the same training objects
         as vantage points for all test objects.
         False: LSH, HNSW filtering yield different vantage points
-        for each test object
+        for each test object.
     X_train_norm_squared_ : ndarray
         Precomputed squared norm for training objects to speed up
         Euclidean distance calculation at test time.
@@ -342,7 +343,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
     X_train_ : ndarray
         Training vectors
     y_train_ : ndarray of integers
-        Training labels corresponding to TODO describe
+        Training labels corresponding to ... TODO describe
     ind_train_ : ndarray of integers
         TODO describe
     mu_train_, sd_train_ : ndarray (for hr_algorithm == 'MPG')
@@ -411,7 +412,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
             X_norm_squared = None
         return X_norm_squared
 
-    ############################################################################
+    ##########################################################################
     ##
     ##  Sampling and filtering methods 
     ##
@@ -465,7 +466,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
 
     def _hnsw_filtering(self, X, k):
         ''' Find k approx. nearest neighbors for each vector in X with HNSW.
-        
+
         Returns indices of neighbors per object, their distances,
         and the HNSW index.'''
         # Initialize a new index, using a HNSW index on Eucl distances
@@ -493,7 +494,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         neigh_dist = index.knnQueryBatch(
             X, k=k+1, num_threads=self.n_jobs)
         ind = np.zeros((n_train, k), dtype=np.int32) * n_train
-        D_train = np.empty_like(ind) * np.nan
+        D_train = np.empty_like(ind, dtype=X.dtype) * np.nan
         for i, (idx, dist) in enumerate(neigh_dist):
             ind[i, :idx.size-1] = idx[1:]
             D_train[i, :dist.size-1] = dist[1:]
@@ -516,7 +517,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         neigh_dist = self.ann_index_.knnQueryBatch(
             X, k=k, num_threads=self.n_jobs)
         ind = np.zeros((n_test, k), dtype=np.int32) * self.X_train_.shape[0]
-        D_test = np.empty_like(ind) * np.nan
+        D_test = np.empty_like(ind, dtype=X.dtype) * np.nan
         for i, (idx, dist) in enumerate(neigh_dist):
             ind[i, :idx.size] = idx
             D_test[i, :dist.size] = dist
@@ -532,7 +533,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
 
     def _lsh_filtering(self, X, k):
         ''' Find k approximate nearest neighbors for each vector in X with LSH.
-        
+
         Returns indices of neighbors per object, their distances,
         and the LSH index.'''
         n_train = X.shape[0]
@@ -554,7 +555,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         query.set_num_probes(num_probes)
         if self.n_jobs == 1:
             ind = np.empty((n_train, k), dtype=np.int32)
-            D_train = np.empty_like(ind, dtype=np.float32)
+            D_train = np.empty_like(ind, dtype=X.dtype)
             for i, x in enumerate(X):
                 # LSH will find object itself as 1-NN
                 knn = np.array(query.find_k_nearest_neighbors(x, k=k+1))[1:]
@@ -570,12 +571,15 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     D_train[i, knn.size:] = D_train[i].max()
         else:
             ind_ctype = RawArray(ctypes.c_int32, n_train * k)
-            ind = np.frombuffer(ind_ctype, dtype=np.int32).reshape((n_train, k))
+            ind = np.frombuffer(
+                ind_ctype, dtype=np.int32).reshape((n_train, k))
             D_train_ctype = RawArray(ctypes.c_float, ind.size)
-            D_train = np.frombuffer(D_train_ctype, dtype=np.float32).reshape(ind.shape)
+            D_train = np.frombuffer(
+                D_train_ctype, dtype=np.float32).reshape(ind.shape)
             with Pool(processes=self.n_jobs,
                       initializer=_shared_lsh,
-                      initargs=(X, ind, D_train, lsh_index, num_probes)) as pool:
+                      initargs=(
+                          X, ind, D_train, lsh_index, num_probes)) as pool:
                     for _ in pool.map(
                         func=partial(_lsh_filt, k=k, metric=self.metric,
                                      verbose=self.verbose),
@@ -615,8 +619,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 D_test_ctype, dtype=np.float32).reshape(ind.shape)
             with Pool(processes=self.n_jobs,
                       initializer=_shared_lsh_trafo,
-                      initargs=(self.X_train_, X, ind, D_test, self.lsh_index_,
-                                self.num_probes_)) as pool:
+                      initargs=(self.X_train_, X, ind, D_test,
+                                self.lsh_index_, self.num_probes_)) as pool:
                     for _ in pool.map(
                         func=partial(_lsh_trafo, k=k, metric=metric,
                                      verbose=self.verbose),
@@ -624,7 +628,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
                         pass # results handled within func
         return ind, D_test
 
-    ############################################################################
+    ##########################################################################
     ##
     ##  Baseline without hubness reduction
     ##
@@ -684,12 +688,13 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
-            ind = np.tile(np.arange(n_train), n_test).reshape((n_test, n_train))
+            ind = np.tile(
+                np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
         self.sec_dist_ = D_test
         return None
 
-    ############################################################################
+    ##########################################################################
     ##
     ##  Mutual proximity using empiric distance distributions ('exact' MP)
     ##
@@ -736,8 +741,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
             ind, D_test = self._hnsw_trafo(X, k)
             self.ind_test_ = ind
             # Calculate MP empiric
-            D_sec_ctype = RawArray(ctypes.c_double, D_test.size)
-            D_sec = np.frombuffer(D_sec_ctype, dtype=np.float64).reshape(D_test.shape)
+            D_sec_ctype = RawArray(ctypes.c_float, D_test.size)
+            D_sec = np.frombuffer(
+                D_sec_ctype, dtype=np.float32).reshape(D_test.shape)
             with Pool(processes=self.n_jobs,
                       initializer=_load_shared_data,
                       initargs=(None, None, self.ind_train_, ind,
@@ -756,20 +762,24 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 D_sec = np.empty_like(D_test)
                 for i in range(n_test):
                     if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
-                        print(f"MP_empiric: {i+1} of {n_test}.", end='\r', flush=True)
+                        print(f"MP_empiric: {i+1} of {n_test}.", end='\r')
                     x = X[i, :]
                     for j in range(self.n_samples):
                         d = D_test[i, j]
                         t = self.X_train_[ind[i, j], :]
                         # So far, only FALCONN is supported
-                        ind_x = self.ann_index_.find_near_neighbors(query=x, threshold=d)
-                        ind_t = self.ann_index_.find_near_neighbors(query=t, threshold=d)
+                        ind_x = self.ann_index_.find_near_neighbors(
+                            query=x, threshold=d)
+                        ind_t = self.ann_index_.find_near_neighbors(
+                            query=t, threshold=d)
                         mp_complement = np.union1d(ind_x, ind_t)
-                        mp_ind = np.setdiff1d(range(n_train), mp_complement, assume_unique=True)
+                        mp_ind = np.setdiff1d(
+                            range(n_train), mp_complement, assume_unique=True)
                         D_sec[i, j] = 1 - mp_ind.size / n_train
             else:
-                D_sec_ctype = RawArray(ctypes.c_double, D_test.size)
-                D_sec = np.frombuffer(D_sec_ctype, dtype=np.float64).reshape(D_test.shape)
+                D_sec_ctype = RawArray(ctypes.c_float, D_test.size)
+                D_sec = np.frombuffer(
+                    D_sec_ctype, dtype=np.float32).reshape(D_test.shape)
                 with Pool(processes=self.n_jobs,
                       initializer=_load_shared_data,
                       initargs=(self.X_train_, X, None, ind,
@@ -794,22 +804,21 @@ class SuQHR(BaseEstimator, TransformerMixin):
             np.fill_diagonal(D_train, np.inf)
             # Calculate MP empiric
             if self.n_jobs == 1:
-                D_sec = np.empty_like(D_test)
+                D_sec = np.empty_like(D_test, dtype=X.dtype)
                 for i in range(n_test):
                     if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
-                        print(f"MP_empiric: {i+1} of {n_test}.",
-                              end='\r', flush=True)
+                        print(f"MP_empiric: {i+1} of {n_test}.", end='\r')
                     dI = D_test[i, :][np.newaxis, :] # broadcasted afterwards
                     dJ = D_train
                     d = dI.T
                     # div by n
                     n_pts = self.n_samples
                     D_sec[i, :] = \
-                        1 - (np.sum((dI > d) & (dJ > d), axis=1) / n_pts)
+                        1. - (np.sum((dI > d) & (dJ > d), axis=1) / n_pts)
             else:
-                D_sec_ctype = RawArray(ctypes.c_double, D_test.size)
+                D_sec_ctype = RawArray(ctypes.c_float, D_test.size)
                 D_sec = np.frombuffer(
-                    D_sec_ctype, dtype=np.float64).reshape(D_test.shape)
+                    D_sec_ctype, dtype=np.float32).reshape(D_test.shape)
                 with Pool(processes=self.n_jobs,
                       initializer=_load_shared_data,
                       initargs=(None, None, None, None,
@@ -822,7 +831,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
             self.sec_dist_ = D_sec
         return
 
-    ############################################################################
+    ##########################################################################
     ##
     ##  Mutual proximity assuming independent Gaussian distance distributions
     ##
@@ -894,15 +903,16 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
-            ind = np.tile(np.arange(n_train), n_test).reshape((n_test, n_train))
+            ind = np.tile(
+                np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
         # Calculate MP G
-        D_mp = np.empty_like(D_test)
+        D_mp = np.empty_like(D_test, dtype=X.dtype)
         mu_train = self.mu_train_
         sd_train = self.sd_train_
         for i in range(n_test):
             if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
-                    print(f"MP_Gaussian: {i+1} of {n_test}.", end='\r', flush=True)
+                    print(f"MP_Gaussian: {i+1} of {n_test}.", end='\r')
             j_mom = ind[i]
             mu = np.nanmean(D_test[i])
             sd = np.nanstd(D_test[i], ddof=0)
@@ -913,7 +923,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return None
 
 
-    ############################################################################
+    ##########################################################################
     ##
     ##  Local scaling / NICDM
     ##
@@ -946,7 +956,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
             if self.sampling_algorithm == 'lsh':
                 ind, D_train, ann_index = self._lsh_filtering(X, k)
             self.ann_index_ = ann_index
-            self.r_train_ = D_train[:, :kth] # self distances filtered by ann_filtering() methods
+            self.r_train_ = D_train[:, :kth]
+            # Line above: self distances filtered by ann_filtering() methods
             self.fixed_vantage_pts_ = False
         else:
             raise NotImplementedError(
@@ -984,7 +995,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
             self.ind_test_ = self.ind_train_
             r_test = np.partition(D_test, kth=kth)[:, :self.n_neighbors]
         # Calculate LS or NICDM
-        D_sec = np.empty_like(D_test)
+        D_sec = np.empty_like(D_test, dtype=X.dtype)
         if not self.fixed_vantage_pts_:
             sample_ind = self.ind_test_
             assert sample_ind.shape[0] == n_test, \
@@ -998,22 +1009,24 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     print(f"Local scaling: {i+1} of {n_test}.",
                           end='\r', flush=True)
                 if self.fixed_vantage_pts_:
-                    D_sec[i, :] = 1 - np.exp(-1 * D_test[i]**2 \
-                                             / (r_test[i] * r_train[:]))
+                    D_sec[i, :] = 1. - np.exp(-1 * D_test[i]**2 \
+                                              / (r_test[i] * r_train[:]))
                 else:
                     D_sec[i, :] = \
-                        1 - np.exp(-1 * D_test[i]**2 \
-                                   / (r_test[i] * r_train[sample_ind[i]]))
+                        1. - np.exp(-1 * D_test[i]**2 \
+                                    / (r_test[i] * r_train[sample_ind[i]]))
         elif self.hr_algorithm.upper() == 'NICDM':
             r_train = self.r_train_.mean(axis=1)
             r_test = r_test.mean(axis=1)
             for i in range(n_test):
                 if self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
-                    print(f"NICDM: {i+1} of {n_test}.", end='\r', flush=True)
+                    print(f"NICDM: {i+1} of {n_test}.", end='\r')
                 if self.fixed_vantage_pts_:
-                    D_sec[i, :] = D_test[i] / np.sqrt((r_test[i] * r_train[:]))
+                    D_sec[i, :] = D_test[i] / np.sqrt(
+                        (r_test[i] * r_train[:]))
                 else:
-                    D_sec[i, :] = D_test[i] / np.sqrt((r_test[i] * r_train[sample_ind[i]]))
+                    D_sec[i, :] = D_test[i] / np.sqrt(
+                        (r_test[i] * r_train[sample_ind[i]]))
         else:
             raise ValueError(f"Invalid 'hr_algorithm' {self.hr_algorithm} "
                              f"in '_transform_ls()'.")
@@ -1021,12 +1034,11 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return None
 
 
-    ############################################################################
+    ##########################################################################
     ##
     ##  DisSim Local
     ##
     def _fit_dsl(self, X, y=None):
-        X = check_array(X, dtype=float)
         kth = self.n_neighbors
         # Sampling
         if self.sampling_algorithm in ['random', 'kmeans++', None]:
@@ -1072,7 +1084,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 f'Value for `sampling_algorithm` must be one of '
                 f'{VALID_SAMPLE}. NOTE: This error indicates a software bug.')
         if self.metric == 'sqeuclidean':
-            dist_to_cent = row_norms(X - centroids, squared=True) #((X - centroids) ** 2).sum(axis=1)
+            dist_to_cent = row_norms(X - centroids, squared=True)
         elif self.metric == 'cosine':
             dist_to_cent = 1 - (X * centroids).sum(axis=1) \
                             / np.linalg.norm(X, ord=2, axis=1) \
@@ -1109,7 +1121,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
-            ind = np.tile(np.arange(n_train), n_test).reshape((n_test, n_train))
+            ind = np.tile(
+                np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_
             centroid_test = np.empty_like(X)
             knn = np.argpartition(D_test, kth=kth)[:, :kth]
@@ -1125,9 +1138,10 @@ class SuQHR(BaseEstimator, TransformerMixin):
                 1. - (X * centroid_test).sum(axis=1) \
                     / np.linalg.norm(X, ord=2, axis=1) \
                     / np.linalg.norm(centroid_test, ord=2, axis=1)
-        X_train_dist_to_cent = np.empty_like(ind, dtype=float)
+        X_train_dist_to_cent = np.empty_like(ind, dtype=X.dtype)
         for i in range(n_test):
-            X_train_dist_to_cent[i] = self.X_train_dist_to_cent_[ind[i]] # TODO check correct use of ind
+            # TODO check correct use of ind
+            X_train_dist_to_cent[i] = self.X_train_dist_to_cent_[ind[i]]
         D_sec = D_test
         D_sec -= X_test_dist_to_cent[:, np.newaxis]
         D_sec -= X_train_dist_to_cent
@@ -1135,7 +1149,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return None
 
 
-    ############################################################################
+    ##########################################################################
     ##
     ##  General methods - fit, predict, etc.
     ##
@@ -1145,7 +1159,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : array-like of shape [n_objects, n_features]
-            training set.
+            Training set. NOTE: Ensure X.dtype == np.float32 to avoid copies.
         y: array-like of shape [n_objects,]
             Class labels (used for stratified random sampling)
 
@@ -1153,6 +1167,13 @@ class SuQHR(BaseEstimator, TransformerMixin):
         -------
         self : returns an instance of self.
         """
+        # Reduce memory footprint
+        X = check_array(X, dtype=np.float32, warn_on_dtype=True,
+                        estimator='ApproximateHubnessReduction')
+        if y is not None:
+            y = check_array(y, dtype=np.int32, ensure_2d=False,
+                            estimator='ApproximateHubnessReduction')
+
         if self.hr_algorithm is None:
             fit = self._fit_without_hr
         else:
@@ -1178,17 +1199,19 @@ class SuQHR(BaseEstimator, TransformerMixin):
         Parameters
         ----------
         X : array-like, shape = [n_objects, n_features]
-            Test set.
+            Test set. NOTE: Ensure X.dtype == np.float32 to avoid copies.
 
         Returns
         -------
-        D_ls : array, shape [n_objects, n_samples]
+        D_hr : array, shape [n_objects, n_samples]
+            Secondary distance matrix
 
         Notes
         -----
         ...
         """
-        X = check_array(X)
+        X = check_array(X, dtype=np.float32, warn_on_dtype=True,
+                        estimator='ApproximateHubnessReduction')
         # TODO use all attributes, that are required for 
         # the individual transformation.
         if self.hr_algorithm is None:

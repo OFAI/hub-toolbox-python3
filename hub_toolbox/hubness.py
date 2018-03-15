@@ -317,6 +317,8 @@ def hubness_from_vectors(X:np.ndarray, Y:np.ndarray=None, k:int=5,
     assert m_test == m_train, f'Number of features do not match'
     Dk = np.empty((n_test, k), dtype=np.int32)
     for i in range(n_test):
+        if verbose > 1 or (verbose > 0 and i % 1_000 == 0):
+            print(f'Hubness progress {i+1}/{n_test}', end='\r')
         d = pairwise_distances(X[i, :].reshape(1, -1), Y, metric, n_jobs)
         nn = np.argpartition(d, kth=kth)[0, start:end]
         Dk[i, :] = nn

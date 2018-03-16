@@ -10,7 +10,7 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
-from hub_toolbox.logging import Logging, ConsoleLogging, FileLogging
+from hub_toolbox.htlogging import Logging, ConsoleLogging, FileLogging
 
 class TestLogging(unittest.TestCase):
     """Minimally test Logging (should switch to std module logging anyway)"""

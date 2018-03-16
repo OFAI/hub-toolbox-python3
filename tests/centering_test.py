@@ -40,8 +40,7 @@ class TestCentering(unittest.TestCase):
         gamma = np.random.rand(1)
         vectors_wcent = weighted_centering(self.vectors, 'cosine', gamma)
         vectors_cent = centering(self.vectors, 'vector')
-        return np.testing.assert_array_almost_equal(
-            vectors_cent, vectors_wcent, decimal=7)
+        return self.assertNotEqual((vectors_cent - vectors_wcent).sum(), 0)
 
     def test_localized_centering(self):
         """Test whether hubness and k-NN accuracy improve for dexter"""

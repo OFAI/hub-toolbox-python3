@@ -42,7 +42,7 @@ class TestHubness(unittest.TestCase):
         k = 10
         Sk10, Dk10, Nk10 = hubness(dist, k=k)
         # Dk is just checked for correct shape
-        correct_dim_Dk10 = Dk10.shape == (k, points)
+        correct_dim_Dk10 = Dk10.shape == (points, k)
         # Count k-occurence (different method than in module)
         Dk10 = Dk10.ravel()
         Nk10_true = np.zeros(points, dtype=int)

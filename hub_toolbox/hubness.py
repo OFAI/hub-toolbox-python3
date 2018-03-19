@@ -13,7 +13,7 @@ Contact: <roman.feldbauer@ofai.at>
 import ctypes
 from functools import partial
 import multiprocessing as mp
-from multiprocessing import RawArray, Pool
+from multiprocessing import RawArray, Pool, cpu_count
 import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
@@ -21,8 +21,8 @@ from sklearn.metrics.pairwise import pairwise_distances
 from hub_toolbox import io
 from hub_toolbox.htlogging import ConsoleLogging
 
-__all__ = ['hubness', 'hubness_from_vectors']
-
+__all__ = ['Hubness', 'hubness', 'hubness_from_vectors']
+VALID_METRICS = ['euclidean', 'cosine', 'precomputed']
 
 def _hubness_load_shared_data(D_, D_k_):
     global D, D_k
@@ -327,6 +327,204 @@ def hubness_from_vectors(X:np.ndarray, Y:np.ndarray=None, k:int=5,
     # Hubness
     Sk = stats.skew(Nk)
     return Sk, Dk, Nk
+
+
+class Hubness(object):
+    """ Hubness characteristics of data set.
+
+    Parameters
+    ----------
+    k : int
+        Neighborhood size
+    hub_size : float
+        Hubs are defined as objects with k-occurrence > hub_size * k.
+    metric : string, one of ['euclidean', 'cosine', 'precomputed']
+        Metric to use for distance computation. Currently, only
+        Euclidean, cosine, and precomputed distances are supported.
+    return_k_neighbors : bool
+        Whether to save the k-neighbor lists. Requires O(n_test * k) memory.
+    return_k_occurrence : bool
+        Whether to save the k-occurrence. Requires O(n_test) memory.
+    random_state : int, RandomState instance or None, optional
+        CURRENTLY IGNORED.
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+    n_jobs : int, optional
+        CURRENTLY IGNORED.
+        Number of processes for parallel computations.
+        - `1`: Don't use multiprocessing.
+        - `-1`: Use all CPUs
+    verbose : int, optional
+        Level of output messages
+
+    Attributes
+    ----------
+    k_skewness_ : float
+        Hubness, measured as skewness of k-occurrence histogram
+    k_skewness_truncnom : float
+        Hubness, measured as skewness of truncated normal distribution
+        fitted with k-occurrence histogram
+    antihubs_ : int
+        Indices to antihubs
+    antihub_occurrence_ : float
+        Proportion of antihubs in data set
+    hubs_ : int
+        Indices to hubs
+    hub_occurrence_ : float
+        Proportion of k-nearest neighbor slots occupied by hubs
+    groupie_ratio_ : float
+        Proportion of objects with the largest hub in their neighborhood
+    k_occurrence_ : ndarray
+        Reverse neighbor count for each object
+    k_neighbors_ : ndarray
+        Indices to k-nearest neighbors for each object
+
+    References
+    ----------
+    .. [1] `Author, A. & Author, B. Paper title.  Journal 1:2323 (2020).`
+    """
+
+    def __init__(self, k:int=10, hub_size:float=2., metric='euclidean',
+                 return_k_neighbors:bool=False,
+                 return_k_occurrence:bool=False,
+                 verbose:int=0, n_jobs:int=1, random_state=None):
+        self.k = k
+        self.hub_size = hub_size
+        self.metric = metric
+        self.return_k_neighbors = return_k_neighbors
+        self.return_k_occurrence = return_k_occurrence
+        self.verbose = verbose
+        self.n_jobs = n_jobs
+        self.random_state = random_state
+
+        # Making sure parameters have sensible values
+        if k is not None:
+            if k < 1:
+                raise ValueError(f"Neighborhood size 'k' must "
+                                 f"be >= 1, but is {k}.")
+        if hub_size <= 0:
+            raise ValueError(f"Hub size must be greater than zero.")
+        if metric not in VALID_METRICS:
+            raise ValueError(f"Unknown metric '{metric}'. "
+                             f"Must be one of {VALID_METRICS}.")
+        if not isinstance(return_k_neighbors, bool):
+            raise ValueError(f"return_k_neighbors must be True or False.")
+        if not isinstance(return_k_occurrence, bool):
+            raise ValueError(f"return_k_occurrence must be True or False.")
+        if n_jobs == -1:
+            self.n_jobs = cpu_count()
+        elif n_jobs < -1 or n_jobs == 0:
+            raise ValueError(f"Number of parallel processes 'n_jobs' must be "
+                             f"a positive integer, or ``-1`` to use all local"
+                             f" CPU cores. Was {n_jobs} instead.")
+        if verbose < 0:
+            raise ValueError(f"Verbosity level 'verbose' must be >= 0, "
+                             f"but was {verbose}.")
+
+    def _k_neighbors(self, X, Y, kth, n_test, start, end):
+        assert end - start == self.k, f'Implementation error'
+        Dk = np.zeros((n_test, self.k), dtype=np.int32)
+        for i in range(n_test):
+            if self.verbose > 1 or (self.verbose > 0 and i % 1_000 == 0):
+                print(f'Hubness progress {i+1}/{n_test}',
+                      end='\r', flush=True)
+            d = pairwise_distances(
+                X[i, :].reshape(1, -1), Y, self.metric, self.n_jobs)
+            nn = np.argpartition(d, kth=kth)[0, start:end]
+            Dk[i, :] = nn
+        return Dk
+
+    def _k_neighbors_precomputed(self, D, kth, start, end):
+        n_test, m_test = D.shape
+        Dk = np.zeros((n_test, self.k), dtype=np.int32)
+        for i in range(n_test):
+            if self.verbose and ((i+1) % 1000 == 0 or i+1 == n_test):
+                print(f"NN: {i+1} of {n_test}.", end='\r', flush=True)
+            d = D[i, :].copy()
+            d[~np.isfinite(d)] = np.inf
+            # Randomize equal values in the distance matrix rows to avoid the
+            # problem case if all numbers to sort are the same, which would yield
+            # high hubness, even if there is none.
+            rp = np.random.permutation(m_test)
+            d2 = d[rp]
+            d2idx = np.argpartition(d2, kth=kth)
+            Dk[i, :] = rp[d2idx[start:end]]
+        return Dk
+
+    def _skewness_truncnorm(self, Nk):
+        ''' Corrected hubness measure.
+        
+        Hubness as skewness of truncated normal distribution
+        estimated from k-occurrence histogram.'''
+        clip_left = 0
+        clip_right = np.iinfo(np.int64).max
+        Nk_mean = Nk.mean()
+        Nk_std = Nk.std(ddof=1)
+        a = (clip_left - Nk_mean) / Nk_std
+        b = (clip_right - Nk_mean) / Nk_std
+        skew_truncnorm = stats.truncnorm(a, b).moment(3)
+        return skew_truncnorm
+
+    def _antihub_occurrence(self, k_occurrence):
+        '''Proportion of antihubs in data set.
+        
+        Antihubs are objects that are never among the nearest neighbors
+        of other objects.'''
+        antihubs = np.argwhere(k_occurrence == 0).ravel()
+        antihub_occurrence = antihubs.size / k_occurrence.size
+        return antihubs, antihub_occurrence
+
+    def _hub_occurrence(self, k, k_occurrence, n_test, hub_size=2):
+        '''Proportion of nearest neighbor slots occupied by hubs.'''
+        hubs = np.argwhere(k_occurrence >= hub_size * k).ravel()
+        hub_occurrence = k_occurrence[hubs].sum() / k / n_test
+        return hubs, hub_occurrence
+
+    def fit_transform(self, X, Y=None):
+        if Y is not None and self.metric == 'precomputed':
+            raise ValueError(
+                f"Y must be None when using precomputed distances.")
+        n_test, m_test = X.shape
+        if Y is None:
+            Y = X
+            kth = np.arange(self.k + 1)
+            start = 1
+            end = self.k + 1
+        else:
+            kth = np.arange(self.k)
+            start = 0
+            end = self.k
+        n_train, m_train = Y.shape
+        assert m_test == m_train, f'Number of features do not match'
+
+        if self.metric == 'precomputed':
+            k_neighbors = self._k_neighbors_precomputed(X, kth, start, end)
+        else:
+            k_neighbors = self._k_neighbors(
+                X, Y, kth=kth, n_test=n_test, start=start, end=end)
+        if self.return_k_neighbors:
+            self.k_neighbors_ = k_neighbors
+        k_occurrence = np.bincount(
+            k_neighbors.astype(int).ravel(), minlength=n_train)
+        if self.return_k_occurrence:
+            self.k_occurrence_ = k_occurrence
+        # traditional skewness measure
+        self.k_skewness_ = stats.skew(k_occurrence)
+        # corrected skewness measure (against truncated normal distribution)
+        self.k_skewness_truncnorm_ = self._skewness_truncnorm(k_occurrence)
+        # anti-hub occurrence
+        self.antihubs_, self.antihub_occurrence_ = \
+            self._antihub_occurrence(k_occurrence)
+        # hub occurrence
+        self.hubs_, self.hub_occurrence_ = \
+            self._hub_occurrence(k=self.k, k_occurrence=k_occurrence,
+                                 n_test=n_test, hub_size=self.hub_size)
+        # Largest hub
+        self.groupie_ratio_ = k_occurrence.max() / n_test
+        return self
+
 
 if __name__ == '__main__':
     # Simple test case

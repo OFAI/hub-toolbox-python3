@@ -12,7 +12,7 @@ Contact: <roman.feldbauer@ofai.at>
 import unittest
 import numpy as np
 from scipy.spatial.distance import squareform
-from hub_toolbox.hubness import hubness
+from hub_toolbox.hubness import hubness, Hubness, hubness_from_vectors
 from hub_toolbox.distances import euclidean_distance
 from hub_toolbox.io import random_sparse_matrix
 
@@ -78,6 +78,74 @@ class TestHubness(unittest.TestCase):
         np.testing.assert_array_almost_equal(S_k_p, S_k_s, decimal=7)
         np.testing.assert_array_almost_equal(D_k_p, D_k_s, decimal=7)
         np.testing.assert_array_almost_equal(N_k_p, N_k_s, decimal=7)
+
+class TestHubnessClass(unittest.TestCase):
+    """Test hubness calculations"""
+
+    def setUp(self):
+        """Hubness truth: S_k=5, skewness calculated with bias"""
+        np.random.seed(123)
+        self.X = np.random.rand(100, 50)
+        self.D = euclidean_distance(self.X)
+
+    def tearDown(self):
+        del self.X
+
+    def test_hubness_against_distance(self):
+        """Test hubness class against distance-based methods."""
+        Sk_dist, Dk_dist, Nk_dist = hubness(self.D, k=10)
+        hub = Hubness(k=10, return_k_neighbors=True, return_k_occurrence=True)
+        hub.fit_transform(self.X)
+        Sk_class = hub.k_skewness_
+        Dk_class = hub.k_neighbors_
+        Nk_class = hub.k_occurrence_
+        np.testing.assert_almost_equal(Sk_class, Sk_dist, decimal=10)
+        np.testing.assert_array_equal(Dk_class, Dk_dist)
+        np.testing.assert_array_equal(Nk_class, Nk_dist)
+        hub = Hubness(k=10, return_k_neighbors=True, return_k_occurrence=True,
+                      metric='precomputed')
+        hub.fit_transform(self.D)
+        Sk_class = hub.k_skewness_
+        Dk_class = hub.k_neighbors_
+        Nk_class = hub.k_occurrence_
+        np.testing.assert_almost_equal(Sk_class, Sk_dist, decimal=10)
+        np.testing.assert_array_equal(Dk_class, Dk_dist)
+        np.testing.assert_array_equal(Nk_class, Nk_dist)
+
+    def test_hubness_against_vectors(self):
+        """ Test hubness class against vector-based method. """
+        Sk_vect, Dk_vect, Nk_vect = hubness_from_vectors(self.X, k=10)
+        hub = Hubness(k=10, return_k_neighbors=True, return_k_occurrence=True)
+        hub.fit_transform(self.X)
+        Sk_class = hub.k_skewness_
+        Dk_class = hub.k_neighbors_
+        Nk_class = hub.k_occurrence_
+        np.testing.assert_almost_equal(Sk_class, Sk_vect, decimal=10)
+        np.testing.assert_array_equal(Dk_class, Dk_vect)
+        np.testing.assert_array_equal(Nk_class, Nk_vect)
+        np.testing.assert_array_less(
+            hub.k_skewness_truncnorm_, hub.k_skewness_)
+
+    def test_hubness_independent_on_data_set_size(self):
+        thousands = 3
+        n_objects = thousands * 1_000
+        X = np.random.rand(n_objects, 128)
+        N_SAMPLES = np.arange(1, thousands + 1) * 1_000
+        Sk_trunc = np.empty(N_SAMPLES.size)
+        for i, n_samples in enumerate(N_SAMPLES):
+            ind = np.random.permutation(n_objects)[:n_samples]
+            X_sample = X[ind, :]
+            hub = Hubness()
+            hub.fit_transform(X_sample)
+            Sk_trunc[i] = hub.k_skewness_truncnorm_
+            if i > 0:
+                np.testing.assert_allclose(
+                    Sk_trunc[i], Sk_trunc[i-1], rtol=1e-1, 
+                    err_msg=(f'Hubness measure is too dependent on data set '
+                             f'size with S({N_SAMPLES[i]}) = x '
+                             f'and S({N_SAMPLES[i-1]}) = y.'))
+        np.testing.assert_allclose(Sk_trunc[-1], Sk_trunc[0], rtol=1e-1)
+
 
 if __name__ == "__main__":
     unittest.main()

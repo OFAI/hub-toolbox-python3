@@ -474,10 +474,12 @@ class SuQHR(BaseEstimator, TransformerMixin):
             x_squared_norms = row_norms(X, squared=True)
         else:
             x_squared_norms = None
-        X, ind = kmeanspp(X, n_clusters=self.n_samples, 
+        X, ind = kmeanspp(X=X,
+                          n_clusters=self.n_samples, 
                           x_squared_norms=x_squared_norms,
                           random_state=random_state,
-                          return_ind=True)
+                          return_ind=True,
+                          metric=self.metric)
         y = y[ind]
         if self.metric == 'sqeuclidean':
             x_squared_norms = x_squared_norms[ind]

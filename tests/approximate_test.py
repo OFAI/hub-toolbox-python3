@@ -39,20 +39,21 @@ class ApproximateHRTest(unittest.TestCase):
         self.n_samples = 100
         self.sampling_algorithms = ['random', 'kmeans++', 'LSH', 'HNSW', None]
         self.metrics = ['sqeuclidean', 'cosine']
-        self.n_jobs = 4
-        self.verbose = 1
+        self.n_jobs = [-1, 1]
+        self.verbose = 3
 
     def tearDown(self):
         pass
 
-    def _approximate_hr(self, hr_algorithm, sampling_algorithm, metric):
+    def _approximate_hr(self, hr_algorithm, sampling_algorithm,
+                        metric, n_jobs):
         hr = approximate.SuQHR(hr_algorithm=hr_algorithm,
                                n_neighbors=self.n_neighbors,
                                n_samples=self.n_samples,
                                metric=metric,
                                sampling_algorithm=sampling_algorithm,
                                random_state=123,
-                               n_jobs=self.n_jobs,
+                               n_jobs=n_jobs,
                                verbose=self.verbose)
         hr.fit(self.X_train, self.y_train)
         D_test_hr = hr.transform(self.X_test)
@@ -82,9 +83,15 @@ class ApproximateHRTest(unittest.TestCase):
         for hr_algorithm in self.hr_algorithms:
             for sampling_algorithm in self.sampling_algorithms:
                 for metric in self.metrics:
-                    self._approximate_hr(hr_algorithm,
-                                         sampling_algorithm,
-                                         metric)
+                    for n_jobs in self.n_jobs:
+                        self._approximate_hr(hr_algorithm,
+                                             sampling_algorithm,
+                                             metric,
+                                             n_jobs)
+
+    def test_surrogate_class(self):
+        hr = approximate.ApproximateHubnessReduction()
+        return self.assertIn(hr.hr_algorithm, self.hr_algorithms)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']

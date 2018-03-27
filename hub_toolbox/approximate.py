@@ -12,19 +12,23 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import ctypes
 from functools import partial
-import warnings
 from multiprocessing import cpu_count, RawArray, Pool
+import os
+import warnings
 
 import numpy as np
+import pandas as pd
+from scipy import sparse
 from scipy.sparse.base import issparse
 from scipy.stats import norm
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import StratifiedShuffleSplit, ShuffleSplit
 from sklearn.metrics import euclidean_distances
+from sklearn.metrics.pairwise import cosine_distances
+from sklearn.neighbors.classification import KNeighborsClassifier
 from sklearn.utils import check_random_state, check_array
 from sklearn.utils.extmath import row_norms, stable_cumsum
 from sklearn.utils.validation import check_is_fitted
-from sklearn.metrics.pairwise import cosine_distances
 
 try:
     import nmslib
@@ -37,9 +41,12 @@ try:
 except ImportError:
     falconn_avail = False
 
+__all__ = ['ApproximateHubnessReduction']
+
 VALID_HR = ["MP", "MPG", "LS", "NICDM", "DSL"]
 VALID_SAMPLE = ['random', 'kmeans++', 'lsh', 'hnsw', None]
 VALID_METRICS = ['sqeuclidean', 'cosine']
+VALID_PREDICTORS = ['knn']
 
 def enforce_finite_distances(arr):
     ''' Replace non-finite distances with the max. distance'''
@@ -325,6 +332,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
         Metric to use for distance computation. Currently, only squared
         Euclidean and cosine distances are supported
         (GCD of all used libraries).
+    predictor : string, currently only 'knn' is supported
+        Algorithm for class label prediction.
     random_state : int, RandomState instance or None, optional
         If int, random_state is the seed used by the random number generator;
         If RandomState instance, random_state is the random number generator;
@@ -367,12 +376,14 @@ class SuQHR(BaseEstimator, TransformerMixin):
 
     def __init__(self, hr_algorithm='mp', n_neighbors=5, n_samples=100,
                  sampling_algorithm='random', metric='sqeuclidean',
+                 predictor='knn',
                  random_state=None, n_jobs=1, verbose=0, **kwargs):
         self.hr_algorithm = hr_algorithm
         self.n_neighbors = n_neighbors
         self.n_samples = n_samples
         self.sampling_algorithm = sampling_algorithm
         self.metric = metric
+        self.predictor = predictor
         self.random_state = random_state
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -413,6 +424,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
         if metric not in VALID_METRICS:
             raise ValueError(f"Unknown metric '{metric}'. "
                              f"Must be one of {VALID_METRICS}.")
+        if predictor not in VALID_PREDICTORS:
+            raise ValueError(f"Unknown predictor '{predictor}'.")
         if n_jobs == -1:
             self.n_jobs = cpu_count()
         elif n_jobs < -1 or n_jobs == 0:
@@ -423,6 +436,52 @@ class SuQHR(BaseEstimator, TransformerMixin):
             raise ValueError(f"Verbosity level 'verbose' must be >= 0, "
                              f"but was {verbose}.")
 
+
+    def _times(self, action, times_start, times_end):
+        t = dict()
+        t['user'] = times_end.user - times_start.user
+        t['system'] = times_end.system - times_start.system
+        t['children_user'] = \
+            times_end.children_user - times_start.children_user
+        t['children_system'] = \
+            times_end.children_system - times_start.children_system
+        t['elapsed'] = times_end.elapsed - times_start.elapsed
+        t['total'] = t['user'] \
+                     + t['system'] \
+                     + t['children_user'] \
+                     + t['children_system']
+        try:
+            t['speedup'] = t['total'] / t['elapsed']
+        except ZeroDivisionError:
+            t['speedup'] = 0.
+        df = pd.DataFrame(t, index=['sec'])
+        if action == 'fit':
+            self.time_fit_ = df
+        elif action == 'transform':
+            self.time_transform_ = df
+        elif action == 'predict':
+            self.time_predict_ = df
+        else:
+            raise ValueError(f'Unknown timing action: {action}.')
+
+    def _sparse_distance_matrix(self, X_test):
+        check_is_fitted(self, ['sec_dist_', 'fixed_vantage_pts_'])
+        D_test = self.sec_dist_
+        # If no sampling was done, the matrix is not sparse
+        if self.sampling_algorithm is None:
+            self.sec_dist_sparse_ = D_test
+            return
+        data = D_test.ravel()
+        i = np.repeat(np.arange(D_test.shape[0]), repeats=D_test.shape[1])
+        if self.fixed_vantage_pts_:
+            j = np.tile(self.ind_test_.ravel(), reps=D_test.shape[0])
+        else:
+            j = self.ind_test_.ravel()
+        D_test_coo = sparse.coo_matrix(
+            (data, (i, j)), shape=(X_test.shape[0], self.n_train_))
+        D_test_csr = D_test_coo.tocsr()
+        self.sec_dist_sparse_ = D_test_csr
+        return
 
     def _X_norm_squared_if_sqeuclidean(self, X):
         if self.metric == 'sqeuclidean':
@@ -518,7 +577,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         neigh_dist = index.knnQueryBatch(
             X, k=k+1, num_threads=self.n_jobs)
         ind = np.zeros((n_train, k), dtype=np.int32) * n_train
-        D_train = np.empty_like(ind, dtype=X.dtype) * np.nan
+        D_train = np.zeros_like(ind, dtype=X.dtype) * np.nan
         for i, (idx, dist) in enumerate(neigh_dist):
             ind[i, :idx.size-1] = idx[1:]
             D_train[i, :dist.size-1] = dist[1:]
@@ -863,6 +922,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
                         iterable=range(n_test)):
                         pass # results handled within func
             self.sec_dist_ = D_sec
+            self.ind_test_ = self.ind_train_
         return
 
     ##########################################################################
@@ -1202,6 +1262,37 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return None
 
 
+    def _predict_knn(self, X):
+        ''' Predict class labels wiht k-nearest neighbor classifier. '''
+        try:
+            n_neighbors = self.kwargs['knn__n_neighbors']
+        except KeyError:
+            n_neighbors = 5
+        try:
+            weights = self.kwargs['knn__weights']
+        except KeyError:
+            weights = 'uniform'
+        if self.fixed_vantage_pts_:
+            knn = KNeighborsClassifier(n_neighbors=n_neighbors,
+                                       algorithm='brute',
+                                       metric='precomputed',
+                                       weights=weights)
+            knn.fit(X.T, self.y_train_)
+            y_pred = knn.predict(X)
+        else:
+            # W/o fixed vantage points, a new classifier
+            # is required for each test object.
+            y_pred = np.zeros(X.shape[0], dtype=self.y_train_.dtype)
+            knn = KNeighborsClassifier(n_neighbors=self.n_neighbors,
+                                       algorithm='brute',
+                                       metric='precomputed',
+                                       weights=weights)
+            for i, d_test in enumerate(X):
+                d_test = d_test.reshape(-1, 1)
+                knn.fit(d_test, self.y_train_[self.ind_test_[i]])
+                y_pred[i] = knn.predict(d_test.T)
+        return y_pred
+
     ##########################################################################
     ##
     ##  General methods - fit, predict, etc.
@@ -1220,6 +1311,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         -------
         self : returns an instance of self.
         """
+        times_start = os.times()
         # Reduce memory footprint
         X = check_array(X, dtype=np.float32, warn_on_dtype=True,
                         estimator='ApproximateHubnessReduction')
@@ -1227,6 +1319,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
             y = check_array(y, dtype=np.int32, ensure_2d=False,
                             estimator='ApproximateHubnessReduction')
 
+        # Number of all training pts, as required for sparse distance matrix
+        self.n_train_ = X.shape[0]
         if self.hr_algorithm is None:
             fit = self._fit_without_hr
         else:
@@ -1244,6 +1338,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     f'Unknown hubness reduction algorithm "{hr}". '
                     f'Must be one of ["MP", "MPG", "LS", "NICDM", "DSL"].')
         fit(X, y)
+        times_end = os.times()
+        self._times(action='fit', times_start=times_start, times_end=times_end)
         return self
 
     def transform(self, X):
@@ -1263,6 +1359,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         -----
         ...
         """
+        times_start = os.times()
         X = check_array(X, dtype=np.float32, warn_on_dtype=True,
                         estimator='ApproximateHubnessReduction')
         # TODO use all attributes, that are required for 
@@ -1289,7 +1386,41 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     f'Transforming with hr_algorithm "{hr}" '
                     f'is not (yet) implemented.')
         transform(X)
+        times_end = os.times()
+        self._times(action='transform',
+                    times_start=times_start,
+                    times_end=times_end)
+        self._sparse_distance_matrix(X_test=X)
         return self.sec_dist_
+
+    def predict(self, X):
+        """ Predict class of new data.
+
+        Parameters
+        ----------
+        X : array-like, shape = [n_objects, n_features]
+            Test set. NOTE: Ensure X.dtype == np.float32 to avoid copies.
+
+        Returns
+        -------
+        y : ndarray, shape = [n_objects,]
+            Class labels for each test object.
+        """
+        check_is_fitted(self, ["y_train_"])
+        D_sec = self.transform(X)
+        # transform has its own timing and must not be included here
+        times_start = os.times()
+        D_sec = enforce_finite_distances(D_sec)
+        if self.predictor == 'knn':
+            y_pred = self._predict_knn(D_sec)
+        else:
+            raise ValueError(f'Unknown predictor: {self.predictor}.')
+        times_end = os.times()
+        self._times(action='predict',
+                    times_start=times_start,
+                    times_end=times_end)
+        return y_pred
+
 
 class ApproximateHubnessReduction(SuQHR):
     pass

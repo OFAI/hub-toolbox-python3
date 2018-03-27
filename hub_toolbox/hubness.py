@@ -18,6 +18,7 @@ import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
 from sklearn.metrics.pairwise import pairwise_distances
+from sklearn.utils.validation import check_random_state
 from hub_toolbox import io
 from hub_toolbox.htlogging import ConsoleLogging
 
@@ -31,7 +32,7 @@ def _hubness_load_shared_data(D_, D_k_):
     return
 
 def _hubness_nearest_neighbors(i, k, n, m, d_self, metric, 
-                               kth, sort_order, log, verbose):
+                               kth, sort_order, log, verbose, shuffle_equal):
     if verbose and ((i+1)%10000==0 or i+1==n):
         log.message("NN: {} of {}.".format(i+1, n), flush=True)
     if issparse(D):
@@ -44,17 +45,22 @@ def _hubness_nearest_neighbors(i, k, n, m, d_self, metric,
         if metric == 'distance':
             d[d==0] = d_self
     d[~np.isfinite(d)] = d_self
-    # Randomize equal values in the distance matrix rows to avoid the
-    # problem case if all numbers to sort are the same, which would yield
-    # high hubness, even if there is none.
-    rp = np.random.permutation(m)
-    d2 = d[rp]
-    d2idx = np.argpartition(d2, kth=kth)
-    D_k[i, :] = rp[d2idx[kth]][::sort_order]
+    if shuffle_equal:
+        # Randomize equal values in the distance matrix rows to avoid the
+        # problem case if all numbers to sort are the same, which would yield
+        # high hubness, even if there is none.
+        rp = np.random.permutation(m)
+        d2 = d[rp]
+        d2idx = np.argpartition(d2, kth=kth)
+        D_k[i, :] = rp[d2idx[kth]][::sort_order]
+    else:
+        d_idx = np.argpartition(d, kth=kth)
+        D_k[i, :] = d_idx[kth][::sort_order]
     return
 
 def hubness(D:np.ndarray, k:int=5, metric='distance',
-            verbose:int=0, n_jobs:int=1, random_state=None):
+            verbose:int=0, n_jobs:int=1,
+            random_state=None, shuffle_equal=True):
     """Compute hubness of a distance matrix.
 
     Hubness [1]_ is the skewness of the `k`-occurrence histogram (reverse
@@ -89,6 +95,12 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         
         NOTE: Currently only compatible with `n_jobs`=1
 
+    shuffle_equal : bool, optional
+        If true, shuffle neighbors with identical distances to avoid
+        artifact hubness.
+        NOTE: This is especially useful for secondary distance measures
+        with a restricted number of possible values, e.g. SNN or MP empiric.
+
     Returns
     -------
     S_k : float
@@ -108,8 +120,12 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     """
     # Don't use multiprocessing environment when using only one job
     if n_jobs == 1:
-        return _hubness_no_multiprocessing(D=D, k=k, metric=metric,
-                                           verbose=verbose, random_state=random_state)
+        return _hubness_no_multiprocessing(D=D,
+                                           k=k,
+                                           metric=metric,
+                                           verbose=verbose,
+                                           random_state=random_state,
+                                           shuffle_equal=shuffle_equal)
     if random_state is not None:
         raise ValueError("Seeding the RNG is not compatible with using n_jobs > 1.")
     log = ConsoleLogging()
@@ -161,7 +177,8 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
         for _ in pool.imap(
             func=partial(_hubness_nearest_neighbors, k=k, n=n, m=m, 
                          d_self=d_self, metric=metric, kth=kth, 
-                         sort_order=sort_order, log=log, verbose=verbose),
+                         sort_order=sort_order, log=log, verbose=verbose,
+                         shuffle_equal=shuffle_equal),
             #chunksize=int(1e2),
             iterable=range(n)):
             pass # results handled within func
@@ -178,7 +195,8 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
     return S_k, D_k, N_k
 
 def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
-                                verbose:int=0, random_state=None):
+                                verbose:int=0, random_state=None,
+                                shuffle_equal:bool=True):
     """ Hubness calculations without multiprocessing overhead. """
     log = ConsoleLogging()
     io.check_is_nD_array(arr=D, n=2, arr_type='Distance')
@@ -228,13 +246,17 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
             if metric == 'distance':
                 d[d==0] = d_self
         d[~np.isfinite(d)] = d_self
-        # Randomize equal values in the distance matrix rows to avoid the
-        # problem case if all numbers to sort are the same, which would yield
-        # high hubness, even if there is none.
-        rp = rnd.permutation(m)
-        d2 = d[rp]
-        d2idx = np.argpartition(d2, kth=kth)
-        D_k[i, :] = rp[d2idx[kth]][::sort_order]
+        if shuffle_equal:
+            # Randomize equal values in the distance matrix rows to avoid the
+            # problem case if all numbers to sort are the same, which would
+            # yield high hubness, even if there is none.
+            rp = rnd.permutation(m)
+            d2 = d[rp]
+            d2idx = np.argpartition(d2, kth=kth)
+            D_k[i, :] = rp[d2idx[kth]][::sort_order]
+        else:
+            d_idx = np.argpartition(d, kth=kth)
+            D_k[i, :] = d_idx[kth][::sort_order]
 
     # N-occurence
     N_k = np.bincount(D_k.astype(int).ravel(), minlength=m)
@@ -351,6 +373,11 @@ class Hubness(object):
         If RandomState instance, random_state is the random number generator;
         If None, the random number generator is the RandomState instance used
         by `np.random`.
+    shuffle_equal : bool, optional
+        If true, shuffle neighbors with identical distances to avoid
+        artifact hubness.
+        NOTE: This is especially useful for secondary distance measures
+        with a restricted number of possible values, e.g. SNN or MP empiric.
     n_jobs : int, optional
         CURRENTLY IGNORED.
         Number of processes for parallel computations.
@@ -389,7 +416,8 @@ class Hubness(object):
     def __init__(self, k:int=10, hub_size:float=2., metric='euclidean',
                  return_k_neighbors:bool=False,
                  return_k_occurrence:bool=False,
-                 verbose:int=0, n_jobs:int=1, random_state=None):
+                 verbose:int=0, n_jobs:int=1, random_state=None,
+                 shuffle_equal:bool=True):
         self.k = k
         self.hub_size = hub_size
         self.metric = metric
@@ -397,7 +425,8 @@ class Hubness(object):
         self.return_k_occurrence = return_k_occurrence
         self.verbose = verbose
         self.n_jobs = n_jobs
-        self.random_state = random_state
+        self.random_state = check_random_state(random_state)
+        self.shuffle_equal = shuffle_equal
 
         # Making sure parameters have sensible values
         if k is not None:
@@ -444,14 +473,72 @@ class Hubness(object):
                 print(f"NN: {i+1} of {n_test}.", end='\r', flush=True)
             d = D[i, :].copy()
             d[~np.isfinite(d)] = np.inf
-            # Randomize equal values in the distance matrix rows to avoid the
-            # problem case if all numbers to sort are the same, which would yield
-            # high hubness, even if there is none.
-            rp = np.random.permutation(m_test)
-            d2 = d[rp]
-            d2idx = np.argpartition(d2, kth=kth)
-            Dk[i, :] = rp[d2idx[start:end]]
+            if self.shuffle_equal:
+                # Randomize equal values in the distance matrix rows to avoid
+                # the problem case if all numbers to sort are the same,
+                # which would yield high hubness, even if there is none.
+                rp = np.random.permutation(m_test)
+                d2 = d[rp]
+                d2idx = np.argpartition(d2, kth=kth)
+                Dk[i, :] = rp[d2idx[start:end]]
+            else:
+                d_idx = np.argpartition(d, kth=kth)
+                Dk[i, :] = d_idx[start:end]
         return Dk
+
+    def _k_neighbors_precomputed_sparse(self, X, n_samples=None):
+        ''' Find nearest neighbors in sparse distance matrix. 
+
+        Parameters
+        ----------
+        X : sparse, shape = [n_test, n_indexed]
+            Sparse distance matrix. Only non-zero elements
+            may be considered neighbors.
+        n_samples : int
+            Number of sampled indexed objects, e.g.
+            in approximate hubness reduction.
+            If None, this is inferred from the first row of X.
+    
+        Returns
+        -------
+        k_neighbors : ndarray
+            Flattened array of neighbor indices.
+        '''
+        assert issparse(X), f'Matrix is not sparse'
+        X = X.tocsr()
+        if n_samples is None:
+            n_samples = X.indptr[1] - X.indptr[0]
+        #assert np.all(X.indptr[1:] - X.indptr[:-1] == n_samples),\
+        #    (f"Each row must have exactly 'n_samples' explicit entries.")
+        n_test, _ = X.shape
+        # TODO to allow different number of explicit entries per row,
+        # we would need to process the matrix row-by-row.
+        if np.all(X.indptr[1:] - X.indptr[:-1] == n_samples)\
+            and not self.shuffle_equal:
+            min_ind = np.argpartition(X.data.reshape(n_test, n_samples),
+                                      kth=np.arange(self.k),
+                                      axis=1)[:, :self.k]
+            k_neighbors = X.indices[
+                min_ind.ravel() + np.repeat(X.indptr[:-1], repeats=self.k)]
+        else:
+            min_ind = np.empty((n_test,), dtype=object)
+            k_neighbors = np.empty((n_test,), dtype=object)
+            if self.shuffle_equal:
+                for i in range(n_test):
+                    x = X.getrow(i)
+                    rp = self.random_state.permutation(x.nnz)
+                    d2 = x.data[rp]
+                    d2idx = np.argpartition(d2, kth=np.arange(self.k))
+                    k_neighbors[i] = x.indices[rp[d2idx[:self.k]]]
+            else:
+                for i in range(n_test):
+                    x = X.getrow(i)
+                    min_ind = np.argpartition(
+                        x.data, kth=np.arange(self.k))[:self.k]
+                    k_neighbors[i] = x.indices[min_ind]
+                    #assert i not in k_neighbors[i], f'Self distances'
+            k_neighbors = np.concatenate(k_neighbors)
+        return k_neighbors
 
     def _skewness_truncnorm(self, Nk):
         ''' Corrected hubness measure.
@@ -482,25 +569,36 @@ class Hubness(object):
         hub_occurrence = k_occurrence[hubs].sum() / k / n_test
         return hubs, hub_occurrence
 
-    def fit_transform(self, X, Y=None):
-        if Y is not None and self.metric == 'precomputed':
-            raise ValueError(
-                f"Y must be None when using precomputed distances.")
-        n_test, m_test = X.shape
-        if Y is None:
-            Y = X
-            kth = np.arange(self.k + 1)
-            start = 1
-            end = self.k + 1
+    def fit_transform(self, X, Y=None, has_self_distances=False):
+        # Let's assume there are no self distances in X
+        kth = np.arange(self.k)
+        start = 0
+        end = self.k
+        if self.metric == 'precomputed':
+            if Y is not None:
+                raise ValueError(
+                    f"Y must be None when using precomputed distances.")
+            n_test, n_train = X.shape
+            if n_test == n_train and has_self_distances:
+                kth = np.arange(self.k + 1)
+                start = 1
+                end = self.k + 1
         else:
-            kth = np.arange(self.k)
-            start = 0
-            end = self.k
-        n_train, m_train = Y.shape
-        assert m_test == m_train, f'Number of features do not match'
+            n_test, m_test = X.shape
+            if Y is None:
+                Y = X
+                # Self distances do occur in this case
+                kth = np.arange(self.k + 1)
+                start = 1
+                end = self.k + 1
+            n_train, m_train = Y.shape
+            assert m_test == m_train, f'Number of features do not match'
 
         if self.metric == 'precomputed':
-            k_neighbors = self._k_neighbors_precomputed(X, kth, start, end)
+            if issparse(X):
+                k_neighbors = self._k_neighbors_precomputed_sparse(X)
+            else:
+                k_neighbors = self._k_neighbors_precomputed(X, kth, start, end)
         else:
             k_neighbors = self._k_neighbors(
                 X, Y, kth=kth, n_test=n_test, start=start, end=end)

@@ -171,20 +171,16 @@ class TestHubnessClass(unittest.TestCase):
         
     def hubness_from_sparse_precomputed_matrix(
             self, X, y, hr, sample, n_samples):
-        #----------------------------------------- # Smaller data for DEBUGGING
-        #----------------------------------------- X = np.random.rand(200, 100)
-        #------------------------------------- y = np.random.randint(0, 2, 200)
-        #------------------------------------------------------ n_samples = 100
         # Make train-test split
         X_train, X_test, y_train, _ = train_test_split(X, y)
         #print(f"n_train={X_train.shape[0]}, n_test={X_test.shape[0]}, "
         #      f"HR={hr}, sampling={sample}, n_samples={n_samples}.")
         # Obtain a sparse distance matrix
-        hr = ApproximateHubnessReduction(
+        ahr = ApproximateHubnessReduction(
             hr_algorithm=hr, sampling_algorithm=sample, n_samples=n_samples)
-        hr.fit(X_train, y_train)
-        _ = hr.transform(X_test)
-        D_test_csr = hr.sec_dist_sparse_
+        ahr.fit(X_train, y_train)
+        _ = ahr.transform(X_test)
+        D_test_csr = ahr.sec_dist_sparse_
         # Hubness in sparse matrix
         hub = Hubness(k=10,
                       metric='precomputed',
@@ -195,7 +191,10 @@ class TestHubnessClass(unittest.TestCase):
         Sk_sparse = hub.k_skewness_
         k_neigh_sparse = hub.k_neighbors_
         # Hubness in dense matrix
-        D_test_dense = D_test_csr.toarray()
+        try:
+            D_test_dense = D_test_csr.toarray()
+        except AttributeError:
+            return # Without sampling, the distance matrix is not sparse
         D_test_dense[D_test_dense == 0] = np.finfo(np.float32).max
         hub_dense = Hubness(k=10,
                             metric='precomputed',
@@ -205,7 +204,7 @@ class TestHubnessClass(unittest.TestCase):
         Sk_trunc_dense = hub_dense.k_skewness_truncnorm_
         Sk_dense = hub_dense.k_skewness_
         k_neigh_dense = hub_dense.k_neighbors_
-        if hr.hr_algorithm.upper() in ['MP', 'MPG']:
+        if hr in ['MP', 'MPG']:
             decimal = 1
         else:
             decimal = 5

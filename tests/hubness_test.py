@@ -11,7 +11,6 @@ Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from scipy import sparse
 from scipy.spatial.distance import squareform
 from sklearn.datasets.samples_generator import make_classification
 from sklearn.model_selection import train_test_split
@@ -173,8 +172,6 @@ class TestHubnessClass(unittest.TestCase):
             self, X, y, hr, sample, n_samples):
         # Make train-test split
         X_train, X_test, y_train, _ = train_test_split(X, y)
-        #print(f"n_train={X_train.shape[0]}, n_test={X_test.shape[0]}, "
-        #      f"HR={hr}, sampling={sample}, n_samples={n_samples}.")
         # Obtain a sparse distance matrix
         ahr = ApproximateHubnessReduction(
             hr_algorithm=hr, sampling_algorithm=sample, n_samples=n_samples)

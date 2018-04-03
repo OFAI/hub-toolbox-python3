@@ -508,11 +508,9 @@ class Hubness(object):
         X = X.tocsr()
         if n_samples is None:
             n_samples = X.indptr[1] - X.indptr[0]
-        #assert np.all(X.indptr[1:] - X.indptr[:-1] == n_samples),\
-        #    (f"Each row must have exactly 'n_samples' explicit entries.")
         n_test, _ = X.shape
-        # TODO to allow different number of explicit entries per row,
-        # we would need to process the matrix row-by-row.
+        # To allow different number of explicit entries per row,
+        # we need to process the matrix row-by-row.
         if np.all(X.indptr[1:] - X.indptr[:-1] == n_samples)\
             and not self.shuffle_equal:
             min_ind = np.argpartition(X.data.reshape(n_test, n_samples),
@@ -536,7 +534,6 @@ class Hubness(object):
                     min_ind = np.argpartition(
                         x.data, kth=np.arange(self.k))[:self.k]
                     k_neighbors[i] = x.indices[min_ind]
-                    #assert i not in k_neighbors[i], f'Self distances'
             k_neighbors = np.concatenate(k_neighbors)
         return k_neighbors
 
@@ -620,6 +617,7 @@ class Hubness(object):
             self._hub_occurrence(k=self.k, k_occurrence=k_occurrence,
                                  n_test=n_test, hub_size=self.hub_size)
         # Largest hub
+        # TODO That should probably also be diveded by k...
         self.groupie_ratio_ = k_occurrence.max() / n_test
         return self
 

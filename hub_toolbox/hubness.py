@@ -460,7 +460,8 @@ class Hubness(object):
                 print(f'Hubness progress {i+1}/{n_test}',
                       end='\r', flush=True)
             d = pairwise_distances(
-                X[i, :].reshape(1, -1), Y, self.metric, self.n_jobs)
+                X[i, :].reshape(1, -1), Y, self.metric, self.n_jobs,
+                squared=True)
             nn = np.argpartition(d, kth=kth)[0, start:end]
             Dk[i, :] = nn
         return Dk

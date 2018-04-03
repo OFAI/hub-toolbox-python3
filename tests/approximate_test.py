@@ -37,13 +37,14 @@ class ApproximateHRTest(unittest.TestCase):
         self.y_train = y_train
         self.y_test = y_test
 
-        self.hr_algorithms = ['LS', 'NICDM', 'MP', 'MPG', 'DSL', None]
+        self.hr_algorithms = ['LS', 'NICDM', 'MP', 'MPG', 'DSL', None, 'NoNe']
         self.n_neighbors = 5
         self.n_samples = 100
-        self.sampling_algorithms = ['random', 'kmeans++', 'LSH', 'HNSW', None]
+        self.sampling_algorithms = ['random', 'kmeans++', 'LSH', 'HNSW',
+                                    None, 'nOnE']
         self.metrics = ['sqeuclidean', 'cosine']
         self.n_jobs = [-1, 1]
-        self.verbose = 3
+        self.verbose = 1
         self.accu_time = 0.
 
     def tearDown(self):

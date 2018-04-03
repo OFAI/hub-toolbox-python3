@@ -43,7 +43,7 @@ except ImportError:
 
 __all__ = ['ApproximateHubnessReduction']
 
-VALID_HR = ["MP", "MPG", "LS", "NICDM", "DSL"]
+VALID_HR = ["MP", "MPG", "LS", "NICDM", "DSL", None]
 VALID_SAMPLE = ['random', 'kmeans++', 'lsh', 'hnsw', None]
 VALID_METRICS = ['sqeuclidean', 'cosine']
 VALID_PREDICTORS = ['knn']
@@ -392,7 +392,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
         # Making sure parameters have sensible values
         if hr_algorithm is not None:
             hr_algorithm = hr_algorithm.upper()
-            if hr_algorithm not in VALID_HR:
+            if hr_algorithm == 'NONE':
+                self.hr_algorithm = None
+            elif hr_algorithm not in VALID_HR:
                 raise ValueError(
                     f'Unknown hubness reduction algorithm "{hr_algorithm}". '
                     f'Must be one of {VALID_HR}.')
@@ -409,7 +411,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                                  f"Try a value in [100..1000].")
         if sampling_algorithm is not None:
             sampling_algorithm = sampling_algorithm.lower()
-            if sampling_algorithm not in VALID_SAMPLE:
+            if sampling_algorithm == 'none':
+                self.sampling_algorithm = None
+            elif sampling_algorithm not in VALID_SAMPLE:
                 raise ValueError(
                     f'Unknown sampling algorithm "{sampling_algorithm}". '
                     f'Must be one of {VALID_SAMPLE}.')

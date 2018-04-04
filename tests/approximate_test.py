@@ -44,7 +44,7 @@ class ApproximateHRTest(unittest.TestCase):
                                     None, 'nOnE']
         self.metrics = ['sqeuclidean', 'cosine']
         self.n_jobs = [-1, 1]
-        self.verbose = 1
+        self.verbose = 0
         self.accu_time = 0.
 
     def tearDown(self):

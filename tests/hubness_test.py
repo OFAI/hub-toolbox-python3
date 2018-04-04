@@ -91,6 +91,7 @@ class TestHubnessClass(unittest.TestCase):
         np.random.seed(123)
         self.X = np.random.rand(100, 50)
         self.D = euclidean_distance(self.X)
+        self.verbose = 1
 
     def tearDown(self):
         del self.X
@@ -98,7 +99,10 @@ class TestHubnessClass(unittest.TestCase):
     def test_hubness_against_distance(self):
         """Test hubness class against distance-based methods."""
         Sk_dist, Dk_dist, Nk_dist = hubness(self.D, k=10)
-        hub = Hubness(k=10, return_k_neighbors=True, return_k_occurrence=True)
+        hub = Hubness(k=10,
+                      return_k_neighbors=True,
+                      return_k_occurrence=True,
+                      verbose=self.verbose)
         hub.fit_transform(self.X)
         Sk_class = hub.k_skewness_
         Dk_class = hub.k_neighbors_
@@ -106,8 +110,11 @@ class TestHubnessClass(unittest.TestCase):
         np.testing.assert_almost_equal(Sk_class, Sk_dist, decimal=10)
         np.testing.assert_array_equal(Dk_class, Dk_dist)
         np.testing.assert_array_equal(Nk_class, Nk_dist)
-        hub = Hubness(k=10, return_k_neighbors=True, return_k_occurrence=True,
-                      metric='precomputed')
+        hub = Hubness(k=10,
+                      return_k_neighbors=True,
+                      return_k_occurrence=True,
+                      metric='precomputed',
+                      verbose=self.verbose)
         hub.fit_transform(self.D, has_self_distances=True)
         Sk_class = hub.k_skewness_
         Dk_class = hub.k_neighbors_
@@ -119,7 +126,10 @@ class TestHubnessClass(unittest.TestCase):
     def test_hubness_against_vectors(self):
         """ Test hubness class against vector-based method. """
         Sk_vect, Dk_vect, Nk_vect = hubness_from_vectors(self.X, k=10)
-        hub = Hubness(k=10, return_k_neighbors=True, return_k_occurrence=True)
+        hub = Hubness(k=10,
+                      return_k_neighbors=True,
+                      return_k_occurrence=True,
+                      verbose=self.verbose)
         hub.fit_transform(self.X)
         Sk_class = hub.k_skewness_
         Dk_class = hub.k_neighbors_
@@ -127,6 +137,32 @@ class TestHubnessClass(unittest.TestCase):
         np.testing.assert_almost_equal(Sk_class, Sk_vect, decimal=10)
         np.testing.assert_array_equal(Dk_class, Dk_vect)
         np.testing.assert_array_equal(Nk_class, Nk_vect)
+        np.testing.assert_array_less(
+            hub.k_skewness_truncnorm_, hub.k_skewness_)
+
+    def test_hubness_multiprocessing(self):
+        """ Test multiprocessing capabilities of Hubness. """
+        hub = Hubness(k=10,
+                      return_k_neighbors=True,
+                      return_k_occurrence=True,
+                      n_jobs=1,
+                      verbose=self.verbose)
+        hub.fit_transform(self.X)
+        Sk_vect = hub.k_skewness_
+        Dk_vect = hub.k_neighbors_
+        Nk_vect = hub.k_occurrence_
+        hub = Hubness(k=10,
+                      return_k_neighbors=True,
+                      return_k_occurrence=True,
+                      n_jobs=-1,
+                      verbose=self.verbose)
+        hub.fit_transform(self.X)
+        Sk_mp = hub.k_skewness_
+        Dk_mp = hub.k_neighbors_
+        Nk_mp = hub.k_occurrence_
+        np.testing.assert_almost_equal(Sk_mp, Sk_vect, decimal=10)
+        np.testing.assert_array_equal(Dk_mp, Dk_vect)
+        np.testing.assert_array_equal(Nk_mp, Nk_vect)
         np.testing.assert_array_less(
             hub.k_skewness_truncnorm_, hub.k_skewness_)
 
@@ -168,8 +204,8 @@ class TestHubnessClass(unittest.TestCase):
                     self.hubness_from_sparse_precomputed_matrix(
                         X, y, hr_algorithm, sampling_algorithm, n_samples)
         
-    def hubness_from_sparse_precomputed_matrix(
-            self, X, y, hr, sample, n_samples):
+    def hubness_from_sparse_precomputed_matrix(self, X, y, hr,
+                                               sample, n_samples):
         # Make train-test split
         X_train, X_test, y_train, _ = train_test_split(X, y)
         # Obtain a sparse distance matrix
@@ -182,7 +218,8 @@ class TestHubnessClass(unittest.TestCase):
         hub = Hubness(k=10,
                       metric='precomputed',
                       return_k_neighbors=True,
-                      shuffle_equal=False)
+                      shuffle_equal=False,
+                      verbose=self.verbose)
         hub.fit_transform(D_test_csr)
         Sk_trunc_sparse = hub.k_skewness_truncnorm_
         Sk_sparse = hub.k_skewness_

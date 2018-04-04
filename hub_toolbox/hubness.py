@@ -18,12 +18,43 @@ import numpy as np
 from scipy import stats
 from scipy.sparse.base import issparse
 from sklearn.metrics.pairwise import pairwise_distances
+from sklearn.utils.extmath import row_norms
 from sklearn.utils.validation import check_random_state
 from hub_toolbox import io
 from hub_toolbox.htlogging import ConsoleLogging
+from hub_toolbox.utils import SynchronizedCounter
 
 __all__ = ['Hubness', 'hubness', 'hubness_from_vectors']
 VALID_METRICS = ['euclidean', 'cosine', 'precomputed']
+
+log = ConsoleLogging()
+
+def _k_neighbors_initializer(X_=None, Y_=None, Dk_=None,
+                             X_norm_=None, Y_norm_=None,
+                             counter_=None):
+    global X, Y, Dk, X_norm, Y_norm, counter
+    X = X_
+    Y = Y_
+    Dk = Dk_
+    X_norm = X_norm_
+    Y_norm = Y_norm_
+    counter = counter_
+    return
+
+def _k_neighbors_parallel(i, kth, start, end, n_test, metric, verbose):
+    progress = counter.increment_and_get_value()
+    if verbose > 1 \
+        or (verbose > 0 and (progress % 1_000 == 0 or progress + 1 == n_test)):
+        log.message(f'k neighbors (multiprocessing): '
+                    f'{progress+1}/{n_test}', flush=True)
+    d = pairwise_distances(
+        X[i, :].reshape(1, -1), Y, metric, 
+        squared=True, X_norm_squared=X_norm[i].reshape(1, -1),
+        Y_norm_squared=Y_norm)
+    nn = np.argpartition(d, kth=kth)[0, start:end]
+    Dk[i, :] = nn
+    return
+
 
 def _hubness_load_shared_data(D_, D_k_):
     global D, D_k
@@ -454,24 +485,47 @@ class Hubness(object):
 
     def _k_neighbors(self, X, Y, kth, n_test, start, end):
         assert end - start == self.k, f'Implementation error'
-        Dk = np.zeros((n_test, self.k), dtype=np.int32)
-        for i in range(n_test):
-            if self.verbose > 1 or (self.verbose > 0 and i % 1_000 == 0):
-                print(f'Hubness progress {i+1}/{n_test}',
-                      end='\r', flush=True)
-            d = pairwise_distances(
-                X[i, :].reshape(1, -1), Y, self.metric, self.n_jobs,
-                squared=True)
-            nn = np.argpartition(d, kth=kth)[0, start:end]
-            Dk[i, :] = nn
+        X_norm = row_norms(X, squared=True)
+        Y_norm = row_norms(Y, squared=True)
+        if self.n_jobs == 1:
+            Dk = np.zeros((n_test, self.k), dtype=np.int32)
+            for i in range(n_test):
+                if self.verbose > 1 \
+                    or self.verbose > 0 and (i % 1_000 == 0 or i+1 == n_test):
+                    log.message(f'k neighbors (from vectors): '
+                                f'{i+1}/{n_test}', flush=True)
+                d = pairwise_distances(
+                    X[i, :].reshape(1, -1), Y, self.metric, self.n_jobs,
+                    squared=True, X_norm_squared=X_norm[i].reshape(1, -1),
+                    Y_norm_squared=Y_norm)
+                nn = np.argpartition(d, kth=kth)[0, start:end]
+                Dk[i, :] = nn
+        else:
+            counter = SynchronizedCounter()
+            Dk_ctype = RawArray(ctypes.c_int32, n_test * self.k)
+            Dk = np.frombuffer(
+                Dk_ctype, dtype=np.int32).reshape((n_test, self.k))
+            with Pool(processes=self.n_jobs,
+                      initializer=_k_neighbors_initializer,
+                      initargs=(X, Y, Dk, X_norm, Y_norm, counter)) as pool:
+                for _ in pool.map(
+                    func=partial(_k_neighbors_parallel,
+                                 kth=kth, start=start, end=end,
+                                 n_test=n_test, metric=self.metric,
+                                 verbose=self.verbose),
+                    chunksize=100,
+                    iterable=range(n_test)):
+                    pass # results handled within func
         return Dk
 
     def _k_neighbors_precomputed(self, D, kth, start, end):
         n_test, m_test = D.shape
         Dk = np.zeros((n_test, self.k), dtype=np.int32)
         for i in range(n_test):
-            if self.verbose and ((i+1) % 1000 == 0 or i+1 == n_test):
-                print(f"NN: {i+1} of {n_test}.", end='\r', flush=True)
+            if self.verbose > 1 \
+                or self.verbose and (i % 1000 == 0 or i+1 == n_test):
+                log.message(f"k neighbors (from distances): "
+                            f"{i+1}/{n_test}.", flush=True)
             d = D[i, :].copy()
             d[~np.isfinite(d)] = np.inf
             if self.shuffle_equal:
@@ -524,6 +578,10 @@ class Hubness(object):
             k_neighbors = np.empty((n_test,), dtype=object)
             if self.shuffle_equal:
                 for i in range(n_test):
+                    if self.verbose > 1 \
+                        or self.verbose and (i % 1000 == 0 or i+1 == n_test):
+                        log.message(f"k neighbors (from sparse distances): "
+                                    f"{i+1}/{n_test}.", flush=True)
                     x = X.getrow(i)
                     rp = self.random_state.permutation(x.nnz)
                     d2 = x.data[rp]
@@ -531,6 +589,10 @@ class Hubness(object):
                     k_neighbors[i] = x.indices[rp[d2idx[:self.k]]]
             else:
                 for i in range(n_test):
+                    if self.verbose > 1 \
+                        or self.verbose and (i % 1000 == 0 or i+1 == n_test):
+                        log.message(f"k neighbors (from sparse distances): "
+                                    f"{i+1}/{n_test}.", flush=True)
                     x = X.getrow(i)
                     min_ind = np.argpartition(
                         x.data, kth=np.arange(self.k))[:self.k]

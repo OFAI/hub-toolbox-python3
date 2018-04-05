@@ -41,18 +41,20 @@ def _k_neighbors_initializer(X_=None, Y_=None, Dk_=None,
     counter = counter_
     return
 
-def _k_neighbors_parallel(i, kth, start, end, n_test, metric, verbose):
+def _k_neighbors_parallel(i, kth, start, end, metric,
+                          verbose, batch_size, n_batches):
     progress = counter.increment_and_get_value()
     if verbose > 1 \
-        or (verbose > 0 and (progress % 1_000 == 0 or progress + 1 == n_test)):
-        log.message(f'k neighbors (multiprocessing): '
-                    f'{progress+1}/{n_test}', flush=True)
+        or verbose > 0 and (progress % 10 == 0 or progress+1 == n_batches):
+        log.message(f'k neighbors (multiprocessing): batch '
+                    f'{progress+1}/{n_batches} with batch size '
+                    f'{batch_size}.', flush=True)
     d = pairwise_distances(
-        X[i, :].reshape(1, -1), Y, metric, 
-        squared=True, X_norm_squared=X_norm[i].reshape(1, -1),
+        X[i*batch_size:(i+1)*batch_size, :], Y, metric, squared=True,
+        X_norm_squared=X_norm[i*batch_size:(i+1)*batch_size].reshape(1, -1),
         Y_norm_squared=Y_norm)
-    nn = np.argpartition(d, kth=kth)[0, start:end]
-    Dk[i, :] = nn
+    nn = np.argpartition(d, kth=kth)[:, start:end]
+    Dk[i*batch_size:(i+1)*batch_size, :] = nn
     return
 
 
@@ -62,7 +64,7 @@ def _hubness_load_shared_data(D_, D_k_):
     D_k = D_k_
     return
 
-def _hubness_nearest_neighbors(i, k, n, m, d_self, metric, 
+def _hubness_nearest_neighbors(i, n, m, d_self, metric, 
                                kth, sort_order, log, verbose, shuffle_equal):
     if verbose and ((i+1)%10000==0 or i+1==n):
         log.message("NN: {} of {}.".format(i+1, n), flush=True)
@@ -206,7 +208,7 @@ def hubness(D:np.ndarray, k:int=5, metric='distance',
               initializer=_hubness_load_shared_data,
               initargs=(D, D_k, )) as pool:
         for _ in pool.imap(
-            func=partial(_hubness_nearest_neighbors, k=k, n=n, m=m, 
+            func=partial(_hubness_nearest_neighbors, n=n, m=m, 
                          d_self=d_self, metric=metric, kth=kth, 
                          sort_order=sort_order, log=log, verbose=verbose,
                          shuffle_equal=shuffle_equal),
@@ -301,7 +303,7 @@ def _hubness_no_multiprocessing(D:np.ndarray, k:int=5, metric='distance',
 
 def hubness_from_vectors(X:np.ndarray, Y:np.ndarray=None, k:int=5,
                          metric='euclidean', verbose:int=0,
-                         n_jobs:int=1, random_state=None):
+                         n_jobs:int=1):
     """Compute hubness from vectors.
 
     Hubness [1]_ is the skewness of the `k`-occurrence histogram (reverse
@@ -332,11 +334,6 @@ def hubness_from_vectors(X:np.ndarray, Y:np.ndarray=None, k:int=5,
         Number of parallel processes spawned for hubness calculation.
         Value 1 (default): One process (not using multiprocessing)
         Value (-1): As many processes as number of available CPUs.
-
-    random_state : int, optional
-        Seed the RNG for reproducible results.
-        
-        NOTE: Currently only compatible with `n_jobs`=1
 
     Returns
     -------
@@ -448,7 +445,7 @@ class Hubness(object):
                  return_k_neighbors:bool=False,
                  return_k_occurrence:bool=False,
                  verbose:int=0, n_jobs:int=1, random_state=None,
-                 shuffle_equal:bool=True):
+                 shuffle_equal:bool=True, **kwargs):
         self.k = k
         self.hub_size = hub_size
         self.metric = metric
@@ -458,6 +455,7 @@ class Hubness(object):
         self.n_jobs = n_jobs
         self.random_state = check_random_state(random_state)
         self.shuffle_equal = shuffle_equal
+        self.kwargs = kwargs
 
         # Making sure parameters have sensible values
         if k is not None:
@@ -487,19 +485,26 @@ class Hubness(object):
         assert end - start == self.k, f'Implementation error'
         X_norm = row_norms(X, squared=True)
         Y_norm = row_norms(Y, squared=True)
+        try:
+            batch_size = self.kwargs['batch_size']
+        except KeyError:
+            batch_size = 64
+        n_batches = np.ceil(n_test / batch_size).astype(int)
         if self.n_jobs == 1:
             Dk = np.zeros((n_test, self.k), dtype=np.int32)
-            for i in range(n_test):
+            for i in range(n_batches):
                 if self.verbose > 1 \
-                    or self.verbose > 0 and (i % 1_000 == 0 or i+1 == n_test):
-                    log.message(f'k neighbors (from vectors): '
-                                f'{i+1}/{n_test}', flush=True)
+                    or self.verbose > 0 and (i % 10 == 0 or i+1 == n_batches):
+                    log.message(f'k neighbors (from vectors): batch '
+                                f'{i+1}/{n_batches} with batch size '
+                                f'{batch_size}.', flush=True)
                 d = pairwise_distances(
-                    X[i, :].reshape(1, -1), Y, self.metric, self.n_jobs,
-                    squared=True, X_norm_squared=X_norm[i].reshape(1, -1),
+                    X[i*batch_size:(i+1)*batch_size, :], Y, self.metric,
+                    self.n_jobs, squared=True, X_norm_squared=X_norm[
+                        i*batch_size:(i+1)*batch_size].reshape(1, -1),
                     Y_norm_squared=Y_norm)
-                nn = np.argpartition(d, kth=kth)[0, start:end]
-                Dk[i, :] = nn
+                nn = np.argpartition(d, kth=kth)[:, start:end]
+                Dk[i*batch_size:(i+1)*batch_size, :] = nn
         else:
             counter = SynchronizedCounter()
             Dk_ctype = RawArray(ctypes.c_int32, n_test * self.k)
@@ -510,11 +515,15 @@ class Hubness(object):
                       initargs=(X, Y, Dk, X_norm, Y_norm, counter)) as pool:
                 for _ in pool.map(
                     func=partial(_k_neighbors_parallel,
-                                 kth=kth, start=start, end=end,
-                                 n_test=n_test, metric=self.metric,
-                                 verbose=self.verbose),
-                    chunksize=100,
-                    iterable=range(n_test)):
+                                 kth=kth,
+                                 start=start,
+                                 end=end,
+                                 metric=self.metric,
+                                 verbose=self.verbose,
+                                 batch_size=batch_size,
+                                 n_batches=n_batches),
+                    chunksize=32,
+                    iterable=range(n_batches)):
                     pass # results handled within func
         return Dk
 

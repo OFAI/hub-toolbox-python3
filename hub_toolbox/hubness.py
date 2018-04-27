@@ -623,6 +623,36 @@ class Hubness(object):
         skew_truncnorm = stats.truncnorm(a, b).moment(3)
         return skew_truncnorm
 
+    def _gini_index(self, Nk, limiting='memory'):
+        n = Nk.size
+        if limiting.lower() in ['memory', 'space']:
+            numerator = np.int(0)
+            for i in range(n):
+                numerator += np.sum(np.abs(Nk[:] - Nk[i]))
+        elif limiting.lower() in ['time', 'cpu']:
+            numerator = np.sum(np.abs(Nk.reshape(1, -1) - Nk.reshape(-1, 1)))
+        else: # slow naive implementation
+            n = Nk.size
+            numerator = 0
+            for i in range(n):
+                for j in range(n):
+                    numerator += np.abs(Nk[i] - Nk[j])
+        denominator = 2 * n * np.sum(Nk)
+        return numerator / denominator
+    
+    def _hood_index(self, Nk):
+        ''' Hoover/Robin hood/Schutz index'''
+        numerator = .5 * np.sum(np.abs(Nk - Nk.mean()))
+        denominator = np.sum(Nk)
+        return numerator / denominator
+    
+    def _atkinson_index(self, Nk, eps=.75):
+        if eps == 1:
+            term = np.prod(Nk) ** (1. / Nk.size)
+        else:
+            term = np.mean(Nk ** (1 - eps)) ** (1 / (1-eps)) 
+        return 1. - 1. / Nk.mean() * term
+
     def _antihub_occurrence(self, k_occurrence):
         '''Proportion of antihubs in data set.
         
@@ -679,8 +709,18 @@ class Hubness(object):
             self.k_occurrence_ = k_occurrence
         # traditional skewness measure
         self.k_skewness_ = stats.skew(k_occurrence)
-        # corrected skewness measure (against truncated normal distribution)
+        # new skewness measure (truncated normal distribution)
         self.k_skewness_truncnorm_ = self._skewness_truncnorm(k_occurrence)
+        # Gini index
+        if k_occurrence.shape[0] > 10_000:
+            limiting = 'space'
+        else:
+            limiting = 'time'
+        self.gini_index_ = self._gini_index(k_occurrence, limiting)
+        # Robin Hood index
+        self.hood_index_ = self._hood_index(k_occurrence)
+        # Atkinson index
+        self.atkinson_index_ = self._atkinson_index(k_occurrence)
         # anti-hub occurrence
         self.antihubs_, self.antihub_occurrence_ = \
             self._antihub_occurrence(k_occurrence)

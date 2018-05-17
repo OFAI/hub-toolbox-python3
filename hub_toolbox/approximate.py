@@ -120,9 +120,12 @@ def _lsh_filt(i, k, metric, verbose):
     elif metric == 'cosine':
         D_train[i, :knn.size] = cosine_distances(
             x.reshape(1, -1), X_train[knn])
+    #else:
+    #    raise ValueError(f'Invalid metric "{metric}". This indicates a'
+    #                     f'software bug.')
     else:
-        raise ValueError(f'Invalid metric "{metric}". This indicates a'
-                         f'software bug.')
+        D_train[i, :knn.size] = euclidean_distances(
+            x.reshape(1, -1), X_train[knn], squared=True)
     if knn.size < k:
         ind_train[i, knn.size:] = knn[-1]
         D_train[i, knn.size:] = D_train[i].max()
@@ -141,9 +144,12 @@ def _lsh_trafo(i, k, metric, verbose):
     elif metric == 'cosine':
         D_test[i, :lsh_nn.size] = cosine_distances(
             x.reshape((1, -1)), X_train[lsh_nn])
+    #else:
+    #    raise ValueError(f'Invalid metric "{metric}". This indicates a'
+    #                     f'software bug.')
     else:
-        raise ValueError(f'Invalid metric "{metric}". This indicates a'
-                         f'software bug.')
+        D_test[i, :lsh_nn.size] = euclidean_distances(
+            x.reshape((1, -1)), X_train[lsh_nn], squared=True).ravel()
     ind_test[i, :lsh_nn.size] = lsh_nn
     if lsh_nn.size < k:
         ind_test[i, lsh_nn.size:] = lsh_nn[-1]
@@ -596,9 +602,13 @@ class SuQHR(BaseEstimator, TransformerMixin):
             space = 'l2'
         elif self.metric == 'cosine':
             space = 'cosinesimil'
+        #else:
+        #    raise ValueError(f'Invalid metric "{self.metric}". '
+        #                     f'This indicates a software bug.')
         else:
-            raise ValueError(f'Invalid metric "{self.metric}". '
-                             f'This indicates a software bug.')
+            warnings.warn(f'Invalid metric "{self.metric}". '
+                          f'Using "sqeuclidean" instead')
+            space = 'l2'
         self.hnsw_squared_euclidean_ = True if space == 'l2' else False
         self.hnsw_cosine_simil_ = True if space == 'cosinesimil' else False
         assert not (self.hnsw_cosine_simil_
@@ -662,9 +672,13 @@ class SuQHR(BaseEstimator, TransformerMixin):
             distance = falconn.DistanceFunction.EuclideanSquared  # @UndefinedVariable
         elif self.metric == 'cosine':
             distance = falconn.DistanceFunction.NegativeInnerProduct  # @UndefinedVariable
+        #else:
+        #    raise ValueError(f'Invalid metric "{self.metric}". '
+        #                     f'This indicates a software bug.')
         else:
-            raise ValueError(f'Invalid metric "{self.metric}". '
-                             f'This indicates a software bug.')
+            warnings.warn(f'Invalid metric "{self.metric}". '
+                          f'Using "sqeuclidean" instead')
+            distance = falconn.DistanceFunction.EuclideanSquared  # @UndefinedVariable
         try:
             num_probes = self.kwargs['falconn__num_probes']
         except KeyError:
@@ -815,16 +829,22 @@ class SuQHR(BaseEstimator, TransformerMixin):
             self.ind_test_ = ind
         else:
             if self.verbose > 2:
-                print(f'LS.transform(full)')
+                print(f'Transform without hubness reduction')
             if self.metric == 'sqeuclidean':
                 D_test = euclidean_distances(
                     X=X, Y=self.X_train_,
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
+            #else:
+            #    raise ValueError(f'Invalid metric "{self.metric}". '
+            #                     f'This indicates a software bug.')
             else:
-                raise ValueError(f'Invalid metric "{self.metric}". '
-                                 f'This indicates a software bug.')
+                warnings.warn(f'Unknown metric {self.metric}. '
+                              f'Using "sqeuclidean" instead.')
+                D_test = euclidean_distances(
+                    X=X, Y=self.X_train_,
+                    Y_norm_squared=self.X_train_norm_squared_, squared=True)
             ind = np.tile(
                 np.arange(n_train), n_test).reshape((n_test, n_train))
             self.ind_test_ = self.ind_train_

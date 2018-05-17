@@ -572,7 +572,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
                           random_state=random_state,
                           return_ind=True,
                           metric=self.metric)
-        y = y[ind]
+        if y is not None:
+            y = y[ind]
         if self.metric == 'sqeuclidean':
             x_squared_norms = x_squared_norms[ind]
         return X, y, ind, x_squared_norms

@@ -46,7 +46,7 @@ __all__ = ['ApproximateHubnessReduction']
 
 VALID_HR = ["MP", "MPG", "LS", "NICDM", "DSL", None]
 VALID_SAMPLE = ['random', 'kmeans++', 'lsh', 'hnsw', None]
-VALID_METRICS = ['sqeuclidean', 'cosine']
+VALID_METRICS = ['sqeuclidean', 'cosine', 'precomputed']
 VALID_PREDICTORS = ['knn']
 log = ConsoleLogging()
 

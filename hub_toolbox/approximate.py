@@ -266,8 +266,11 @@ def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
     elif metric == 'cosine':
         closest_dist_sq = cosine_distances(centers[0, np.newaxis], X)
     else:
-        raise ValueError(f'Invalid metric "{metric}". This indicates a'
-                         f'software bug.')
+        warnings.warn(f'Invalid metric "{metric}". '
+                      f'Using "sqeuclidean" instead')
+        closest_dist_sq = euclidean_distances(
+            centers[0, np.newaxis], X, Y_norm_squared=x_squared_norms,
+            squared=True)
     current_pot = closest_dist_sq.sum()
 
     # Pick the remaining n_clusters-1 points
@@ -286,8 +289,11 @@ def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
         elif metric == 'cosine':
             distance_to_candidates = cosine_distances(X[candidate_ids], X)
         else:
-            raise ValueError(f'Invalid metric "{metric}". This indicates a'
-                             f'software bug.')
+            warnings.warn(f'Invalid metric "{metric}". '
+                          f'Using "sqeuclidean" instead')
+            distance_to_candidates = euclidean_distances(
+                X[candidate_ids], X, Y_norm_squared=x_squared_norms, 
+                squared=True)
 
         # Decide which candidate is the best
         best_candidate = None

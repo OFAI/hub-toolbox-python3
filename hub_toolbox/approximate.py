@@ -1363,7 +1363,8 @@ class SuQHR(BaseEstimator, TransformerMixin):
         else:
             # W/o fixed vantage points, a new classifier
             # is required for each test object.
-            y_pred = np.zeros(X.shape[0], dtype=self.y_train_.dtype)
+            y_pred = np.zeros((X.shape[0], self.y_train_.shape[1]),
+                              dtype=self.y_train_.dtype)
             knn = KNeighborsClassifier(n_neighbors=self.n_neighbors,
                                        algorithm='brute',
                                        metric='precomputed',

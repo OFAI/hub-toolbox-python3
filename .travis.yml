@@ -1,8 +1,9 @@
 language: python
 sudo: true
+dist: xenial
 python:
-- '3.4'
-- '3.5'
+- '3.6'
+- '3.7'
 install:
 - sudo apt-get update
 - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -12,10 +13,11 @@ install:
 - conda config --set always_yes yes --set changeps1 no
 - conda update -q conda
 - conda info -a
-- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy scikit-learn
+- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy pandas scikit-learn
   coverage
 - source activate test-environment
-- pip install coveralls
+- pip install pybind11
+- pip install coveralls joblib falconn nmslib
 - python setup.py build
 - python setup.py install
 script:
@@ -42,3 +44,8 @@ deploy:
       secure: "fSerf/lsApqvZjbNYmOSAuG33+TyW7aKsM/aS2pItzr9u3GQSSQls0Lo+yCduV3/12joBKh4G9k+SXqZnxmdMFPJ/L2RT9ZCx28HFrD+mGakoFX2nVqVhxnqw2bfSg4Wndw1fyNcimYQGNhHHp1WECTFjZInV162719cwID6fLaVzn1AHM8LcR1WPoO5RPZJ/0KhAuxbpkMsoMp5EDJtAxDgn7QGnyTZfwo8jV4ZlUGVTiKYbiPBvLPZ3eTp7b88x4X846X2QzdBHfQ6Qr6nzA6IOJAzkZ+NNpEhDQlQRX44ty0JR0jd5Bz3IypFodZVtDguz29L5oCcuYxJGaul1ANpoqfPZ4vR6b9FkWf3CQW1BNXd5SLVbscf9l4yorDUX4KeagvPJ2z65Y/IaTIoMZjgeZX0/Pm0rcuRFkn/6KobK+lG1IaLMs6F7H7LM+TJn5v9tUYNDbPthPbr7kGmm0E5OtwX8+QZD9h9ufAPgEnsvJkLurus5HbxUiSyARE1SwayBKatJAOY3AyjC3t3tjDSWY+FVTSPbvEbMIg3BMQy0NP0oRzNJLBJ5ZbFO1bcGpMEiqbYim9ZgYonagXsmhfWzRaWughkHZABZZMyFW4uhmyvDV3SiMZpM3wE7DiWm/Oq2PhkAvLJkW085qbjiw6wFxqjgSJ3amCeH3/ZdAY="
     on:
       tags: true  
+# safelist
+branches:
+  only:
+  - master
+  - develop

@@ -2,20 +2,19 @@
 
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2018, Dominik Schnitzer, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
-
 import sys
 import numpy as np
 from scipy.sparse import csr_matrix, lil_matrix
-from hub_toolbox import IO
+from hub_toolbox import io
+
+__all__ = ['goodman_kruskal_index', 'sparse_goodman_kruskal_index']
 
 def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
                           metric:str='distance') -> float:
@@ -65,9 +64,9 @@ def goodman_kruskal_index(D:np.ndarray, classes:np.ndarray,
     """
     
     # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_distance_matrix_shape_fits_labels(D, classes)
-    IO._check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_distance_matrix_shape_fits_labels(D, classes)
+    io.check_valid_metric_parameter(metric)
     
     # Calculations
     Q_c = 0.0
@@ -205,9 +204,9 @@ def sparse_goodman_kruskal_index(S:csr_matrix, classes:np.ndarray,
     """
     
     # Checking input
-    IO._check_distance_matrix_shape(S)
-    IO._check_distance_matrix_shape_fits_labels(S, classes)
-    IO._check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(S)
+    io.check_distance_matrix_shape_fits_labels(S, classes)
+    io.check_valid_metric_parameter(metric)
     
     if verbose:
         print("Sparse Goodman-Kruskal")
@@ -376,9 +375,9 @@ def _naive_goodman_kruskal(D:np.ndarray, labels:np.ndarray, metric='distance'):
     """
     
     # Checking input
-    IO._check_distance_matrix_shape(D)
-    IO._check_distance_matrix_shape_fits_labels(D, labels)
-    IO._check_valid_metric_parameter(metric)
+    io.check_distance_matrix_shape(D)
+    io.check_distance_matrix_shape_fits_labels(D, labels)
+    io.check_valid_metric_parameter(metric)
     n = D.shape[0]
     Q_c = 0
     Q_d = 0
@@ -403,35 +402,3 @@ def _naive_goodman_kruskal(D:np.ndarray, labels:np.ndarray, metric='distance'):
         return (Q_d - Q_c) / (Q_c + Q_d)
     else: # metric == 'distance':
         return (Q_c - Q_d) / (Q_c + Q_d)
-
-# DEPRECATED class GoodmanKruskal. Remove for next hub_toolbox release.
-class GoodmanKruskal(): # pragma: no cover
-    """
-    .. note:: Deprecated in hub-toolbox 2.3
-              Class will be removed in hub-toolbox 3.0.
-              Please use static functions instead.
-    """
-    
-    def __init__(self, D, classes, isSimilarityMatrix=False):
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        print("DEPRECATED: Please use GoodmanKruskal.goodman_kruskal_index "
-              "instead.", file=sys.stderr)
-        self.D = D
-        self.classes = classes
-        self.is_similarity_matrix = isSimilarityMatrix
-        
-    def calculate_goodman_kruskal_index(self) -> float:
-        """
-        .. note:: Deprecated in hub-toolbox 2.3
-                  Class will be removed in hub-toolbox 3.0.
-                  Please use static functions instead.
-        """
-        if self.is_similarity_matrix:
-            metric = 'similarity'
-        else:
-            metric = 'distance'
-        return goodman_kruskal_index(self.D, self.classes, metric)

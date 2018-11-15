@@ -16,14 +16,14 @@ Prerequisites
 Python
 ------
 
-The Hub Toolbox currently requires Python 3.4 or higher. You can check this 
+The Hub Toolbox currently requires Python 3.6 or higher. You can check this
 on your system with:
 
 .. code-block:: bash
 
 	python3 --version
 
-If Python3 is missing, or its version is lower than 3.4, please install it 
+If Python3 is missing, or its version is lower than 3.6, please install it
 via the package manager of your operating system (e.g. ``apt`` in 
 Debian/Ubuntu or ``dnf`` in Fedora).
 

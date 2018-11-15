@@ -1,32 +1,31 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2018, Dominik Schnitzer, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
-
 from inspect import signature
 import numpy as np
-from hub_toolbox.Hubness import hubness
-from hub_toolbox.KnnClassification import score
-from hub_toolbox.GoodmanKruskal import goodman_kruskal_index
-from hub_toolbox.IntrinsicDim import intrinsic_dimension
-from hub_toolbox.MutualProximity import mutual_proximity_empiric, \
-    mutual_proximity_gammai, mutual_proximity_gauss, mutual_proximity_gaussi
-from hub_toolbox.LocalScaling import nicdm, local_scaling
-from hub_toolbox.SharedNN import shared_nearest_neighbors
-from hub_toolbox.Centering import centering, weighted_centering, \
+from hub_toolbox import io
+from hub_toolbox.centering import centering, weighted_centering, \
     localized_centering, dis_sim_global, dis_sim_local
-from hub_toolbox.Distances import cosine_distance
-from hub_toolbox import IO
+from hub_toolbox.distances import cosine_distance
+from hub_toolbox.global_scaling import mutual_proximity_empiric, \
+    mutual_proximity_gammai, mutual_proximity_gaussi
+from hub_toolbox.goodman_kruskal import goodman_kruskal_index
+from hub_toolbox.hubness import hubness
+from hub_toolbox.intrinsic_dimension import intrinsic_dimension
+from hub_toolbox.knn_classification import score
+from hub_toolbox.local_scaling import nicdm, local_scaling
+from hub_toolbox.shared_neighbors import shared_nearest_neighbors
+
+__all__ = ['HubnessAnalysis']
 
 CITATION = \
 """
@@ -48,7 +47,6 @@ def _primary_distance(D:np.ndarray, metric):
 
 # New types of hubness reduction methods must be added here
 SEC_DIST = {'mp' : mutual_proximity_empiric,
-            'mp_gauss': mutual_proximity_gauss,
             'mp_gaussi' : mutual_proximity_gaussi,
             'mp_gammai' : mutual_proximity_gammai,
             'ls' : local_scaling,
@@ -123,7 +121,7 @@ class HubnessAnalysis():
                   'This dataset is one of five datasets of the NIPS 2003\n'
                   'feature selection challenge.\n'
                   'http://archive.ics.uci.edu/ml/datasets/Dexter\n')
-            self.D, self.classes, self.vectors = IO.load_dexter()
+            self.D, self.classes, self.vectors = io.load_dexter()
             self.has_class_data, self.has_vector_data = True, True
             self.metric = 'distance'
         else:
@@ -146,7 +144,6 @@ class HubnessAnalysis():
     @property
     def _header(self):
         return {'mp' : "MUTUAL PROXIMITY (Empiric)",
-                'mp_gauss': "MUTUAL PROXIMITY (Gaussian)",
                 'mp_gaussi' : "MUTUAL PROXIMITY (Independent Gaussians)",
                 'mp_gammai' : "MUTUAL PROXIMITY (Independent Gamma)",
                 'ls' : "LOCAL SCALING (original)",
@@ -177,7 +174,6 @@ class HubnessAnalysis():
 
             - "orig" : Original, primary distances
             - "mp" : Mutual Proximity (empiric)
-            - "mp_gauss" : Mutual Proximity (Gaussians)
             - "mp_gaussi" : Mutual Proximity (independent Gaussians)
             - "mp_gammai" ... Mutual Proximity (independent Gamma)
             - "ls" : Local Scaling (using k-th neighbor)
@@ -323,16 +319,16 @@ class HubnessExperiment():
                  vectors:np.ndarray=None):
         """Initialize a hubness experiment"""
 
-        IO._check_distance_matrix_shape(D)
-        IO._check_valid_metric_parameter(metric)
+        io.check_distance_matrix_shape(D)
+        io.check_valid_metric_parameter(metric)
         if secondary_distance_type not in SEC_DIST.keys():
             raise ValueError("Requested secondary distance type unknown.")
         if classes is not None:
-            IO._check_distance_matrix_shape_fits_labels(D, classes)
+            io.check_distance_matrix_shape_fits_labels(D, classes)
         if vectors is None:
             self.embedding_dim = None
         else: # got vectors
-            IO._check_distance_matrix_shape_fits_vectors(D, vectors)
+            io.check_distance_matrix_shape_fits_vectors(D, vectors)
             self.embedding_dim = vectors.shape[1]
         self.original_distance = D
         self.secondary_distance_type = secondary_distance_type
@@ -393,16 +389,6 @@ class HubnessExperiment():
                                               classes=self.classes,
                                               metric=self.metric)
         return self
-
-def load_dexter():
-    """Load the dexter data set.
-
-    .. note:: Deprecated in hub-toolbox 2.3
-              Will be removed in hub-toolbox 3.0.
-              Please use IO.load_dexter() instead.
-    """
-
-    return IO.load_dexter()
 
 if __name__ == "__main__":
     hub = HubnessAnalysis()

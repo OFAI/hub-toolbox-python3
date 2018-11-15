@@ -1,20 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2015-2016, Roman Feldbauer
+(c) 2015-2018, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
-
 import sys, time
 from abc import ABCMeta, abstractmethod
+
+__all__ = ['ConsoleLogging']
 
 class Logging(metaclass=ABCMeta): # pragma: no cover
     """Base class for time-stamped logging.
@@ -35,36 +34,36 @@ class Logging(metaclass=ABCMeta): # pragma: no cover
     @abstractmethod
     def error(self):
         ...
-    
+
 class ConsoleLogging(Logging):
     """Convenience functions for time-stamped logging to the console"""
-    
+
     def message(self, *objs, flush=True):
         """Log normal program function"""
         print(self._current_time, 'INFO:', *objs)
         if flush:
             sys.stdout.flush()
-        
+
     def warning(self, *objs, flush=True):
         """Log warning (program can still continue)"""
         print(self._current_time, 'WARNING:', *objs, file=sys.stderr)
         if flush:
             sys.stderr.flush()
-        
+
     def error(self, *objs, flush=True):
         """Log error (program fails)"""
         print(self._current_time, 'ERROR:', *objs, file=sys.stderr)
         if flush:
             sys.stderr.flush()
-            
+
 class FileLogging(ConsoleLogging):
     """Convenience functions for time-stamped logging to a file"""
-    
+
     def __init__(self):
         """Not implemented"""
         self.warning("FileLogging not yet implemented, will print to "
                      "console anyway.")
-        
+
 if __name__ == '__main__':
     """Simple test of this module"""
     log = ConsoleLogging()
@@ -84,4 +83,3 @@ if __name__ == '__main__':
         log = Logging()
     except TypeError as e:
         log.warning('Must not instantiate Logging(), got exception:\n', e)
-        

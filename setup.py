@@ -1,14 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2011-2016, Dominik Schnitzer and Roman Feldbauer
+(c) 2011-2018, Dominik Schnitzer and Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 
@@ -30,12 +28,14 @@ If this succeeds with an 'OK' message, you are ready to go.
 Otherwise you may consider filing a bug report on github.
 (Some skipped tests are perfectly fine, though.)
 """
-import sys
-if sys.version_info < (3, 4):
-    sys.stdout.write("The HUB TOOLBOX requires Python 3.4\n"
-                     "Please try to run as python3 setup.py or\n"
-                     "update your Python environment.\n"
-                     "Consider using Anaconda for easy package handling.\n")
+import re, os, sys
+REQ_MAJOR = 3
+REQ_MINOR = 6
+if sys.version_info < (REQ_MAJOR, REQ_MINOR):
+    sys.stdout.write(
+        (f"The HUB TOOLBOX requires Python {REQ_MAJOR}.{REQ_MINOR} or higher."
+         f"\nPlease try to run as python3 setup.py or update your Python "
+         f"environment.\n Consider using Anaconda for easy package handling."))
     sys.exit(1)
 
 try:
@@ -44,7 +44,20 @@ except ImportError:
     sys.stdout.write("The HUB TOOLBOX requires numpy, scipy and scikit-learn. "
                      "Please make sure these packages are available locally. "
                      "Consider using Anaconda for easy package handling.\n")
-
+    sys.exit(1)
+try:
+    import pandas, joblib  # @UnusedImport
+except ImportError:
+    sys.stdout.write("Some modules of the HUB TOOLBOX require pandas and joblib. "
+                     "Please make sure these packages are available locally. "
+                     "Consider using Anaconda for easy package handling.\n")
+try:
+    import nmslib, falconn  # @UnusedImport
+except ImportError:
+    sys.stdout.write("The 'approximate' module uses 'nmslib' and 'falconn' "
+                     "libraries for approximate nearest neighbor search. "
+                     "Please make sure these packages are available locally. "
+                     "Consider using Anaconda for easy package handling.\n")
 setup_options = {}
 
 try:
@@ -56,9 +69,22 @@ except ImportError:
     warnings.warn("setuptools not found, resorting to distutils. "
                   "Unit tests won't be discovered automatically.")
 
+# Parsing current version number
+# Adapted from the Lasagne project at
+# https://github.com/Lasagne/Lasagne/blob/master/setup.py
+here = os.path.abspath(os.path.dirname(__file__))
+try:
+    # obtain version string from __init__.py
+    # Read ASCII file with builtin open() so __version__ is str in Python 2 and 3
+    with open(os.path.join(here, 'hub_toolbox', '__init__.py'), 'r') as f:
+        init_py = f.read()
+    version = re.search("__version__ = '(.*)'", init_py).groups()[0]
+except Exception:
+    version = ''
+
 setup(
     name = "hub_toolbox",
-    version = "2.3.1",
+    version = version,
     author = "Roman Feldbauer",
     author_email = "roman.feldbauer@ofai.at",
     maintainer = "Roman Feldbauer",
@@ -76,6 +102,8 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 "
         "or later (GPLv3+)",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Topic :: Scientific/Engineering"
     ],
     **setup_options

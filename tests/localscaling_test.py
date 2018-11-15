@@ -1,23 +1,21 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2016, Roman Feldbauer
+(c) 2016-2018, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
 from scipy.spatial.distance import squareform
-from hub_toolbox.Distances import euclidean_distance
-from hub_toolbox.LocalScaling import local_scaling, nicdm
-from hub_toolbox.Hubness import hubness
-from hub_toolbox.KnnClassification import score
+from hub_toolbox.distances import euclidean_distance
+from hub_toolbox.local_scaling import local_scaling, nicdm
+from hub_toolbox.hubness import hubness
+from hub_toolbox.knn_classification import score
 
 class TestLocalScaling(unittest.TestCase):
     """Unit tests for the LocalScaling class"""
@@ -25,8 +23,8 @@ class TestLocalScaling(unittest.TestCase):
     def setUpMod(self, mode='rnd'):
         np.random.seed(626)
         if mode == 'rnd':
-            points = 200
-            dim = 500
+            points = 200 # 200
+            dim = 500 # 500
             self.vector = 99. * (np.random.rand(points, dim) - 0.5)
             self.label = np.random.randint(0, 5, points)
             self.dist = euclidean_distance(self.vector)
@@ -38,9 +36,10 @@ class TestLocalScaling(unittest.TestCase):
                  0.6321205588, 0.6471339185, 0.9342714714, 0.9844961464, 
                  0.8646647168, 0.8150186001])
             self.nicdm_dist_truth = squareform(
-                [0.2936782173, 0.1641711143, 0.7285259947, 0.4153237178, 
-                 0.381499195, 0.3526961306, 0.5629896449, 0.7886525234, 
-                 0.5395213357, 0.4489088861])
+                [0.310029690448236, 0.173311865721368, 0.769089007390428,
+                 0.438448192970227, 0.402740381783397, 0.37233361467179,
+                 0.594335892341949, 0.832563272714335, 0.569560910033398,
+                 0.473903322836619])
             self.vector = None
             self.label = None
 
@@ -50,9 +49,9 @@ class TestLocalScaling(unittest.TestCase):
     def test_local_scaling(self):
         self.setUpMod('toy')
         dist_calc = local_scaling(self.dist, k=2)
-        calc_equals_truth = np.allclose(dist_calc, self.ls_dist_truth)
-        return self.assertTrue(calc_equals_truth)
-
+        return np.testing.assert_array_almost_equal(
+            dist_calc, self.ls_dist_truth, decimal=7)
+ 
     def test_ls_basic_requirements(self):
         """Test that matrix is symmetric, diag==0, and in range [0, 1]"""
         self.setUpMod('rnd')
@@ -61,7 +60,7 @@ class TestLocalScaling(unittest.TestCase):
         diag_zero = np.all(ls_dist.diagonal() == 0.)
         correct_range = ls_dist.min() >= 0. and ls_dist.max() <= 1.
         return self.assertTrue(symmetric and diag_zero and correct_range)
-
+ 
     def test_ls_dist_equals_sim(self):
         """Test for equal RANKS using dist. vs. sim. (LS_dist != 1-LS_sim).
            Using hubness and k-NN accuracy as proxy."""
@@ -76,12 +75,18 @@ class TestLocalScaling(unittest.TestCase):
                                         np.allclose(acc_dist, acc_sim)
         return self.assertTrue(dist_sim_equal_in_hubness_knn)
 
+    def test_ls_parallel_equals_sequential(self):
+        self.setUpMod('rnd')
+        ls_dist_par = local_scaling(self.dist, n_jobs=4)
+        ls_dist_seq = local_scaling(self.dist, n_jobs=1)
+        return np.testing.assert_array_equal(ls_dist_seq, ls_dist_par)
+
     def test_nicdm(self):
         self.setUpMod('toy')
         dist_calc = nicdm(self.dist, k=2)
-        calc_equals_truth = np.allclose(dist_calc, self.nicdm_dist_truth)
-        return self.assertTrue(calc_equals_truth)
-
+        return np.testing.assert_array_almost_equal(
+            dist_calc, self.nicdm_dist_truth, decimal=7)
+ 
     def test_nicdm_basic_requirements(self):
         """Test that matrix is symmetric, diag==0, and in range [0, inf)"""
         self.setUpMod('rnd')
@@ -90,11 +95,17 @@ class TestLocalScaling(unittest.TestCase):
         diag_zero = np.all(nicdm_dist.diagonal() == 0.)
         correct_range = nicdm_dist.min() >= 0.
         return self.assertTrue(symmetric and diag_zero and correct_range)
-
+ 
     def test_nicdm_similarity_based(self):
         """There is no similarity-based NICDM"""
         self.setUpMod('toy')
         return self.assertRaises(NotImplementedError)
+
+    def test_nicdm_parallel_equals_sequential(self):
+        self.setUpMod('rnd')
+        ls_dist_par = nicdm(self.dist, n_jobs=4)
+        ls_dist_seq = nicdm(self.dist, n_jobs=1)
+        return np.testing.assert_array_equal(ls_dist_seq, ls_dist_par)
 
 if __name__ == "__main__":
     unittest.main()

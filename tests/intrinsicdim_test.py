@@ -1,20 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2016, Roman Feldbauer
+(c) 2016-2018, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
-from hub_toolbox.IO import load_dexter
-from hub_toolbox.IntrinsicDim import intrinsic_dimension
+from hub_toolbox.io import load_dexter
+from hub_toolbox.intrinsic_dimension import intrinsic_dimension
 
 class TestIntrinsicDim(unittest.TestCase):
 
@@ -27,18 +25,18 @@ class TestIntrinsicDim(unittest.TestCase):
     def test_intrinsic_dim_mle_levina(self):
         """Test against value calc. by matlab reference implementation."""
         _, _, vector = load_dexter()
-        ID_MLE_REF = 74.742
+        ID_MLE_REF = 74.472
         id_mle = intrinsic_dimension(vector, k1=6, k2=12, 
             estimator='levina', metric='vector', trafo=None)
-        return self.assertEqual(id_mle, int(ID_MLE_REF))
+        return np.testing.assert_almost_equal(id_mle, ID_MLE_REF, decimal=3)
 
     def test_intrinsic_dim_mle_levina_low_memory(self):
         """ Same as above, but invoking the speed-memory trade-off. """
         _, _, vector = load_dexter()
-        ID_MLE_REF = 74.742
+        ID_MLE_REF = 74.472
         id_mle = intrinsic_dimension(vector, 6, 12, 'levina', 
                                      'vector', None, mem_threshold=0)
-        return self.assertEqual(id_mle, int(ID_MLE_REF))
+        return np.testing.assert_almost_equal(id_mle, ID_MLE_REF, decimal=3)
 
     def test_incorrect_est_params(self):
         """ Test handling of incorrect estimator. """

@@ -1,40 +1,43 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2015-2016, Roman Feldbauer
+(c) 2015-2018, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
 import os
-import sys
 import numpy as np
 from scipy import sparse
-from hub_toolbox.Distances import cosine_distance
+from scipy.sparse.base import issparse
+
+__all__ = ['load_dexter', 'random_sparse_matrix', 
+           'load_csr_matrix', 'save_csr_matrix']
 
 def load_dexter():
     """Load the example data set (dexter).
-    
+
     Returns
     -------
     D : ndarray
         Distance matrix
+
     classes : ndarray
         Class label vector
+
     vectors : ndarray
         Vector data matrix
     """
+    from hub_toolbox.distances import cosine_distance
         
     n = 300
     dim = 20000
-    
+
     # Read class labels
     classes_file = os.path.dirname(os.path.realpath(__file__)) +\
         '/example_datasets/dexter_train.labels'
@@ -45,7 +48,7 @@ def load_dexter():
     data_file = os.path.dirname(os.path.realpath(__file__)) + \
         '/example_datasets/dexter_train.data'
     with open(data_file, mode='r') as fid:
-        data = fid.readlines()       
+        data = fid.readlines()
     row = 0
     for line in data:
         line = line.strip().split() # line now contains pairs of dim:val
@@ -53,90 +56,106 @@ def load_dexter():
             col, val = word.split(':')
             vectors[row][int(col)-1] = int(val)
         row += 1
-    
+
     # Calc distance
     D = cosine_distance(vectors)
     return D, classes, vectors
 
-def _check_distance_matrix_shape(D:np.ndarray):
+def check_is_nD_array(arr:np.ndarray, n:int, arr_type=''):
+    """ Check that array is exactly n dimensional. """
+    try:
+        if arr.ndim != n:
+            raise TypeError(arr_type + " array must be a " + str(n) +
+                            "D array, but was found to be a " +
+                            str(arr.ndim) + "D array with shape: " +
+                            str(arr.shape))
+    except AttributeError:
+        raise TypeError("Object 'arr' does not seem to be an array.")
+
+def check_distance_matrix_shape(D:np.ndarray):
     """ Check that matrix is quadratic. """
+    check_is_nD_array(D, n=2, arr_type="Distance/similarity")
     if D.shape[0] != D.shape[1]:
-        raise TypeError("Distance/similarity matrix is not quadratic.")
+        raise TypeError("Distance/similarity matrix is not quadratic. "
+                        "Shape: {}".format(D.shape))
 
-def _check_distance_matrix_shape_fits_vectors(D:np.ndarray, vectors:np.ndarray):
+def check_distance_matrix_shape_fits_vectors(D:np.ndarray, vectors:np.ndarray):
     """ Check number of points in distance matrix equal number of vectors. """
+    check_is_nD_array(D, 2, "Distance/similarity")
+    check_is_nD_array(vectors, 2, "Data vectors")
     if D.shape[0] != vectors.shape[0]:
-        raise TypeError("Data vectors dimension does not match "
-                        "distance matrix (D) dimension.")
+        raise TypeError("Number of points in `vectors` does not match "
+                        "number of points in `D`. Shape of `vectors`: {}, "
+                        "shape of `D`: {}".format(vectors.shape[0], D.shape[0]))
 
-def _check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
-    """ Check the number of points in distance matrix equal number of labels"""
+def check_distance_matrix_shape_fits_labels(D:np.ndarray, classes:np.ndarray):
+    """ Check the number of points in distance matrix equal number of labels."""
+    check_is_nD_array(D, 2, "Distance/similarity")
+    check_is_nD_array(classes, 1, "Class label")
     if classes.size != D.shape[0]:
-        raise TypeError("Number of class labels does not "
-                        "match number of points.")
+        raise TypeError("Number of class labels does not match number of "
+                        "points. Labels: {}, points: {}."
+                        .format(classes.size, D.shape[0]))
 
-def _check_valid_metric_parameter(metric:str):
+def check_vector_matrix_shape_fits_labels(X:np.ndarray, classes:np.ndarray):
+    """ Check the number of points in vector matrix equal number of labels."""
+    check_is_nD_array(X, 2, "Data vectors")
+    check_is_nD_array(classes, 1, "Class label")
+    if classes.size != X.shape[0]:
+        raise TypeError("Number of class labels does not match number of "
+                        "points. Labels: {}, points: {}."
+                        .format(classes.size, X.shape[0]))
+
+def check_sample_shape_fits(D:np.ndarray, idx:np.ndarray):
+    """ Check that number of columns in ``D`` equals the size of ``idx``. """
+    if issparse(D) or issparse(idx):
+        raise TypeError("Sparse matrices are not supported for SampleMP.")
+    check_is_nD_array(D, 2, "Distance/similarity")
+    check_is_nD_array(idx, 1, "Index")
+    if D.shape[1] > D.shape[0]:
+        raise ValueError("Number of samples is higher than number of points. "
+                         "Must be less than or equal. In the latter case, "
+                         "consider not using samples at all for efficiency. "
+                         "Shape of `D`: {}.".format(D.shape))
+    if D.shape[1] != idx.size:
+        raise TypeError("Number of samples in index array does not match "
+                        "the number of samples in the data matrix. "
+                        "Size of `idx`: {}, Columns in `D`: {}."
+                        .format(idx.size, D.shape[1]))
+
+def check_valid_metric_parameter(metric:str):
     """ Check parameter is either 'distance' or 'similarity'. """
     if metric != 'distance' and metric != 'similarity':
         raise ValueError("Parameter 'metric' must be "
-                         "'distance' or 'similarity'.")
-
-def copy_D_or_load_memmap(D, writeable=False): # pragma: no cover
-    """Return a deep copy of a numpy array (if `D` is an ndarray), 
-    otherwise return a read-only memmap (if `D` is a path).
-    
-    .. note:: Deprecated in hub-toolbox 2.3
-              Will be removed in hub-toolbox 3.0.
-              Memmap support will be dropped completely; individual 
-              functions must deepcopy objects themselves.
-    """
-    print("DEPRECATED: memmap support will be dropped completely.", 
-          file=sys.stderr)
-    if isinstance(D, np.memmap):
-        return D
-    elif isinstance(D, np.ndarray):
-        newD = np.copy(D.astype(np.float32))
-    elif sparse.issparse(D):
-        newD = D.copy()
-    elif isinstance(D, str):
-        if os.path.isfile(D):
-            # keep matrix on disk
-            if writeable:
-                newD = np.load(D, mmap_mode='r+')
-            else: # read-only
-                newD = np.load(D, mmap_mode='r') 
-        else:
-            raise FileNotFoundError("Distance matrix file not found.")
-    else:
-        raise Exception("Distance matrix type not understood. "
-                        "Must be np.ndarray or scipy.sparse.csr_matrix or "
-                        "path to pickled ndarray.")
-        
-    return newD
+                         "'distance' or 'similarity'."
+                         "Got: " + metric.__str__())
 
 def matrix_split(rows, cols, elem_size=8, nr_matrices=4): # pragma: no cover
-    """Determine how to split a matrix that does not fit into memory. 
-    
+    """Determine how to split a matrix that does not fit into memory.
+
     Parameters
     ----------
     rows, cols : int 
         Shape of matrix that should be split.
-    elem_size : int 
+
+    elem_size : int
         memory requirement per matrix element in bytes. E.g. 8 bytes for float64
-    nr_matrices : int 
+
+    nr_matrices : int
         How many times must the split matrix fit into memory?
         This depends on the subsequent operations.
-    
+
     Returns
     -------
     nr_batches : int
         number of submatrices
+
     nr_rows : int
         number of rows per submatrix.
-    
+
     Notes
     -----
-        - Submatrices always contain all columns per row. 
+        - Submatrices always contain all columns per row.
         - The last batch will usually have less rows than `nr_rows`
     """
     free_mem = FreeMemLinux(unit='k').user_free
@@ -147,18 +166,18 @@ def matrix_split(rows, cols, elem_size=8, nr_matrices=4): # pragma: no cover
 
 def random_sparse_matrix(size, density=0.05):
     """Generate a random sparse similarity matrix.
-    
+
     Values are bounded by [0, 1]. Diagonal is all ones. The final density is
     approximately 2*`density`.
-    
+
     Parameters
     ----------
     size : int
         Shape of the matrix (`size` x `size`)
-    
+
     density : float, optional, default=0.05
         The matrix' density will be approximately 2 * `density`
-        
+
     Returns
     -------
     S : csr_matrix
@@ -171,10 +190,20 @@ def random_sparse_matrix(size, density=0.05):
     S += sparse.diags(np.ones(size), 0)
     return S
 
+def save_csr_matrix(file, matrix):
+    np.savez(file, data=matrix.data, indices=matrix.indices,
+             indptr=matrix.indptr, shape=matrix.shape)
+    return file
+
+def load_csr_matrix(file):
+    container = np.load(file)
+    return sparse.csr_matrix((container['data'], container['indices'], 
+                              container['indptr']), shape=container['shape'])
+
 class FreeMemLinux(object): # pragma: no cover
-    """Non-cross platform way to get free memory on Linux. 
-    
-    Original code by Oz123, 
+    """Non-cross platform way to get free memory on Linux.
+
+    Original code by Oz123,
     http://stackoverflow.com/questions/17718449/determine-free-ram-in-python
     """
 

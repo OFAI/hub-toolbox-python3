@@ -1,24 +1,22 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 This file is part of the HUB TOOLBOX available at
-http://ofai.at/research/impml/projects/hubology.html
-Source code is available at
 https://github.com/OFAI/hub-toolbox-python3/
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
 
-(c) 2016, Roman Feldbauer
+(c) 2016-2018, Roman Feldbauer
 Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 import unittest
 import numpy as np
 from scipy.spatial.distance import squareform, pdist
-from hub_toolbox.GoodmanKruskal import goodman_kruskal_index,\
-    _naive_goodman_kruskal, sparse_goodman_kruskal_index
-from hub_toolbox.IO import random_sparse_matrix
-from hub_toolbox.SharedNN import shared_nearest_neighbors
 from scipy.sparse.csr import csr_matrix
+from hub_toolbox.goodman_kruskal import goodman_kruskal_index,\
+    _naive_goodman_kruskal, sparse_goodman_kruskal_index
+from hub_toolbox.io import random_sparse_matrix
+from hub_toolbox.shared_neighbors import shared_nearest_neighbors
 
 class TestGoodmanKruskal(unittest.TestCase):
 
@@ -26,6 +24,7 @@ class TestGoodmanKruskal(unittest.TestCase):
         n = 50
         m = 5
         c = 3
+        np.random.seed(823475)
         data = np.random.rand(n, m)
         self.distance = squareform(pdist(data, 'euclidean'))
         self.similarity = 1. - self.distance / self.distance.max()

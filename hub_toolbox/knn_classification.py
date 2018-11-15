@@ -453,7 +453,7 @@ def predict(D:np.ndarray, target:np.ndarray, k=5,
 #  R - PRECISION
 #
 def _load_shared_csr(S_, y_, n_random_pred_, relevant_items_):
-    ''' Better yet: don't use shared CSR, but just inherit and use globals '''
+    """ Better yet: don't use shared CSR, but just inherit and use globals """
     global S
     S = S_
     global y
@@ -528,7 +528,7 @@ def _r_prec_worker(i, y_pred, incorrect, **kwargs):
 def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
                 average:str='weighted', return_y_pred:int=0,
                 verbose:int=0, n_jobs:int=1) -> float:
-    ''' Calculate R-Precision (recall at R-th position).
+    """ Calculate R-Precision (recall at R-th position).
 
     Parameters
     ----------
@@ -573,7 +573,7 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
 
         y_pred : ndarray
             Labels of some k-nearest neighbors
-    '''
+    """
     io.check_distance_matrix_shape(S)
     io.check_distance_matrix_shape_fits_labels(S, y)
     io.check_valid_metric_parameter(metric)
@@ -627,7 +627,8 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
 
     if verbose and log:
         log.message("Retrieving nearest neighbors.")
-    y_pred = le.inverse_transform(y_pred.astype(int))
+    # Work-around for new scikit-learn requirement of 1D arrays for LabelEncoder
+    y_pred = np.asarray([le.inverse_transform(col) for col in y_pred.T.astype(int)]).T
     if verbose and log:
         log.message("Finishing.")
     if n_random_pred.value:
@@ -643,7 +644,7 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
     return return_dict
 
 def f1_score(cmat):
-    ''' Calculate F measure from confusion matrix.
+    """ Calculate F measure from confusion matrix.
 
     Parameters
     ----------
@@ -659,7 +660,7 @@ def f1_score(cmat):
     -------
     f1 : float
         F measure of the given confusion matrix.
-    '''
+    """
     #TN = cmat[0, 0] not required for F1 score
     FP = cmat[0, 1]
     FN = cmat[1, 0]
@@ -672,7 +673,7 @@ def f1_score(cmat):
         return 2 * precision * recall / (precision + recall)
 
 def f1_macro(cmat):
-    ''' Calculate macro averaged F measure from confusion matrices.
+    """ Calculate macro averaged F measure from confusion matrices.
 
     Biased towards LESS abundant classes in case of class imbalance.
 
@@ -685,11 +686,11 @@ def f1_macro(cmat):
     -------
     f1_macro : float
         Macro F measure of the given confusion matrices.
-    '''
+    """
     return np.array([f1_score(x) for x in cmat]).mean()
 
 def f1_weighted(cmat):
-    ''' Calculate weighted F measure from confusion matrices.
+    """ Calculate weighted F measure from confusion matrices.
 
     Parameters
     ----------
@@ -700,13 +701,13 @@ def f1_weighted(cmat):
     -------
     f1_weighted : float
         Weighted F measure of the given confusion matrices.
-    '''
+    """
     scores = np.array([f1_score(x) for x in cmat])
     weights = np.array([x[1, :].sum() for x in cmat])
     return np.average(scores, weights=weights)
 
 def f1_micro(cmat):
-    ''' Calculate micro averaged F measure from confusion matrices.
+    """ Calculate micro averaged F measure from confusion matrices.
     
     Biased towards MORE abundant classes in case of class imbalance.
 
@@ -719,5 +720,5 @@ def f1_micro(cmat):
     -------
     f1_micro : float
         Micro F measure of the given confusion matrices.
-    '''
+    """
     return f1_score(cmat.sum(axis=0))

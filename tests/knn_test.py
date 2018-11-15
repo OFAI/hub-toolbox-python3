@@ -24,6 +24,7 @@ from hub_toolbox.io import load_dexter, random_sparse_matrix
 from hub_toolbox.knn_classification import \
     score, predict, f1_score, r_precision, f1_macro, f1_micro, f1_weighted
 
+
 class TestKnnClassification(unittest.TestCase):
 
     def setUp(self):
@@ -34,7 +35,7 @@ class TestKnnClassification(unittest.TestCase):
         del self.distance, self.label, self.vector
 
     def test_r_precision_does_not_error(self):
-        ''' Does not test correctness of result! '''
+        """ Does not test correctness of result! """
         sim = csr_matrix(1 - self.distance)
         y = self.label
         r = r_precision(sim, y, metric='similarity', return_y_pred=1,
@@ -49,12 +50,12 @@ class TestKnnClassification(unittest.TestCase):
 
     def test_r_precision(self):
         y = [    0,   1,   1,   0,   1 , 2]
-        sim = [[1.0, 0.6, 0.0, 0.0, 0.0, 0], # 0 / 1 .. 1 nnz
-               [0.6, 1.0, 0.0, 0.0, 0.7, 0], # 1 / 2 .. 2 nnz
-               [0.0, 0.0, 1.0, 0.0, 0.0, 0], # 0 / 2 .. 0 nnz
-               [0.0, 0.0, 0.0, 1.0, 0.0, 0], # 0 / 1 .. 0 nnz
-               [0.0, 0.7, 0.0, 0.0, 1.0, 0], # 1 / 2 .. 1 nnz
-               [0.0, 0.0, 0.0, 0.0, 0.0, 1]] # 0 / 0 .. 1 nnz
+        sim = [[1.0, 0.6, 0.0, 0.0, 0.0, 0],  # 0 / 1 .. 1 nnz
+               [0.6, 1.0, 0.0, 0.0, 0.7, 0],  # 1 / 2 .. 2 nnz
+               [0.0, 0.0, 1.0, 0.0, 0.0, 0],  # 0 / 2 .. 0 nnz
+               [0.0, 0.0, 0.0, 1.0, 0.0, 0],  # 0 / 1 .. 0 nnz
+               [0.0, 0.7, 0.0, 0.0, 1.0, 0],  # 1 / 2 .. 1 nnz
+               [0.0, 0.0, 0.0, 0.0, 0.0, 1]]  # 0 / 0 .. 1 nnz
         sim = csr_matrix(np.array(sim))
         y = np.array(y)
         r = r_precision(sim, y, metric='similarity', return_y_pred=2,
@@ -68,7 +69,7 @@ class TestKnnClassification(unittest.TestCase):
         return self.assertListEqual([rpw, rpm, rppiw], [0.25, 1/6, rpw])
 
     def test_knn_sparse_does_not_error(self):
-        ''' Does not test correctness of result! '''
+        """ Does not test correctness of result! """
         sim = random_sparse_matrix(100, 0.1)
         y = np.random.randint(0, 2, 100)
         acc, _, _ = score(sim, y, k=[1,5,10], metric='similarity')
@@ -88,7 +89,7 @@ class TestKnnClassification(unittest.TestCase):
         knn = KNeighborsClassifier(
             n_neighbors=5, algorithm='brute', metric='precomputed')
         n = self.distance.shape[0] # for LOO-CV
-        try: # sklearn < 0.18
+        try:  # sklearn < 0.18
             loo_cv = LeaveOneOut(n)
         except TypeError:
             loo_cv = LeaveOneOut()
@@ -205,6 +206,7 @@ class TestKnnClassification(unittest.TestCase):
         acc, _, _ = score(D=D, target=y, k=2, metric='distance', 
                           sample_idx=sample_idx)
         return self.assertEqual(expected_acc, acc[0, 0])
+
 
 if __name__ == "__main__":
     unittest.main()

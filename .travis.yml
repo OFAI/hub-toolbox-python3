@@ -16,6 +16,7 @@ install:
 - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy pandas scikit-learn
   coverage
 - source activate test-environment
+- pip install pybind11
 - pip install coveralls joblib falconn nmslib
 - python setup.py build
 - python setup.py install

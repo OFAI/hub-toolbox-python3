@@ -10,8 +10,7 @@ hub-toolbox-matlab
 
 The Hub Toolbox was originally developed for Matlab/Octave. 
 We still provide these scripts, however, development is limited to bugfixing.
-No new functionality will be added (you may, however, get in contact with us 
-at GitHub, if you wish to contribute).
+No new functionality will be added.
 The `Hub Toolbox for Matlab <https://github.com/OFAI/hub-toolbox-matlab>`_ 
 supports:
 

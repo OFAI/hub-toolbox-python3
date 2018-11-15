@@ -16,8 +16,8 @@ from sklearn.model_selection import train_test_split
 from hub_toolbox import approximate
 from sklearn.metrics.classification import accuracy_score
 
-class ApproximateHRTest(unittest.TestCase):
 
+class ApproximateHRTest(unittest.TestCase):
 
     def setUp(self):
         n_samples = 500
@@ -82,6 +82,7 @@ class ApproximateHRTest(unittest.TestCase):
         hr = approximate.ApproximateHubnessReduction()
         return self.assertIn(hr.hr_algorithm, self.hr_algorithms)
 
+
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

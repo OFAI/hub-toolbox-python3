@@ -153,7 +153,7 @@ This will print a rather lengthy result log:
 Interpreting the results
 ========================
 
-Let us disect these results: The first block appears, because we did not 
+Let us dissect these results: The first block appears, because we did not
 provide any parameters, when instantiating 
 :class:`HubnessAnalysis <hub_toolbox.HubnessAnalysis>`.  It thus goes 
 into example mode and tells you a little bit about the dataset being used.
@@ -166,7 +166,7 @@ Here, an experiment comprises the following:
    changes vector data)
 #. hubness and additional measures of hubs and anti-hubs are calculated
    (in this case twice, for two different neighborhood sizes)
-#. k-nearest neighbor classification leave-one-out crossvalidation is
+#. k-nearest neighbor classification leave-one-out cross-validation is
    performed (in this case three times, for three different values of `k`)
 #. the Goodman-Kruskal index is calculated for the secondary distance matrix
 
@@ -378,3 +378,9 @@ functions, so you may invoke them for example like this:
 	
 to obtain shared nearest neighbor distances.
 
+Approximate hubness reduction
+-----------------------------
+TODO
+
+For now, please consider the docstrings. If in doubt, please don't hesitate to
+contact the author.

@@ -50,8 +50,9 @@ VALID_METRICS = ['sqeuclidean', 'cosine', 'precomputed']
 VALID_PREDICTORS = ['knn']
 log = ConsoleLogging()
 
+
 def enforce_finite_distances(arr):
-    ''' Replace non-finite distances with the max. distance'''
+    """ Replace non-finite distances with the max. distance"""
     fin_ind = np.isfinite(arr)
     nonfin_ind = ~fin_ind
     # Replace, iff there are any non-finite distances
@@ -63,9 +64,10 @@ def enforce_finite_distances(arr):
         arr[nonfin_ind] = d_max
     return arr
 
-#=============================================================================
+
+# =============================================================================
 # HELPER FUNCTIONS FOR MULTIPROCESSING
-#=============================================================================
+# =============================================================================
 def _load_shared_data(X_train_=None, X_test_=None,
                       ind_train_=None, ind_test_=None,
                       D_train_=None, D_test_=None,
@@ -83,6 +85,7 @@ def _load_shared_data(X_train_=None, X_test_=None,
     ann_index = ann_index_
     counter = counter_
 
+
 def _shared_lsh(X_train_, ind_train_, D_train_, lsh_index_, num_probes,
                 counter_=None):
     global X_train, ind_train, D_train, ann_index, counter
@@ -92,6 +95,7 @@ def _shared_lsh(X_train_, ind_train_, D_train_, lsh_index_, num_probes,
     ann_index = lsh_index_.construct_query_object()
     ann_index.set_num_probes(num_probes)
     counter = counter_
+
 
 def _shared_lsh_trafo(X_train_, X_test_, ind_test_, D_test_,
                       lsh_index_, num_probes, counter_=None):
@@ -103,6 +107,7 @@ def _shared_lsh_trafo(X_train_, X_test_, ind_test_, D_test_,
     ann_index = lsh_index_.construct_query_object()
     ann_index.set_num_probes(num_probes)
     counter = counter_
+
 
 def _lsh_filt(i, k, metric, verbose):
     n_train = X_train.shape[0]
@@ -130,6 +135,7 @@ def _lsh_filt(i, k, metric, verbose):
         ind_train[i, knn.size:] = knn[-1]
         D_train[i, knn.size:] = D_train[i].max()
 
+
 def _lsh_trafo(i, k, metric, verbose):
     n_test = X_test.shape[0]
     progress = counter.increment_and_get_value()
@@ -155,6 +161,7 @@ def _lsh_trafo(i, k, metric, verbose):
         ind_test[i, lsh_nn.size:] = lsh_nn[-1]
     D_test[i, lsh_nn.size:] = D_test[i].max()
 
+
 def _mp_hnsw(i, n_train, n_test, n_samples, verbose):
     progress = counter.increment_and_get_value()
     if verbose > 2 or verbose > 1 and (
@@ -173,6 +180,7 @@ def _mp_hnsw(i, n_train, n_test, n_samples, verbose):
             range(n_train), mp_complement, assume_unique=True)
         D_sec[i, j] = 1 - mp_ind.size / n_train
 
+
 def _mp_lsh(i, n_train, n_test, n_samples, verbose):
     progress = counter.increment_and_get_value()
     if verbose > 2 or verbose > 1 and (
@@ -190,6 +198,7 @@ def _mp_lsh(i, n_train, n_test, n_samples, verbose):
             range(n_train), mp_complement, assume_unique=True)
         D_sec[i, j] = 1 - mp_ind.size / n_train
 
+
 def _mp_full(i, n_train, n_test, n_samples, verbose):
     progress = counter.increment_and_get_value()
     if verbose > 2 or verbose > 1 and (
@@ -202,9 +211,10 @@ def _mp_full(i, n_train, n_test, n_samples, verbose):
     n_pts = n_samples
     D_sec[i, :] = 1 - (np.sum((dI > d) & (dJ > d), axis=1) / n_pts)
 
-#=============================================================================
+
+# =============================================================================
 # INSTANCE SELECTION ALGORITHMS
-#=============================================================================
+# =============================================================================
 def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
              n_local_trials=None, return_ind=True, metric='sqeuclidean'):
     """Select vantage points according to k-means++
@@ -331,6 +341,7 @@ def kmeanspp(X, n_clusters, x_squared_norms=None, random_state=None,
         return centers, ind
     else:
         return centers
+
 
 class SuQHR(BaseEstimator, TransformerMixin):
     """ Approximate hubness reduction with subquadratic complexity.
@@ -475,7 +486,6 @@ class SuQHR(BaseEstimator, TransformerMixin):
             raise ValueError(f"Verbosity level 'verbose' must be >= 0, "
                              f"but was {verbose}.")
 
-
     def _times(self, action, times_start, times_end):
         t = dict()
         t['user'] = times_end.user - times_start.user
@@ -530,9 +540,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return X_norm_squared
 
     ##########################################################################
-    ##
-    ##  Sampling and filtering methods 
-    ##
+    #
+    # Sampling and filtering methods
+    #
     def _random_sampling(self, X, y=None):
         random_state = check_random_state(self.random_state)
         n_classes = np.unique(y).size # Also works for y=None
@@ -585,10 +595,10 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return X, y, ind, x_squared_norms
 
     def _hnsw_filtering(self, X, k):
-        ''' Find k approx. nearest neighbors for each vector in X with HNSW.
+        """ Find k approx. nearest neighbors for each vector in X with HNSW.
 
         Returns indices of neighbors per object, their distances,
-        and the HNSW index.'''
+        and the HNSW index."""
         # Initialize a new index, using a HNSW index on Eucl distances
         # or cosine similarities.
         n_train = X.shape[0]
@@ -602,7 +612,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
             space = 'l2'
         elif self.metric == 'cosine':
             space = 'cosinesimil'
-        #else:
+        # else:
         #    raise ValueError(f'Invalid metric "{self.metric}". '
         #                     f'This indicates a software bug.')
         else:
@@ -623,8 +633,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         ind = np.zeros((n_train, k), dtype=np.int32) * n_train
         D_train = np.zeros_like(ind, dtype=X.dtype) * np.nan
         for i, (idx, dist) in enumerate(neigh_dist):
-            if self.verbose > 2 or self.verbose > 1 and (
-                i % 1000 == 0 or i == n_train-1):
+            if self.verbose > 2 or self.verbose > 1 and (i % 1000 == 0 or i == n_train-1):
                 log.message(f"HNSW-Filtering: {i+1}/{n_train}.", flush=True)
             ind[i, :idx.size-1] = idx[1:]
             D_train[i, :dist.size-1] = dist[1:]
@@ -647,8 +656,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
         ind = np.zeros((n_test, k), dtype=np.int32) * self.X_train_.shape[0]
         D_test = np.empty_like(ind, dtype=X.dtype) * np.nan
         for i, (idx, dist) in enumerate(neigh_dist):
-            if self.verbose > 2 or self.verbose > 1 and (
-                i % 1000 == 0 or i == n_test-1):
+            if self.verbose > 2 or self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
                 log.message(f"HNSW-Transformation: {i+1}/{n_test}", flush=True)
             ind[i, :idx.size] = idx
             D_test[i, :dist.size] = dist
@@ -663,16 +671,16 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return ind, D_test
 
     def _lsh_filtering(self, X, k):
-        ''' Find k approximate nearest neighbors for each vector in X with LSH.
+        """ Find k approximate nearest neighbors for each vector in X with LSH.
 
         Returns indices of neighbors per object, their distances,
-        and the LSH index.'''
+        and the LSH index."""
         n_train = X.shape[0]
         if self.metric == 'sqeuclidean':
             distance = falconn.DistanceFunction.EuclideanSquared  # @UndefinedVariable
         elif self.metric == 'cosine':
             distance = falconn.DistanceFunction.NegativeInnerProduct  # @UndefinedVariable
-        #else:
+        # else:
         #    raise ValueError(f'Invalid metric "{self.metric}". '
         #                     f'This indicates a software bug.')
         else:
@@ -695,8 +703,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
             ind = np.empty((n_train, k), dtype=np.int32)
             D_train = np.empty_like(ind, dtype=X.dtype)
             for i, x in enumerate(X):
-                if self.verbose > 2 or self.verbose > 1 and (
-                    i % 1000 == 0 or i == n_train-1):
+                if self.verbose > 2 or self.verbose > 1 and (i % 1000 == 0 or i == n_train-1):
                     log.message(f"LSH-Filtering: {i+1}/{n_train}", flush=True)
                 # LSH will find object itself as 1-NN
                 knn = np.array(query.find_k_nearest_neighbors(x, k=k+1))[1:]
@@ -722,11 +729,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
                       initializer=_shared_lsh,
                       initargs=(X, ind, D_train, lsh_index,
                                 num_probes, counter)) as pool:
-                    for _ in pool.map(
-                        func=partial(_lsh_filt, k=k, metric=self.metric,
-                                     verbose=self.verbose),
-                        iterable=range(n_train)):
-                        pass # results handled within func
+                    for _ in pool.map(func=partial(_lsh_filt, k=k, metric=self.metric, verbose=self.verbose),
+                                      iterable=range(n_train)):
+                        pass  # results handled within func
         self.lsh_index_ = lsh_index
         return ind, D_train, query
 
@@ -737,8 +742,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
             D_test = np.empty((n_test, k), dtype=X.dtype)
             ind = np.empty_like(D_test, dtype=np.int32)
             for i, x in enumerate(X):
-                if self.verbose > 2 or self.verbose > 1 and (
-                    i % 1000 == 0 or i == n_test-1):
+                if self.verbose > 2 or self.verbose > 1 and (i % 1000 == 0 or i == n_test-1):
                     log.message(f"LSH-Transformation: {i+1}/{n_test}.",
                                 flush=True)
                 lsh_nn = np.array(
@@ -770,17 +774,15 @@ class SuQHR(BaseEstimator, TransformerMixin):
                       initargs=(self.X_train_, X, ind, D_test,
                                 self.lsh_index_, self.num_probes_,
                                 counter)) as pool:
-                    for _ in pool.map(
-                        func=partial(_lsh_trafo, k=k, metric=metric,
-                                     verbose=self.verbose),
-                        iterable=range(n_test)):
-                        pass # results handled within func
+                    for _ in pool.map(func=partial(_lsh_trafo, k=k, metric=metric, verbose=self.verbose),
+                                      iterable=range(n_test)):
+                        pass  # results handled within func
         return ind, D_test
 
     ##########################################################################
-    ##
-    ##  Baseline without hubness reduction
-    ##
+    #
+    # Baseline without hubness reduction
+    #
     def _fit_without_hr(self, X, y=None):
         k = self.n_samples
         # Sampling
@@ -836,7 +838,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
                     Y_norm_squared=self.X_train_norm_squared_, squared=True)
             elif self.metric == 'cosine':
                 D_test = cosine_distances(X=X, Y=self.X_train_)
-            #else:
+            # else:
             #    raise ValueError(f'Invalid metric "{self.metric}". '
             #                     f'This indicates a software bug.')
             else:
@@ -852,9 +854,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return None
 
     ##########################################################################
-    ##
-    ##  Mutual proximity using empiric distance distributions ('exact' MP)
-    ##
+    #
+    # Mutual proximity using empiric distance distributions ('exact' MP)
+    #
     def _fit_mp(self, X, y=None):
         k = self.n_samples
         n_train, _ = X.shape
@@ -1000,9 +1002,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return
 
     ##########################################################################
-    ##
-    ##  Mutual proximity assuming independent Gaussian distance distributions
-    ##
+    #
+    # Mutual proximity assuming independent Gaussian distance distributions
+    #
     def _fit_mpg(self, X, y=None):
         n_train, _ = X.shape
         k = self.n_samples
@@ -1096,9 +1098,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
 
 
     ##########################################################################
-    ##
-    ##  Local scaling / NICDM
-    ##
+    #
+    # Local scaling / NICDM
+    #
     def _fit_ls(self, X, y=None):
         k = self.n_samples
         kth = self.n_neighbors
@@ -1209,9 +1211,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
 
 
     ##########################################################################
-    ##
-    ##  DisSim Local
-    ##
+    #
+    # DisSim Local
+    #
     def _fit_dsl(self, X, y=None):
         kth = self.n_neighbors
         # Sampling
@@ -1344,7 +1346,7 @@ class SuQHR(BaseEstimator, TransformerMixin):
 
 
     def _predict_knn(self, X):
-        ''' Predict class labels wiht k-nearest neighbor classifier. '''
+        """ Predict class labels wiht k-nearest neighbor classifier. """
         try:
             n_neighbors = self.kwargs['knn__n_neighbors']
         except KeyError:
@@ -1379,9 +1381,9 @@ class SuQHR(BaseEstimator, TransformerMixin):
         return y_pred
 
     ##########################################################################
-    ##
-    ##  General methods - fit, predict, etc.
-    ##
+    #
+    # General methods - fit, predict, etc.
+    #
     def fit(self, X, y=None):
         """Setup the nearest neighbor index and/or sampling and/or filtering.
 

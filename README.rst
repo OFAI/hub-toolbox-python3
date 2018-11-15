@@ -18,10 +18,10 @@
 HUB-TOOLBOX
 ===========
 
-The Hub Toolbox is a collection of scripts for the analysis and 
-reduction of hubness in high-dimensional data. 
+The Hub Toolbox is a software suite for hubness analysis and
+hubness reduction in high-dimensional data.
 
-It allows you to
+It allows to
 
 - analyze, whether your datasets show hubness
 - reduce hubness via a variety of different techniques 
@@ -29,12 +29,18 @@ It allows you to
   and obtain secondary distances for downstream analysis inside or 
   outside the Hub Toolbox
 - perform evaluation tasks with both internal and external measures
-  (e.g. Goodman-Kruskal index and k-NN classification) 
+  (e.g. Goodman-Kruskal index and k-NN classification)
+- NEW IN 2.5:
+  The ``approximate`` module provides approximate hubness reduction methods
+  with linear complexity which allow to analyze large datasets.
+- NEW IN 2.5:
+  Measure hubness with the recently proposed Robin-Hood index
+  for fast and reliable hubness estimation.
 	
 Installation
 ------------
 
-Make sure you have a working Python3 environment (at least 3.4) with
+Make sure you have a working Python3 environment (at least 3.6) with
 numpy, scipy and scikit-learn packages. Use pip3 to install the latest 
 stable version:
 
@@ -120,7 +126,7 @@ here on GitHub.
 
 .. code-block:: text
 
-	(c) 2011-2017, Dominik Schnitzer and Roman Feldbauer
+	(c) 2011-2018, Dominik Schnitzer and Roman Feldbauer
 	Austrian Research Institute for Artificial Intelligence (OFAI)
 	Contact: <roman.feldbauer@ofai.at>
 

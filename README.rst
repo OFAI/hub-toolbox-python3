@@ -137,50 +137,40 @@ If you use the Hub Toolbox in your scientific publication, please cite:
 
 .. code-block:: text
 
-	@Inbook{Feldbauer2016,
+	@Inbook{Feldbauer2018b,
 		author="Feldbauer, Roman
+		and Leodolter, Maximilian
+		and Plant, Claudia
 		and Flexer, Arthur",
-		editor="Villa, E.P. Alessandro
-		and Masulli, Paolo
-		and Pons Rivero, Javier Antonio",
-		title="Centering Versus Scaling for Hubness Reduction",
-		bookTitle="Artificial Neural Networks and Machine Learning -- ICANN 2016: 25th International Conference on Artificial Neural Networks, Barcelona, Spain, September 6-9, 2016, Proceedings, Part I",
-		year="2016",
-		publisher="Springer International Publishing",
-		address="Cham",
-		pages="175--183",
-		isbn="978-3-319-44778-0",
-		doi="10.1007/978-3-319-44778-0_21",
-		url="http://dx.doi.org/10.1007/978-3-319-44778-0_21"
+		editor="",
+		title="Fast approximate hubness reduction for large high-dimensional data",
+		bookTitle="IEEE International Conference on Big Knowledge, Singapore, 2018",
+		year="2018",
+		publisher="IEEE",
+		address="",
+		pages="",
+		isbn="",
+		doi="",
+		url="",
+		notes="(in press)"
 		}
 
-or
+(We expect the proceedings to published by the IEEE in Dec 2018).
 
-.. code-block:: text
+Relevant literature:
 
-	@article{schnitzer2012local,
-		 title={Local and global scaling reduce hubs in space},
-		 author={Schnitzer, Dominik and Flexer, Arthur and 
-		 		 Schedl, Markus and Widmer, Gerhard},
-		 journal={Journal of Machine Learning Research},
-		 volume={13},
-		 pages={2871--2902},
-		 year={2012}
-	}
+2018: ``Fast approximate hubness reduction for large high-dimensional data``, available as
+technical report at `<http://www.ofai.at/cgi-bin/tr-online?number+2018-02>`_.
 
-The technical report ``Centering Versus Scaling for Hubness Reduction`` is
-available at 
-`<http://www.ofai.at/cgi-bin/tr-online?number+2016-05>`_ .
+2018: ``A comprehensive empirical comparison of hubness reduction in high-dimensional spaces``,
+full paper available at https://doi.org/10.1007/s10115-018-1205-y
 
-The full JMLR paper is available at 
+2016: ``Centering Versus Scaling for Hubness Reduction``, available as technical report
+at `<http://www.ofai.at/cgi-bin/tr-online?number+2016-05>`_ .
+
+2012: ``Local and Global Scaling Reduce Hubs in Space``, full paper available at
 `<http://www.jmlr.org/papers/v13/schnitzer12a.html>`_ .
 
 License
 -------
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
-
-Acknowledgements
-----------------
-PyVmMonitor is being used to support the development of this free open source 
-software package. For more information go to http://www.pyvmmonitor.com
-	

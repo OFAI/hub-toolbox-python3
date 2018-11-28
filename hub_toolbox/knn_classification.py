@@ -633,8 +633,8 @@ def r_precision(S:np.ndarray, y:np.ndarray, metric:str='distance',
         log.message("Finishing.")
     if n_random_pred.value:
         log.warning(("{} queries were classified randomly, because all "
-            "distances were non-finite numbers or there were no other "
-            "objects in the same class.").format(n_random_pred.value))
+                     "distances were non-finite numbers or there were no other "
+                     "objects in the same class.").format(n_random_pred.value))
     return_dict = {'macro' : r_prec.mean(),
                    'weighted' : np.average(r_prec, weights=relevant_items[y]),
                    'per_item' : r_prec,

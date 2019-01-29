@@ -29,38 +29,41 @@ __all__ = ['HubnessAnalysis']
 
 CITATION = \
 """
-Feldbauer, R., Flexer, A.: Centering Versus Scaling for Hubness Reduction.
-In: Villa, E.P.A., Masulli, P., Pons Rivero, J.A. (eds.) ICANN 2016, part I.
-LNCS, vol. 9886, pp. 175–183. Springer International Publishing, Cham (2016).
-(tech report available at http://www.ofai.at/cgi-bin/tr-online?number+2016-05)
+R. Feldbauer, M. Leodolter, C. Plant and A. Flexer,
+"Fast Approximate Hubness Reduction for Large High-Dimensional Data",
+2018 IEEE International Conference on Big Knowledge (ICBK), Singapore, 2018,
+pp. 358-367. doi: 10.1109/ICBK.2018.00055
+(tech report available at http://www.ofai.at/cgi-bin/tr-online?number+2018-02)
 
 or
 
-Schnitzer, D., Flexer, A., Schedl, M., Widmer, G.: Local and global scaling
-reduce hubs in space. J. Mach. Learn. Res. 13(1), 2871–2902 (2012).
-(full paper available at http://www.jmlr.org/papers/v13/schnitzer12a.html)
+R. Feldbauer, A. Flexer, "A comprehensive empirical comparison of hubness reduction in high-dimensional spaces"
+Knowledge and Information Systems, 2018, https://doi.org/10.1007/s10115-018-1205-y
 """
 
-def _primary_distance(D:np.ndarray, metric):
+
+def _primary_distance(D: np.ndarray, metric):
     """Return `D`, identical. (Dummy function.)"""
     return D
 
-# New types of hubness reduction methods must be added here
-SEC_DIST = {'mp' : mutual_proximity_empiric,
-            'mp_gaussi' : mutual_proximity_gaussi,
-            'mp_gammai' : mutual_proximity_gammai,
-            'ls' : local_scaling,
-            'nicdm' : nicdm,
-            'snn' : shared_nearest_neighbors,
-            'cent' : centering,
-            'wcent' : weighted_centering,
-            'lcent' : localized_centering,
-            'dsg' : dis_sim_global,
-            'dsl' : dis_sim_local,
-            'orig' : _primary_distance # a dummy function
-           }
 
-class HubnessAnalysis():
+# New types of hubness reduction methods must be added here
+SEC_DIST = {'mp': mutual_proximity_empiric,
+            'mp_gaussi': mutual_proximity_gaussi,
+            'mp_gammai': mutual_proximity_gammai,
+            'ls': local_scaling,
+            'nicdm': nicdm,
+            'snn': shared_nearest_neighbors,
+            'cent': centering,
+            'wcent': weighted_centering,
+            'lcent': localized_centering,
+            'dsg': dis_sim_global,
+            'dsl': dis_sim_local,
+            'orig': _primary_distance  # a dummy function
+            }
+
+
+class HubnessAnalysis:
     """The main hubness analysis class.
 
     For more detailed analyses (optimizing parameters, using similarity data,
@@ -68,12 +71,14 @@ class HubnessAnalysis():
 
     Examples
     --------
-    >>> from hub_toolbox.HubnessAnalysis import HubnessAnalysis
+    >>> from hub_toolbox.hubness_analysis import HubnessAnalysis
     >>> hub = HubnessAnalysis()
-    >>> hub.analyse_hubness()
+    >>> hub.analyze_hubness()
 
-    >>> hub = HubnessAnalysis(D, classes, vectors)
-    >>> hub.analyse_hubness()
+    >>> from hub_toolbox.io import load_dexter
+    >>> D, y, X = load_dexter()
+    >>> hub = HubnessAnalysis(D, classes=y, vectors=X)
+    >>> hub.analyze_hubness()
 
     Notes
     -----
@@ -87,11 +92,11 @@ class HubnessAnalysis():
 
     See also
     --------
-    analyse_hubness : additional parameters (e.g. k-occurence, k-NN)
+    analyse_hubness : additional parameters (e.g. k-occurrence, k-NN)
     """
 
-    def __init__(self, D:np.ndarray=None, classes:np.ndarray=None,
-                 vectors:np.ndarray=None, metric:str='distance'):
+    def __init__(self, D: np.ndarray = None, classes: np.ndarray = None,
+                 vectors: np.ndarray = None, metric: str = 'distance'):
         """Initialize a quick hubness analysis.
 
         Parameters
@@ -143,18 +148,18 @@ class HubnessAnalysis():
 
     @property
     def _header(self):
-        return {'mp' : "MUTUAL PROXIMITY (Empiric)",
-                'mp_gaussi' : "MUTUAL PROXIMITY (Independent Gaussians)",
-                'mp_gammai' : "MUTUAL PROXIMITY (Independent Gamma)",
-                'ls' : "LOCAL SCALING (original)",
-                'nicdm' : "LOCAL SCALING (NICDM)",
-                'snn' : "SHARED NEAREST NEIGHBORS",
-                'cent' : "CENTERING",
-                'wcent' : "WEIGHTED CENTERING",
-                'lcent' : "LOCALIZED CENTERING",
-                'dsg' : "DISSIM GLOBAL",
-                'dsl' : "DISSIM LOCAL",
-                'orig' : "ORIGINAL DATA"}
+        return {'mp': "MUTUAL PROXIMITY (Empiric)",
+                'mp_gaussi': "MUTUAL PROXIMITY (Independent Gaussians)",
+                'mp_gammai': "MUTUAL PROXIMITY (Independent Gamma)",
+                'ls': "LOCAL SCALING (original)",
+                'nicdm': "LOCAL SCALING (NICDM)",
+                'snn': "SHARED NEAREST NEIGHBORS",
+                'cent': "CENTERING",
+                'wcent': "WEIGHTED CENTERING",
+                'lcent': "LOCALIZED CENTERING",
+                'dsg': "DISSIM GLOBAL",
+                'dsl': "DISSIM LOCAL",
+                'orig': "ORIGINAL DATA"}
 
     def _calc_intrinsic_dim(self):
         """Calculate intrinsic dimension estimate."""
@@ -163,7 +168,7 @@ class HubnessAnalysis():
 
     def analyze_hubness(self, experiments="orig,mp,mp_gaussi,nicdm,cent,dsg",
                         hubness_k=(5, 10), knn_k=(1, 5, 20),
-                        print_results=True, verbose:int=0):
+                        print_results=True, verbose: int = 0):
         """Analyse hubness in original data and rescaled distances.
 
         Parameters
@@ -211,8 +216,10 @@ class HubnessAnalysis():
                 print("Experiment {}/{} ({})".
                       format(i+1, len(experiments), exp_type), end="\r")
             experiment = HubnessExperiment(D=self.D,
-                secondary_distance_type=exp_type, metric=self.metric,
-                classes=self.classes, vectors=self.vectors)
+                                           secondary_distance_type=exp_type,
+                                           metric=self.metric,
+                                           classes=self.classes,
+                                           vectors=self.vectors)
             if self.D is not None:
                 experiment._calc_secondary_distance()
                 for k in hubness_k:
@@ -311,12 +318,13 @@ class HubnessAnalysis():
             print()
         return
 
-class HubnessExperiment():
+
+class HubnessExperiment:
     """Perform a single hubness experiment"""
 
-    def __init__(self, D:np.ndarray, secondary_distance_type:str,
-                 metric:str='distance', classes:np.ndarray=None,
-                 vectors:np.ndarray=None):
+    def __init__(self, D: np.ndarray, secondary_distance_type: str,
+                 metric: str = 'distance', classes: np.ndarray = None,
+                 vectors: np.ndarray = None):
         """Initialize a hubness experiment"""
 
         io.check_distance_matrix_shape(D)
@@ -363,7 +371,7 @@ class HubnessExperiment():
                                  format(self.secondary_distance_type))
         return self
 
-    def _calc_hubness(self, k:int=5):
+    def _calc_hubness(self, k: int = 5):
         """Calculate hubness (skewness of `k`-occurence).
 
         Also calculate percentage of anti hubs (`k`-occurence == 0) and
@@ -376,7 +384,7 @@ class HubnessExperiment():
         self.max_hub_k_occurence[k] = 100 * N_k.max() / self.n
         return self
 
-    def _calc_knn_accuracy(self, k:int=5):
+    def _calc_knn_accuracy(self, k: int = 5):
         """Calculate `k`-NN accuracy."""
         acc, _, _ = score(D=self.secondary_distance, target=self.classes,
                           k=k, metric=self.metric)
@@ -389,6 +397,7 @@ class HubnessExperiment():
                                               classes=self.classes,
                                               metric=self.metric)
         return self
+
 
 if __name__ == "__main__":
     hub = HubnessAnalysis()

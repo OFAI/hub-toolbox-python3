@@ -11,7 +11,7 @@ Austrian Research Institute for Artificial Intelligence (OFAI)
 Contact: <roman.feldbauer@ofai.at>
 """
 
-__version__ = '2.5'
+__version__ = '2.5.2'
 
 try:
     import numpy

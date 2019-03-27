@@ -174,3 +174,9 @@ at `<http://www.ofai.at/cgi-bin/tr-online?number+2016-05>`_ .
 License
 -------
 The HUB TOOLBOX is licensed under the terms of the GNU GPLv3.
+
+Acknowledgements
+----------------
+PyVmMonitor is being used to support the development of this free open source 
+software package. For more information go to http://www.pyvmmonitor.com
+

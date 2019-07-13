@@ -18,6 +18,22 @@
 HUB-TOOLBOX
 ===========
 
+#-----------------------------------------------------------------------------------
+
+Checkout our new project `scikit-hubness <https://github.com/VarIr/scikit-hubness>`_
+which provides the functionality of the Hub-Toolbox while integrating nicely into
+`scikit-learn` workflows.
+
+Use `skhubness.neighbors` as a drop-in replacement for `sklearn.neighbors`.
+It offers the same functionality and adds transparent support for hubness reduction,
+approximate nearest neighbor search (HNSW, LSH), and approximate hubness reduction.
+
+We strive to improve usability of hubness reduction with the development of
+`scikit-hubness`, and we are very interested in
+`user feedback <https://github.com/VarIr/scikit-hubness/issues>`_!
+
+#-----------------------------------------------------------------------------------
+
 The Hub Toolbox is a software suite for hubness analysis and
 hubness reduction in high-dimensional data.
 

@@ -62,6 +62,12 @@ def enforce_finite_distances(arr):
         else:
             d_max = 1
         arr[nonfin_ind] = d_max
+
+    # sklearn does not allow negative values in distance matrices
+    arr_min = arr.min()
+    if arr_min < 0:
+        arr += (-arr_min)
+
     return arr
 
 

@@ -93,34 +93,34 @@ See how you can conduct the individual analysis steps:
 	import hub_toolbox
 	
 	# load the DEXTER example dataset
-	D, labels, vectors = hub_toolbox.IO.load_dexter()
+	D, labels, vectors = hub_toolbox.io.load_dexter()
 
 	# calculate intrinsic dimension estimate
-	d_mle = hub_toolbox.IntrinsinDim.intrinsic_dimension(vectors)
+	d_mle = hub_toolbox.intrinsic_dimension.intrinsic_dimension(vector)
 	
 	# calculate hubness (here, skewness of 5-occurence)
-	S_k, _, _ = hub_toolbox.Hubness.hubness(D=D, k=5, metric='distance')
-	
+	S_k, _, _ = hub_toolbox.hubness.hubness(D=D, k=5, metric='distance')
+
 	# perform k-NN classification LOO-CV for two different values of k
-	acc, _, _ = hub_toolbox.KnnClassification.score(
-		D=D, target=labels, k=[1,5], metric='distance')
+	acc, _, _ = hub_toolbox.knn_classification.score(
+                D=D, target=labels, k=[1,5], metric='distance')
 
 	# calculate Goodman-Kruskal index
-	gamma = hub_toolbox.GoodmanKruskal.goodman_kruskal_index(
-		D=D, classes=labels, metric='distance')
+	gamma = hub_toolbox.goodman_kruskal.goodman_kruskal_index(
+	    D=D, classes=labels, metric='distance')
 	 	
 	# Reduce hubness with Mutual Proximity (Empiric distance distribution)
-	D_mp = hub_toolbox.MutualProximity.mutual_proximity_empiric(
-		D=D, metric='distance')
+	D_mp = hub_toolbox.global_scaling.mutual_proximity_empiric(
+	    D=D, metric='distance')
 		
 	# Reduce hubness with Local Scaling variant NICDM
-	D_nicdm = hub_toolbox.LocalScaling.nicdm(D=D, k=10, metric='distance')
+	D_nicdm = hub_toolbox.local_scaling.nicdm(D=D, k=10, metric='distance')
 	
 	# Check whether indices improve after hubness reduction
-	S_k_mp, _, _ = hub_toolbox.Hubness.hubness(D=D_mp, k=5, metric='distance')
-	acc_mp, _, _ = hub_toolbox.KnnClassification.score(
+	S_k_mp, _, _ = hub_toolbox.hubness.hubness(D=D_mp, k=5, metric='distance')
+	acc_mp, _, _ = hub_toolbox.knn_classification.score(
 		D=D_mp, target=labels, k=[1,5], metric='distance')
-	gamma_mp = hub_toolbox.GoodmanKruskal.goodman_kruskal_index(
+	gamma_mp = hub_toolbox.goodman_kruskal.goodman_kruskal_index(
 		D=D_mp, classes=labels, metric='distance')
 		
 	# Repeat the last steps for all secondary distances you calculated
@@ -134,11 +134,9 @@ for in-depth explanations of the same.
 Development
 -----------
 
-The Hub Toolbox is a work in progress. Get in touch with us if you have
-comments, would like to see an additional feature implemented, would like
-to contribute code or have any other kind of issue. Please don't hesitate
-to file an `issue <https://github.com/OFAI/hub-toolbox-python3/issues>`_ 
-here on GitHub. 
+Development of the Hub Toolbox has finished. Check out its successor
+`scikit-hubness <https://github.com/VarIr/scikit-hubness>`_ for fully
+scikit-learn compatible hubness analysis and approximate neighbor search.
 
 .. code-block:: text
 
@@ -153,25 +151,18 @@ If you use the Hub Toolbox in your scientific publication, please cite:
 
 .. code-block:: text
 
-	@Inbook{Feldbauer2018b,
-		author="Feldbauer, Roman
-		and Leodolter, Maximilian
-		and Plant, Claudia
-		and Flexer, Arthur",
-		editor="",
-		title="Fast approximate hubness reduction for large high-dimensional data",
-		bookTitle="IEEE International Conference on Big Knowledge, Singapore, 2018",
-		year="2018",
-		publisher="IEEE",
-		address="",
-		pages="",
-		isbn="",
-		doi="",
-		url="",
-		notes="(in press)"
-		}
-
-(We expect the proceedings to published by the IEEE in Dec 2018).
+	@InProceedings{Feldbauer2018b,
+                   author        = {Roman Feldbauer and Maximilian Leodolter and Claudia Plant and Arthur Flexer},
+                   title         = {Fast Approximate Hubness Reduction for Large High-Dimensional Data},
+                   booktitle     = {2018 {IEEE} International Conference on Big Knowledge, {ICBK} 2018, Singapore, November 17-18, 2018},
+                   year          = {2018},
+                   editor        = {Xindong Wu and Yew{-}Soon Ong and Charu C. Aggarwal and Huanhuan Chen},
+                   pages         = {358--367},
+                   publisher     = {{IEEE} Computer Society},
+                   bibsource     = {dblp computer science bibliography, https://dblp.org},
+                   biburl        = {https://dblp.org/rec/conf/icbk/FeldbauerLPF18.bib},
+                   doi           = {10.1109/ICBK.2018.00055},
+                 }
 
 Relevant literature:
 

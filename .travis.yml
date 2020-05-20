@@ -47,5 +47,5 @@ deploy:
 # safelist
 branches:
   only:
-  - master
-  - develop
+    - master
+    - develop
